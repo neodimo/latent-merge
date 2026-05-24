@@ -1,0 +1,15 @@
+{
+  "fixture_id": "golden_synthetic_001",
+  "created_utc": "2026-05-24T22:10:54.851997+00:00",
+  "purpose": "Phase 0 deterministic smoke fixture; replace or augment with DiMo-approved production-style fixture when available.",
+  "dimensions": [
+    768,
+    432
+  ],
+  "files": {
+    "plate_rgb": "plate_rgb.png",
+    "cg_rgba": "cg_rgba.png",
+    "alpha": "alpha.png"
+  },
+  "color_note": "Synthetic SDR RGB. Full EXR/ACEScg handling is intentionally deferred past Phase 0."
+}
