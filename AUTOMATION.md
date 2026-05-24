@@ -4,7 +4,7 @@ This cadence is for Bert/Gonzo coordination while the project follows the aggres
 
 ## Daily Work Pulse
 
-Weekdays at 9:15 AM Pacific, Bert should run a short project pulse:
+Weekdays at 7:00 AM Pacific, Bert should run a short project pulse:
 
 - pull current repo state
 - check the active phase and next gate
