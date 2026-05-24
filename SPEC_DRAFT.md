@@ -51,6 +51,7 @@ Phase 1 gate, Sun 2026-05-31 EOD:
 - intermediates include adjusted foreground, final comp, delta, and alpha-weighted delta
 - plate remains byte/visually untouched outside explicit interaction passes
 - a non-author can reproduce the golden output from a clean checkout using README instructions only
+- scaffold runner exists before model integration, with the real model added behind a named backend instead of changing output filenames
 
 Phase 2 gate, Sun 2026-06-07 EOD:
 

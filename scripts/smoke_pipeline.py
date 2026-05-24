@@ -22,6 +22,7 @@ from PIL import Image, ImageDraw, ImageFilter
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_FIXTURE_DIR = ROOT / "fixtures" / "golden_synthetic_001"
 DEFAULT_OUTPUT_DIR = ROOT / "runs" / "phase0_smoke"
+FIXTURE_CREATED_UTC = "2026-05-24T22:10:54.851997+00:00"
 
 
 def sha256_file(path: Path) -> str:
@@ -99,7 +100,7 @@ def create_fixture(fixture_dir: Path) -> dict[str, str]:
 
     manifest = {
         "fixture_id": "golden_synthetic_001",
-        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "created_utc": FIXTURE_CREATED_UTC,
         "purpose": "Phase 0 deterministic smoke fixture; replace or augment with DiMo-approved production-style fixture when available.",
         "dimensions": [width, height],
         "files": {

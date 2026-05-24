@@ -22,6 +22,13 @@ Needed from DiMo/team:
 - ControlCom if accessible
 - DreamLight/CFDiffusion if accessible and practical
 
+## Bert Phase 1 Lane
+
+- Keep `cli/run_phase1.py` stable as the reproducible entrypoint.
+- Add the first real backend behind `core/pipeline.py` without changing output filenames.
+- Preserve `job.json` input hashes, backend metadata, and diagnostics for every run.
+- Treat Nuke as a later thin caller of the CLI/service until the backend produces useful results.
+
 ## Success Criteria
 
 - CG asset identity preserved.
