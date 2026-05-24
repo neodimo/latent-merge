@@ -12,6 +12,7 @@ Origin: Discord `#project-planning`, 2026-05-20.
 - `NEXT_STEPS.md` - immediate bakeoff plan and success criteria
 - `REFERENCES.md` - candidate models, papers, and product baselines
 - `HARDWARE.md` - current local hardware notes and eGPU implications
+- `AUTOMATION.md` - Bert/Gonzo cadence, phase-gate releases, and update format
 
 ## Phase 0 Smoke
 
