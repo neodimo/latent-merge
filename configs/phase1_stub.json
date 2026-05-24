@@ -1,0 +1,4 @@
+{
+  "backend": "mean_match_stub",
+  "notes": "Phase 1 scaffold backend. This preserves the trusted IO shape while a real relight/harmonize model is selected."
+}
