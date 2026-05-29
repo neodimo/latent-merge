@@ -1,0 +1,151 @@
+const fields = {
+  cg: document.getElementById("cgInput"),
+  plate: document.getElementById("plateInput"),
+  alpha: document.getElementById("alphaInput"),
+};
+
+const lists = {
+  cg: document.getElementById("cgList"),
+  plate: document.getElementById("plateList"),
+  alpha: document.getElementById("alphaList"),
+};
+
+const runButton = document.getElementById("runButton");
+const statusEl = document.getElementById("status");
+const gpuSelect = document.getElementById("gpuSelect");
+const sheetView = document.getElementById("sheetView");
+const singleView = document.getElementById("singleView");
+const imageTabs = document.getElementById("imageTabs");
+const singleImage = document.getElementById("singleImage");
+const jobMeta = document.getElementById("jobMeta");
+
+let currentImages = [];
+
+function setStatus(text) {
+  statusEl.textContent = text;
+}
+
+function renderList(input, list) {
+  list.textContent = "";
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+  files.slice(0, 8).forEach((file) => {
+    const item = document.createElement("li");
+    item.textContent = file.name;
+    list.appendChild(item);
+  });
+  if (files.length > 8) {
+    const item = document.createElement("li");
+    item.textContent = `+${files.length - 8} more frames`;
+    list.appendChild(item);
+  }
+}
+
+Object.entries(fields).forEach(([key, input]) => {
+  input.addEventListener("change", () => renderList(input, lists[key]));
+});
+
+document.querySelectorAll("[data-browse]").forEach((button) => {
+  button.addEventListener("click", () => {
+    document.getElementById(button.dataset.browse).click();
+  });
+});
+
+document.querySelectorAll(".dropzone").forEach((zone) => {
+  const input = document.getElementById(zone.dataset.target);
+  zone.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    zone.classList.add("dragging");
+  });
+  zone.addEventListener("dragleave", () => zone.classList.remove("dragging"));
+  zone.addEventListener("drop", (event) => {
+    event.preventDefault();
+    zone.classList.remove("dragging");
+    input.files = event.dataTransfer.files;
+    input.dispatchEvent(new Event("change"));
+  });
+});
+
+async function loadGpus() {
+  const response = await fetch("/api/gpus");
+  const payload = await response.json();
+  gpuSelect.textContent = "";
+  payload.gpus.forEach((gpu) => {
+    const option = document.createElement("option");
+    option.value = gpu.id;
+    option.textContent = gpu.label;
+    gpuSelect.appendChild(option);
+  });
+}
+
+function activateSingle(index) {
+  const image = currentImages[index];
+  if (!image) return;
+  Array.from(imageTabs.children).forEach((button, idx) => {
+    button.classList.toggle("active", idx === index);
+  });
+  singleImage.src = image.url;
+  singleImage.alt = image.label;
+}
+
+function renderOutputs(payload) {
+  currentImages = payload.images || [];
+  sheetView.classList.remove("empty");
+  sheetView.innerHTML = "";
+  const sheet = document.createElement("img");
+  sheet.src = payload.contact_sheet;
+  sheet.alt = "Contact sheet";
+  sheetView.appendChild(sheet);
+
+  imageTabs.textContent = "";
+  currentImages.forEach((image, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = image.label;
+    button.addEventListener("click", () => activateSingle(index));
+    imageTabs.appendChild(button);
+  });
+  activateSingle(0);
+
+  const seq = payload.sequence || {};
+  jobMeta.textContent = `${payload.job_id} | ${payload.backend} | A ${seq.cg_frames_uploaded || 0} frame(s), B ${seq.plate_frames_uploaded || 0} frame(s)`;
+}
+
+document.querySelectorAll("[data-view]").forEach((button) => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll("[data-view]").forEach((node) => node.classList.remove("active"));
+    button.classList.add("active");
+    const sheet = button.dataset.view === "sheet";
+    sheetView.classList.toggle("hidden", !sheet);
+    singleView.classList.toggle("hidden", sheet);
+  });
+});
+
+runButton.addEventListener("click", async () => {
+  if (!fields.cg.files.length || !fields.plate.files.length) {
+    setStatus("Choose A and B inputs first");
+    return;
+  }
+
+  const form = new FormData();
+  Array.from(fields.cg.files).forEach((file) => form.append("cg", file));
+  Array.from(fields.plate.files).forEach((file) => form.append("plate", file));
+  Array.from(fields.alpha.files).forEach((file) => form.append("alpha", file));
+  form.append("gpu", gpuSelect.value || "cpu");
+
+  runButton.disabled = true;
+  setStatus("Running");
+  try {
+    const response = await fetch("/api/run", { method: "POST", body: form });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "run failed");
+    renderOutputs(payload);
+    setStatus("Done");
+  } catch (error) {
+    setStatus(error.message);
+  } finally {
+    runButton.disabled = false;
+  }
+});
+
+loadGpus().catch((error) => setStatus(error.message));

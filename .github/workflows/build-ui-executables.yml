@@ -1,0 +1,86 @@
+name: Build UI executables
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+      - bert/phase1-scaffold
+    paths:
+      - ".github/workflows/build-ui-executables.yml"
+      - "configs/**"
+      - "core/**"
+      - "requirements.txt"
+      - "ui/**"
+  pull_request:
+    paths:
+      - ".github/workflows/build-ui-executables.yml"
+      - "configs/**"
+      - "core/**"
+      - "requirements.txt"
+      - "ui/**"
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux executable
+            os: ubuntu-latest
+            artifact: latent-merge-ui-linux
+            executable: latent-merge-ui
+            data_sep: ":"
+          - name: Windows executable
+            os: windows-latest
+            artifact: latent-merge-ui-windows
+            executable: latent-merge-ui.exe
+            data_sep: ";"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller
+
+      - name: Build executable
+        run: >
+          pyinstaller
+          --clean
+          --onefile
+          --name latent-merge-ui
+          --add-data "ui/index.html${{ matrix.data_sep }}ui"
+          --add-data "ui/app.css${{ matrix.data_sep }}ui"
+          --add-data "ui/app.js${{ matrix.data_sep }}ui"
+          --add-data "configs/phase1_stub.json${{ matrix.data_sep }}configs"
+          --add-data "core${{ matrix.data_sep }}core"
+          ui/local_app.py
+
+      - name: Smoke executable
+        shell: bash
+        run: |
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            "./dist/${{ matrix.executable }}" --help
+          else
+            chmod +x "./dist/${{ matrix.executable }}"
+            "./dist/${{ matrix.executable }}" --help
+          fi
+
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.executable }}
+          if-no-files-found: error
