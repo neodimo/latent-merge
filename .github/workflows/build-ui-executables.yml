@@ -64,7 +64,7 @@ jobs:
           # Install CPU torch FIRST -- this satisfies torch deps for everything else.
           # Linux: CPU torch keeps the distributable ~300-500 MB instead of ~2.5 GB.
           # Windows: CPU torch since windows-latest has no NVIDIA driver.
-          python -m pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
           # kornia requires torch but we already have CPU torch. Use --no-deps to
           # prevent it from pulling in a duplicate CUDA torch from PyPI.
           python -m pip install --no-deps kornia
@@ -95,6 +95,8 @@ jobs:
           --add-data "core${{ matrix.data_sep }}core"
           --add-data "models${{ matrix.data_sep }}models"
           --hidden-import=torch
+          --hidden-import=torchvision
+          --hidden-import=torchvision.transforms
           --hidden-import=torch.nn
           --hidden-import=torch.nn.functional
           --hidden-import=cv2
