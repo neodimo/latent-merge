@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from PIL import Image
 
 from core.image_io import load_alpha, load_rgb, load_rgba, save_alpha, save_rgb, save_rgba, sha256_file
 
@@ -42,30 +41,24 @@ def load_config(path: Path | None) -> PipelineConfig:
 
 
 def _load_pctnet():
-    from libcom.image_harmonization import ImageHarmonizationModel
-    return ImageHarmonizationModel(device=0, model_type="PCTNet")
+    from models.pctnet.pctnet_harmonizer import PCTNetHarmonizer
+    import pathlib
+    weight_path = pathlib.Path(__file__).parent.parent / "models" / "pctnet" / "PCTNet_CNN.pth"
+    return PCTNetHarmonizer(weight_path=str(weight_path), device=None)
+
 
 
 def _harmonize_pctnet(
     composite_rgb: np.ndarray,
     alpha: np.ndarray,
-    model,
+    harmonizer,
 ) -> np.ndarray:
     """Run PCT-Net harmonization on composite image.
 
     The foreground (alpha>0) regions in the output have been color-corrected
     to match the background lighting. The background and plate are unchanged.
     """
-    composite_uint8 = Image.fromarray(
-        np.clip(composite_rgb * 255.0, 0, 255).astype(np.uint8)
-    )
-    # libcom expects mask in 0-255 uint8 HxW with white=foreground
-    mask_uint8 = Image.fromarray(
-        np.clip(alpha[..., 0] * 255.0, 0, 255).astype(np.uint8)
-    )
-    result_pil = model(composite_uint8, mask_uint8)
-    result = np.asarray(result_pil, dtype=np.float32) / 255.0
-    return result
+    return harmonizer.harmonize(composite_rgb, alpha)
 
 
 def _mean_match_stub(plate: np.ndarray, cg_rgb: np.ndarray, alpha: np.ndarray) -> tuple[np.ndarray, dict[str, Any]]:
