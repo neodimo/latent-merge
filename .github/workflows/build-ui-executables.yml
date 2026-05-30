@@ -57,12 +57,17 @@ jobs:
         shell: bash
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt 'pyinstaller>=6'
-          python -m pip install opencv-python-headless kornia tensorboard easydict albumentations
-          # Linux: use CPU torch --no-cache-dir to bypass any cached CUDA torch.
-          # PyTorch with CUDA will still load at runtime if the host has it installed.
-          # Windows: use CPU torch since windows-latest has no NVIDIA driver.
+          python -m pip install 'pyinstaller>=6'
+          python -m pip install opencv-python-headless easydict albumentations
+          # Install CPU torch FIRST -- this satisfies torch deps for everything else.
+          # Linux: CPU torch keeps the distributable ~300-500 MB instead of ~2.5 GB.
+          # Windows: CPU torch since windows-latest has no NVIDIA driver.
           python -m pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+          # kornia requires torch but we already have CPU torch. Use --no-deps to
+          # prevent it from pulling in a duplicate CUDA torch from PyPI.
+          python -m pip install --no-deps kornia
+          # tensorboard may also drag in torch; install after CPU torch is present.
+          python -m pip install --no-cache-dir tensorboard
 
       - name: Build executable
         shell: bash
