@@ -1,4 +1,5 @@
 {
-  "backend": "pctnet",
-  "notes": "PCT-Net harmonization backend. Runs on CPU/GPU with libcom. Intended for 8-16GB VRAM as baseline, 48GB+ for full-res."
+    "backend": "pctnet",
+    "tier": "compact-8",
+    "notes": "Phase 1 PCT-Net backend — compact-8 tier (fp16, ~8 GB VRAM). Uses rakutentech/PCT-Net CNN harmonization. Foreground-only harmonization; plate untouched."
 }

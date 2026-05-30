@@ -21,13 +21,16 @@ class PipelineInputs:
 @dataclass(frozen=True)
 class PipelineConfig:
     backend: str = "mean_match_stub"
+    tier: str = "mid-16"          # compact-8 | mid-16 | full-48
     notes: str = "Phase 1 scaffold backend; replace with real model runner."
 
-
     def validate(self) -> None:
-        allowed = {"mean_match_stub", "pctnet"}
-        if self.backend not in allowed:
-            raise ValueError(f"unsupported backend '{self.backend}'; available: {', '.join(sorted(allowed))}")
+        allowed_backends = {"mean_match_stub", "pctnet"}
+        if self.backend not in allowed_backends:
+            raise ValueError(f"unsupported backend '{self.backend}'; available: {', '.join(sorted(allowed_backends))}")
+        allowed_tiers = {"compact-8", "mid-16", "full-48"}
+        if self.tier not in allowed_tiers:
+            raise ValueError(f"unsupported tier '{self.tier}'; available: {', '.join(sorted(allowed_tiers))}")
 
 
 def load_config(path: Path | None) -> PipelineConfig:
@@ -36,29 +39,29 @@ def load_config(path: Path | None) -> PipelineConfig:
     payload = json.loads(path.read_text(encoding="utf-8"))
     return PipelineConfig(
         backend=payload.get("backend", PipelineConfig.backend),
+        tier=payload.get("tier", PipelineConfig.tier),
         notes=payload.get("notes", PipelineConfig.notes),
     )
 
 
-def _load_pctnet():
+def _load_pctnet(tier: str):
     from models.pctnet.pctnet_harmonizer import PCTNetHarmonizer
     import pathlib
     weight_path = pathlib.Path(__file__).parent.parent / "models" / "pctnet" / "PCTNet_CNN.pth"
-    return PCTNetHarmonizer(weight_path=str(weight_path), device=None)
-
+    return PCTNetHarmonizer(weight_path=str(weight_path), device=None, tier=tier)
 
 
 def _harmonize_pctnet(
-    composite_rgb: np.ndarray,
+    fg_rgb: np.ndarray,
     alpha: np.ndarray,
     harmonizer,
 ) -> np.ndarray:
-    """Run PCT-Net harmonization on composite image.
+    """Run PCT-Net harmonization on CG foreground only (no plate pixels).
 
     The foreground (alpha>0) regions in the output have been color-corrected
     to match the background lighting. The background and plate are unchanged.
     """
-    return harmonizer.harmonize(composite_rgb, alpha)
+    return harmonizer.harmonize(fg_rgb, alpha)
 
 
 def _mean_match_stub(plate: np.ndarray, cg_rgb: np.ndarray, alpha: np.ndarray) -> tuple[np.ndarray, dict[str, Any]]:
@@ -92,12 +95,12 @@ def run_pipeline(inputs: PipelineInputs, output_dir: Path, config: PipelineConfi
     if config.backend == "mean_match_stub":
         adjusted_rgb, backend_report = _mean_match_stub(plate, cg_rgb, combined_alpha)
     elif config.backend == "pctnet":
-        model = _load_pctnet()
+        model = _load_pctnet(tier=config.tier)
         # Pass CG foreground only — model sees no plate pixels.
         # Final output re-composited over original plate at bottom.
         harmonized_rgb = _harmonize_pctnet(cg_rgb, combined_alpha, model)
         adjusted_rgb = harmonized_rgb
-        backend_report = {"name": "pctnet", "model_type": "PCTNet"}
+        backend_report = {"name": "pctnet", "model_type": "PCTNet", "tier": config.tier}
     else:
         raise ValueError(f"unsupported backend '{config.backend}'")
 
@@ -123,7 +126,7 @@ def run_pipeline(inputs: PipelineInputs, output_dir: Path, config: PipelineConfi
     job = {
         "schema": "latent-merge.phase1-run.v1",
         "created_utc": datetime.now(timezone.utc).isoformat(),
-        "config": {"backend": config.backend, "notes": config.notes},
+        "config": {"backend": config.backend, "tier": config.tier, "notes": config.notes},
         "inputs": {
             "plate_rgb": {"path": str(inputs.plate_rgb), "sha256": sha256_file(inputs.plate_rgb)},
             "cg_rgba": {"path": str(inputs.cg_rgba), "sha256": sha256_file(inputs.cg_rgba)},
