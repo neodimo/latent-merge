@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+from PIL import Image
 
 from core.image_io import load_alpha, load_rgb, load_rgba, save_alpha, save_rgb, save_rgba, sha256_file
 
@@ -24,6 +25,12 @@ class PipelineConfig:
     notes: str = "Phase 1 scaffold backend; replace with real model runner."
 
 
+    def validate(self) -> None:
+        allowed = {"mean_match_stub", "pctnet"}
+        if self.backend not in allowed:
+            raise ValueError(f"unsupported backend '{self.backend}'; available: {', '.join(sorted(allowed))}")
+
+
 def load_config(path: Path | None) -> PipelineConfig:
     if path is None:
         return PipelineConfig()
@@ -32,6 +39,33 @@ def load_config(path: Path | None) -> PipelineConfig:
         backend=payload.get("backend", PipelineConfig.backend),
         notes=payload.get("notes", PipelineConfig.notes),
     )
+
+
+def _load_pctnet():
+    from libcom.image_harmonization import ImageHarmonizationModel
+    return ImageHarmonizationModel(device=0, model_type="PCTNet")
+
+
+def _harmonize_pctnet(
+    composite_rgb: np.ndarray,
+    alpha: np.ndarray,
+    model,
+) -> np.ndarray:
+    """Run PCT-Net harmonization on composite image.
+
+    The foreground (alpha>0) regions in the output have been color-corrected
+    to match the background lighting. The background and plate are unchanged.
+    """
+    composite_uint8 = Image.fromarray(
+        np.clip(composite_rgb * 255.0, 0, 255).astype(np.uint8)
+    )
+    # libcom expects mask in 0-255 uint8 HxW with white=foreground
+    mask_uint8 = Image.fromarray(
+        np.clip(alpha[..., 0] * 255.0, 0, 255).astype(np.uint8)
+    )
+    result_pil = model(composite_uint8, mask_uint8)
+    result = np.asarray(result_pil, dtype=np.float32) / 255.0
+    return result
 
 
 def _mean_match_stub(plate: np.ndarray, cg_rgb: np.ndarray, alpha: np.ndarray) -> tuple[np.ndarray, dict[str, Any]]:
@@ -49,6 +83,7 @@ def _mean_match_stub(plate: np.ndarray, cg_rgb: np.ndarray, alpha: np.ndarray) -
 
 
 def run_pipeline(inputs: PipelineInputs, output_dir: Path, config: PipelineConfig) -> Path:
+    config.validate()
     output_dir.mkdir(parents=True, exist_ok=True)
     plate = load_rgb(inputs.plate_rgb)
     cg_rgb, cg_alpha = load_rgba(inputs.cg_rgba)
@@ -61,10 +96,19 @@ def run_pipeline(inputs: PipelineInputs, output_dir: Path, config: PipelineConfi
 
     combined_alpha = np.minimum(external_alpha, cg_alpha)
 
-    if config.backend != "mean_match_stub":
-        raise ValueError(f"unsupported backend '{config.backend}'; available: mean_match_stub")
+    if config.backend == "mean_match_stub":
+        adjusted_rgb, backend_report = _mean_match_stub(plate, cg_rgb, combined_alpha)
+    elif config.backend == "pctnet":
+        model = _load_pctnet()
+        # Build composite: CG over plate using combined_alpha
+        composite_rgb = cg_rgb * combined_alpha + plate * (1.0 - combined_alpha)
+        harmonized_rgb = _harmonize_pctnet(composite_rgb, combined_alpha, model)
+        # Extract just the foreground (keep harmonized color, restore original CG alpha)
+        adjusted_rgb = harmonized_rgb
+        backend_report = {"name": "pctnet", "model_type": "PCTNet"}
+    else:
+        raise ValueError(f"unsupported backend '{config.backend}'")
 
-    adjusted_rgb, backend_report = _mean_match_stub(plate, cg_rgb, combined_alpha)
     final_comp = adjusted_rgb * combined_alpha + plate * (1.0 - combined_alpha)
     delta = np.abs(adjusted_rgb - cg_rgb)
     alpha_weighted_delta = delta * combined_alpha

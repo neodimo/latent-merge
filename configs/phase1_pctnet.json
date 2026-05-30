@@ -1,0 +1,4 @@
+{
+  "backend": "pctnet",
+  "notes": "PCT-Net harmonization backend. Runs on CPU/GPU with libcom. Intended for 8-16GB VRAM as baseline, 48GB+ for full-res."
+}
