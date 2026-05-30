@@ -33,7 +33,7 @@ from core.pipeline import PipelineInputs, load_config, run_pipeline
 
 APP_DIR = Path(__file__).resolve().parent
 RUN_ROOT = WORK_ROOT / "runs" / "ui_jobs"
-DEFAULT_CONFIG = ROOT / "configs" / "phase1_stub.json"
+DEFAULT_CONFIG = ROOT / "configs" / "phase1_pctnet.json"
 SUPPORTED_A = {".png", ".exr"}
 SUPPORTED_B = {".png", ".jpg", ".jpeg", ".exr"}
 IMAGE_OUTPUTS = [

@@ -7,10 +7,12 @@ on:
       - main
       - master
       - bert/phase1-scaffold
+      - gonzo/ui-pctnet-build
     paths:
       - ".github/workflows/build-ui-executables.yml"
       - "configs/**"
       - "core/**"
+      - "models/**"
       - "requirements.txt"
       - "ui/**"
   pull_request:
@@ -18,6 +20,7 @@ on:
       - ".github/workflows/build-ui-executables.yml"
       - "configs/**"
       - "core/**"
+      - "models/**"
       - "requirements.txt"
       - "ui/**"
 
@@ -53,7 +56,14 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt pyinstaller
+          python -m pip install -r requirements.txt 'pyinstaller>=6'
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cu121 || python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install opencv-python-headless kornia tensorboard easydict albumentations
+
+      - name: Ensure PCT-Net model dir exists (weights downloaded at first run)
+        run: |
+          mkdir -p models/pctnet/iharm
+          echo '{"note": "Download PCTNet_CNN.pth + iharm/ at first run — see run_pctnet_baseline.sh"}' > models/pctnet/.placeholder
 
       - name: Build executable
         run: >
@@ -64,8 +74,9 @@ jobs:
           --add-data "ui/index.html${{ matrix.data_sep }}ui"
           --add-data "ui/app.css${{ matrix.data_sep }}ui"
           --add-data "ui/app.js${{ matrix.data_sep }}ui"
-          --add-data "configs/phase1_stub.json${{ matrix.data_sep }}configs"
+          --add-data "configs${{ matrix.data_sep }}configs"
           --add-data "core${{ matrix.data_sep }}core"
+          --add-data "models${{ matrix.data_sep }}models"
           ui/local_app.py
 
       - name: Smoke executable
