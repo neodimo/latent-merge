@@ -18,6 +18,11 @@ from urllib.parse import parse_qs, urlparse
 
 from PIL import Image
 
+# Kornia decorates some color/geometry helpers with TorchScript. In a PyInstaller
+# onefile executable, Torch cannot inspect those source files after unpacking,
+# so disable JIT before importing the PCT-Net stack.
+os.environ.setdefault("PYTORCH_JIT", "0")
+
 if getattr(sys, "frozen", False):
     ROOT = Path(getattr(sys, "_MEIPASS")).resolve()
     WORK_ROOT = Path.cwd().resolve()
