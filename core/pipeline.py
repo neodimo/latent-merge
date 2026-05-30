@@ -93,10 +93,9 @@ def run_pipeline(inputs: PipelineInputs, output_dir: Path, config: PipelineConfi
         adjusted_rgb, backend_report = _mean_match_stub(plate, cg_rgb, combined_alpha)
     elif config.backend == "pctnet":
         model = _load_pctnet()
-        # Build composite: CG over plate using combined_alpha
-        composite_rgb = cg_rgb * combined_alpha + plate * (1.0 - combined_alpha)
-        harmonized_rgb = _harmonize_pctnet(composite_rgb, combined_alpha, model)
-        # Extract just the foreground (keep harmonized color, restore original CG alpha)
+        # Pass CG foreground only — model sees no plate pixels.
+        # Final output re-composited over original plate at bottom.
+        harmonized_rgb = _harmonize_pctnet(cg_rgb, combined_alpha, model)
         adjusted_rgb = harmonized_rgb
         backend_report = {"name": "pctnet", "model_type": "PCTNet"}
     else:
