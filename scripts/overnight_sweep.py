@@ -97,6 +97,17 @@ def save_alpha_img(path: Path, alpha: np.ndarray) -> None:
     Image.fromarray(np.clip(alpha[..., 0] * 255.0, 0, 255).astype(np.uint8)).save(path)
 
 
+def _letterbox(img: Image.Image, w: int, h: int, bg: tuple = BG_COLOR) -> Image.Image:
+    """Fit img into a w×h canvas preserving aspect ratio; center with bg padding."""
+    fit = img.copy()
+    fit.thumbnail((w, h), Image.Resampling.LANCZOS)
+    canvas = Image.new("RGB", (w, h), bg)
+    x_off = (w - fit.width)  // 2
+    y_off = (h - fit.height) // 2
+    canvas.paste(fit.convert("RGB"), (x_off, y_off))
+    return canvas
+
+
 # ---------------------------------------------------------------------------
 # Font loader
 # ---------------------------------------------------------------------------
@@ -481,14 +492,13 @@ def _render_contact_sheet(
     font_tiny = _load_font(font_size - 2)
     font_header = _load_font(font_size + 4, bold=True)
 
-    # Load and thumbnail each output
+    # Load and letterbox each output
     thumbs: list[tuple[str, Image.Image]] = []
     for key, lbl in OUTPUTS_ORDER:
         path = outputs.get(key)
         if path and Path(path).exists():
             img = Image.open(path).convert("RGB")
-            img.thumbnail((THUMB_W, THUMB_H), Image.Resampling.LANCZOS)
-            thumbs.append((lbl, img))
+            thumbs.append((lbl, _letterbox(img, THUMB_W, THUMB_H)))
 
     num_thumbs = len(thumbs)
     ncols = COLS
@@ -522,7 +532,7 @@ def _render_contact_sheet(
         # Label
         draw.text((x + 6, y + 4), lbl, fill=TEXT_COLOR, font=font_bold)
 
-        # Thumb
+        # Thumb (already letterboxed to THUMB_W × THUMB_H)
         sheet.paste(img, (x + 4, y + LABEL_H))
 
     # Metrics row
@@ -606,8 +616,8 @@ def _render_master_sheet(
         tx = LABEL_COL_W + PAD
         if final_comp_path and Path(final_comp_path).exists():
             img = Image.open(final_comp_path).convert("RGB")
-            img.thumbnail((THUMB_SMALL_W, THUMB_SMALL_H), Image.Resampling.LANCZOS)
-            sheet.paste(img, (tx, row_y + 8))
+            thumb = _letterbox(img, THUMB_SMALL_W, THUMB_SMALL_H)
+            sheet.paste(thumb, (tx, row_y + 8))
 
         # Metrics column
         mx = LABEL_COL_W + THUMB_SMALL_W + PAD * 2
@@ -674,8 +684,7 @@ def _render_refinement_sheet(
         fp = run.get("final_comp_path")
         if fp and Path(fp).exists():
             img = Image.open(fp).convert("RGB")
-            img.thumbnail((TW, TH), Image.Resampling.LANCZOS)
-            sheet.paste(img, (cx + 4, cy + LH))
+            sheet.paste(_letterbox(img, TW, TH), (cx + 4, cy + LH))
 
         my = cy + LH + TH + PAD2
         m = run["metrics"]

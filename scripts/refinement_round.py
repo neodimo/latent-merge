@@ -83,6 +83,17 @@ def save_alpha_img(path: Path, alpha: np.ndarray) -> None:
     Image.fromarray(np.clip(alpha[..., 0] * 255.0, 0, 255).astype(np.uint8)).save(path)
 
 
+def _letterbox(img: Image.Image, w: int, h: int, bg: tuple = BG_COLOR) -> Image.Image:
+    """Fit img into a w×h canvas preserving aspect ratio; center with bg padding."""
+    fit = img.copy()
+    fit.thumbnail((w, h), Image.Resampling.LANCZOS)
+    canvas = Image.new("RGB", (w, h), bg)
+    x_off = (w - fit.width)  // 2
+    y_off = (h - fit.height) // 2
+    canvas.paste(fit.convert("RGB"), (x_off, y_off))
+    return canvas
+
+
 def _load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     p = FONT_PATH_BOLD if bold else FONT_PATH_REG
     if p.exists():
@@ -315,8 +326,7 @@ def _render_contact_sheet(job_dir, outputs, label, desc, metrics, duration_s, ba
         path = outputs.get(key)
         if path and Path(path).exists():
             img = Image.open(path).convert("RGB")
-            img.thumbnail((THUMB_W, THUMB_H), Image.Resampling.LANCZOS)
-            thumbs.append((lbl, img))
+            thumbs.append((lbl, _letterbox(img, THUMB_W, THUMB_H)))
 
     ncols = COLS
     nrows = (len(thumbs) + ncols - 1) // ncols
@@ -341,6 +351,7 @@ def _render_contact_sheet(job_dir, outputs, label, desc, metrics, duration_s, ba
         y = META_H + row * cell_h + PAD
         draw.rectangle([(x, y), (x + THUMB_W + PAD, y + THUMB_H + LABEL_H + PAD)], fill=(22, 26, 36))
         draw.text((x + 6, y + 4), lbl, fill=TEXT_COLOR, font=font_bold)
+        # img is already letterboxed to THUMB_W × THUMB_H
         sheet.paste(img, (x + 4, y + LABEL_H))
 
     my = META_H + nrows * cell_h + PAD * 2
@@ -405,8 +416,7 @@ def _render_refinement_master(runs, out_path) -> None:
         fp = run.get("final_comp_path")
         if fp and Path(fp).exists():
             img = Image.open(fp).convert("RGB")
-            img.thumbnail((TW, TH), Image.Resampling.LANCZOS)
-            sheet.paste(img, (tx, row_y + 4))
+            sheet.paste(_letterbox(img, TW, TH), (tx, row_y + 4))
 
         mx = LABEL_COL_W + TW + PAD * 2
         my = row_y + 4
