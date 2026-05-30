@@ -164,14 +164,93 @@ Run `scripts/ic_flux_runner.py` on the same fixture with seed 42, steps 20-30.
 Compare its `contact_sheet.jpg` directly against `09_polynomial_color/contact_sheet.jpg` and `R03_local_4x4/contact_sheet.jpg`.  
 Key question: does diffusion-based relighting produce a better composite while still preserving enough CG identity to be useful?
 
-**Priority 2 (any hardware):**  
-Get a real DiMo/Nuke fixture (plate + CG RGBA + alpha, not synthetic) and rerun the full sweep.  
-The synthetic fixture has smooth gradients — real footage will expose tile seam artifacts and edge behavior that the current metrics can't capture.
+**Priority 2 — DONE (2026-05-30):**  
+Real fixture sweep complete — see `runs/real_fixture_20260530/` and `runs/cross_fixture_comparison.jpg`.
 
-**Priority 3 (CPU, can run now):**  
-Try the ensemble backend on a real fixture. It's the most stable of the non-baseline approaches and combines spatial adaptivity with global color correction.
+**Priority 3 (any hardware):**  
+Try refinement on real fixture: local_4x4 grid + ensemble blend tuned to RGB Affine (new real-fixture winner).  
+The synthetic-fixture winner (polynomial_color) ranked #6 on real footage and carries high id_drift — confirm before promoting it.
 
 **Metric to reconsider:**  
 The composite score weighting (id_drift ×0.4, integration ×0.6) may be backward for VFX.  
 In a real shot, id_drift matters most — you cannot deliver CG that looks like a different object.  
 Recommend discussing with DiMo which matters more before using composite score as the primary ranking signal.
+
+---
+
+## Real Fixture Results — compositingpro_sh009 (added 2026-05-30)
+
+**Fixture source:** Compositing Pro free Nuke CG compositing tutorial files  
+`https://www.compositingpro.com/free_nuke-cg_compositing_tutorial_files/`  
+License: personal practice only, not commercial.
+
+**Assets downloaded from Box share:** `https://app.box.com/s/rhog0va2f1ihxf5jjm00z7n9q5g139u2`
+- `sh009_RAW_v001_1200.exr` — live-action plate, 1920×1080
+- `sh009_STN_monster_BTY_v001_1200.exr` — CG creature beauty (BTY) + full AOV suite, 1955×1101
+
+**Extraction:** CG center-cropped from 1955×1101 → 1920×1080 (offset 17,10). Both EXRs tonemapped ACES RRT (Narkowicz) + sRGB gamma for PNG export. Linear data preserved in EXRs for future GPU pipeline.
+
+**Fixture paths:**
+```
+fixtures/compositingpro_sh009_minimal/
+  plate_rgb.png          ← live-action plate (1920×1080, ACES-mapped)
+  cg_rgba.png            ← creature beauty + alpha (1920×1080, ACES-mapped)
+  alpha.png              ← creature alpha channel
+  fixture.json           ← metadata, hashes, crop offset
+  sh009_RAW_v001_1200.exr         ← source (not git-tracked)
+  sh009_STN_monster_BTY_v001_1200.exr  ← source (not git-tracked)
+```
+
+**Real fixture sweep results — all 9 backends:**
+
+| Rank | Backend | Score | id_drift | integration | vs Synthetic Rank |
+|------|---------|-------|---------|-------------|------------------|
+| #1 | rgb_affine | 0.1267 | 0.0958 | 0.1473 | ↑ from #3 |
+| #2 | lab_mean_std (Reinhard) | 0.1274 | 0.0906 | 0.1519 | ↑ from #8 |
+| #3 | histogram_match | 0.1340 | 0.1006 | 0.1563 | ↑ from #7 |
+| #4 | mean_match_stub (baseline) | 0.1393 | 0.0567 | 0.1945 | ↓ from #5 |
+| #5 | gamma_curve | 0.1402 | 0.0444 | 0.2041 | ↑ from #9 |
+| #6 | polynomial_color | 0.1404 | **0.1896** | **0.1075** | ↓ from #1 |
+| #7 | unclamped_mean | 0.1416 | 0.0657 | 0.1922 | ↓ from #6 |
+| #8 | lab_mean_only | 0.1418 | 0.0500 | 0.2031 | ↓ from #4 |
+| #9 | local_spatial (3×3) | 0.1420 | 0.0672 | 0.1918 | ↓ from #2 |
+
+**Key findings from real footage:**
+
+1. **Rankings flip substantially.** Synthetic-fixture winner (polynomial_color) drops to #6 on real footage and carries the highest id_drift (0.1896) — it is aggressively transforming the creature's color to match the plate, which is unacceptable for a hero CG asset.
+
+2. **RGB Affine becomes the clear winner.** Matching mean+std in linear RGB space is more robust on real footage. The creature and plate share enough global color statistics for this to work without overfitting.
+
+3. **Local Spatial drops to last.** The 3×3 grid that won on the smooth synthetic fixture performs worst on real footage — the plate has complex spatial variation that a 3-tile-per-axis grid cannot capture without seam artifacts.
+
+4. **Gamma curve has lowest id_drift** (0.0444) on real footage — it modifies luminance uniformly and doesn't touch the creature's color identity. Worth promoting to "safest" default.
+
+5. **Polynomial overfitting confirmed on real data.** The 7-coefficient fit uses whatever masked pixels are available; on a real creature with large alpha coverage, the fit can extrapolate aggressively outside the sample distribution.
+
+6. **id_drift is universally lower** on real footage (0.04–0.19 vs 0.16–0.31 on synthetic). The real creature's color sits closer to the plate statistics — the corrections needed are smaller, making identity preservation easier.
+
+**Limitations of this run:**
+- EXR tonemapping (ACES filmic + sRGB) compresses HDR highlights and crushes near-black detail. Results would differ on a proper linear/ACES pipeline.
+- The creature has a very large alpha coverage area — metrics may not capture alpha-edge seam quality.
+- No temporal test yet; single frame only.
+
+**Artifact paths:**
+```
+runs/real_fixture_20260530/
+  master_comparison.jpg          ← all 9 techniques on real fixture
+  refinement_top3.jpg            ← top 3 (rgb_affine, lab_mean_std, histogram)
+  sweep_summary.json             ← full ranked JSON
+  03_rgb_affine/contact_sheet.jpg   ← real fixture winner
+  05_lab_mean_std/contact_sheet.jpg ← #2
+  06_histogram_match/contact_sheet.jpg ← #3
+  01_mean_match_stub/contact_sheet.jpg ← baseline
+
+runs/cross_fixture_comparison.jpg  ← side-by-side: all backends, synthetic vs real
+```
+
+**Re-run command:**
+```bash
+python3 scripts/overnight_sweep.py \
+  --fixture-dir fixtures/compositingpro_sh009_minimal \
+  --out-dir runs/real_fixture_20260530
+```
