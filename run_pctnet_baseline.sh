@@ -121,6 +121,8 @@ OUTPUT_DIR="$REPO_ROOT/runs/phase1_pctnet_${TARGET_TIER}"
 mkdir -p "$OUTPUT_DIR"
 export PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}"
 export CUDA_VISIBLE_DEVICES="${DEVICE_HINT}"
+export CONFIG
+export OUTPUT_DIR
 
 echo ""
 echo "=== Running pipeline ==="
@@ -131,18 +133,18 @@ echo "GPU      : $DEVICE_HINT"
 echo ""
 
 python3 - <<'PYEOF'
-import sys, json, datetime as dt, zoneinfo
+import os, sys, json, datetime as dt, zoneinfo
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from core.pipeline import run_pipeline, PipelineInputs, load_config
 
-config    = load_config(Path("configs/phase1_pctnet.json"))
+config    = load_config(Path(os.environ["CONFIG"]))
 inputs    = PipelineInputs(
     plate_rgb = Path("fixtures/golden_synthetic_001") / "plate_rgb.png",
     cg_rgba  = Path("fixtures/golden_synthetic_001") / "cg_rgba.png",
     alpha    = Path("fixtures/golden_synthetic_001") / "alpha.png",
 )
-output_dir = Path("runs/phase1_pctnet_8gb")
+output_dir = Path(os.environ["OUTPUT_DIR"])
 
 print("Config :", config.backend)
 print("Inputs :", inputs.plate_rgb, "/", inputs.cg_rgba, "/", inputs.alpha)

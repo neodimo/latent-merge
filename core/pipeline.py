@@ -52,16 +52,18 @@ def _load_pctnet(tier: str):
 
 
 def _harmonize_pctnet(
-    fg_rgb: np.ndarray,
+    model_rgb: np.ndarray,
     alpha: np.ndarray,
     harmonizer,
 ) -> np.ndarray:
-    """Run PCT-Net harmonization on CG foreground only (no plate pixels).
+    """Run PCT-Net with composite context, returning an adjusted foreground.
 
-    The foreground (alpha>0) regions in the output have been color-corrected
-    to match the background lighting. The background and plate are unchanged.
+    PCT-Net needs background context to estimate the foreground color transform.
+    The model can see the composited plate, but the pipeline still preserves the
+    contract by only saving/re-compositing foreground pixels over the original
+    plate.
     """
-    return harmonizer.harmonize(fg_rgb, alpha)
+    return harmonizer.harmonize(model_rgb, alpha)
 
 
 def _mean_match_stub(plate: np.ndarray, cg_rgb: np.ndarray, alpha: np.ndarray) -> tuple[np.ndarray, dict[str, Any]]:
@@ -96,11 +98,15 @@ def run_pipeline(inputs: PipelineInputs, output_dir: Path, config: PipelineConfi
         adjusted_rgb, backend_report = _mean_match_stub(plate, cg_rgb, combined_alpha)
     elif config.backend == "pctnet":
         model = _load_pctnet(tier=config.tier)
-        # Pass CG foreground only — model sees no plate pixels.
-        # Final output re-composited over original plate at bottom.
-        harmonized_rgb = _harmonize_pctnet(cg_rgb, combined_alpha, model)
-        adjusted_rgb = harmonized_rgb
-        backend_report = {"name": "pctnet", "model_type": "PCTNet", "tier": config.tier}
+        model_input = cg_rgb * combined_alpha + plate * (1.0 - combined_alpha)
+        harmonized_rgb = _harmonize_pctnet(model_input, combined_alpha, model)
+        adjusted_rgb = np.where(combined_alpha > 1e-6, harmonized_rgb, cg_rgb)
+        backend_report = {
+            "name": "pctnet",
+            "model_type": "PCTNet",
+            "tier": config.tier,
+            "model_input": "composite_rgb_plus_alpha_mask",
+        }
     else:
         raise ValueError(f"unsupported backend '{config.backend}'")
 

@@ -2,14 +2,18 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
-
-from core.pipeline import PipelineInputs, load_config, run_pipeline
 
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_FIXTURE_DIR = ROOT / "fixtures" / "golden_synthetic_001"
 DEFAULT_OUTPUT_DIR = ROOT / "runs" / "phase1_scaffold"
+
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from core.pipeline import PipelineInputs, load_config, run_pipeline
 
 
 def parse_args() -> argparse.Namespace:

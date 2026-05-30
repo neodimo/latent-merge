@@ -1,7 +1,7 @@
 """
 PCT-Net direct inference harness.
 Wraps the Rakuten PCT-Net model so it can be called as a backend in core/pipeline.py.
-Takes composite RGB float32 0-1 + alpha float32 0-1 (both HxWx3/HxWx1), returns harmonized RGB 0-1.
+Takes RGB float32 0-1 + alpha float32 0-1 (both HxWx3/HxWx1), returns harmonized RGB 0-1.
 
 No libcom dependency — imports only torch, cv2, numpy, pathlib.
 """
@@ -17,7 +17,7 @@ from typing import Optional
 # ImageNet normalization constants
 _MEAN = torch.tensor([0.485, 0.456, 0.406], dtype=torch.float32)
 _STD  = torch.tensor([0.229, 0.224, 0.225], dtype=torch.float32)
-_DIVISOR = 8
+_DIVISOR = 32
 
 
 def _detect_tier() -> str:
@@ -98,7 +98,7 @@ class PCTNetHarmonizer:
         """
         Args
         ----
-        fg_rgb : float32 HxWx3, values 0-1 — CG foreground only (no plate pixels)
+        fg_rgb : float32 HxWx3, values 0-1 — usually CG-over-plate composite context
         alpha  : float32 HxWxC or HxWx1, values 0-1 (white = foreground)
 
         Returns
@@ -109,7 +109,7 @@ class PCTNetHarmonizer:
             alpha = alpha[..., 0]
         alpha = alpha.clip(0, 1)
 
-        fg8 = np.clip(fg_rgb, 0, 1).astype(np.uint8)
+        fg8 = (np.clip(fg_rgb, 0, 1) * 255.0).astype(np.uint8)
         mask8 = (alpha * 255).astype(np.uint8)
 
         comp_pad, mask_pad, pads = _pad_to_divisor(fg8, mask8)
@@ -127,24 +127,25 @@ class PCTNetHarmonizer:
         msk_t = (torch.as_tensor(mask_pad, dtype=dtype, device=self.device)
                      .unsqueeze(0).unsqueeze(0) / 255.0)
 
-        # Low-res branches
+        # Low-res branch follows the reference PCT-Net evaluator.
         lowres_norm = torch.nn.functional.interpolate(
-            img_norm, scale_factor=0.5, mode="bilinear", align_corners=False)
+            img_norm, size=(256, 256), mode="bilinear", align_corners=False)
         lowres_msk  = torch.nn.functional.interpolate(
-            msk_t, scale_factor=0.5, mode="nearest")
+            msk_t, size=(256, 256), mode="nearest")
 
         output = self._net(lowres_norm, img_norm, lowres_msk, msk_t)
 
-        # images_fullres: 3xHxW (C=3, H, W). Already denormalized via ImageNet mean/std.
+        # images_fullres: 3xHxW in the model's normalized color space.
         raw = output.get("images_fullres", output["images"])
         if raw.dim() == 4:
             raw = raw.squeeze(0)                          # 1x3xHxW -> 3xHxW
-        result = raw.permute(1, 2, 0).clamp(0, 255)       # 3xHxW -> HxWx3 on CUDA
+        raw = raw * std3.reshape(3, 1, 1) + mean3.reshape(3, 1, 1)
+        result = raw.permute(1, 2, 0).clamp(0, 1)          # 3xHxW -> HxWx3 on CUDA
 
         result_hwc = result.to(dtype=torch.float32).cpu().numpy()
         result_hwc = _remove_padding(result_hwc, pads)
 
-        return result_hwc.astype(np.float32) / 255.0
+        return result_hwc.astype(np.float32)
 
 
 def harmonize_image_pctnet(
