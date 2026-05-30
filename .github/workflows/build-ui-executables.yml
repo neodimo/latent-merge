@@ -67,7 +67,7 @@ jobs:
           python -m pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
           # kornia requires torch but we already have CPU torch. Use --no-deps to
           # prevent it from pulling in a duplicate CUDA torch from PyPI.
-          python -m pip install --no-deps kornia
+          python -m pip install --no-deps kornia kornia_rs
           # tensorboard may also drag in torch; install after CPU torch is present.
           python -m pip install --no-cache-dir tensorboard
 
@@ -101,6 +101,7 @@ jobs:
           --hidden-import=torch.nn.functional
           --hidden-import=cv2
           --hidden-import=kornia
+          --hidden-import=kornia_rs
           --hidden-import=albumentations
           --hidden-import=easydict
           --hidden-import=einops
