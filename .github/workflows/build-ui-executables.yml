@@ -54,6 +54,7 @@ jobs:
           cache: pip
 
       - name: Install dependencies
+        shell: bash
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt 'pyinstaller>=6'
@@ -62,12 +63,8 @@ jobs:
           python -m pip install torch --index-url https://download.pytorch.org/whl/cu121 \
             || python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
 
-      - name: Ensure PCT-Net model dir exists (weights downloaded at first run)
-        run: |
-          mkdir -p models/pctnet/iharm
-          echo '{"note": "Download PCTNet_CNN.pth + iharm/ at first run — see run_pctnet_baseline.sh"}' > models/pctnet/.placeholder
-
       - name: Build executable
+        shell: bash
         run: >
           pyinstaller
           --clean
