@@ -144,12 +144,16 @@ jobs:
           raise SystemExit("UI executable did not become ready")
           PY
 
-          curl --fail --silent --show-error \
+          HTTP_STATUS=$(curl --silent --show-error \
+            --write-out "%{http_code}" \
+            --output runs/ui_executable_smoke.json \
             -F cg=@fixtures/golden_synthetic_001/cg_rgba.png \
             -F plate=@fixtures/golden_synthetic_001/plate_rgb.png \
             -F alpha=@fixtures/golden_synthetic_001/alpha.png \
             -F gpu=cpu \
-            http://127.0.0.1:7865/api/run > runs/ui_executable_smoke.json
+            http://127.0.0.1:7865/api/run)
+          cat runs/ui_executable_smoke.json
+          test "$HTTP_STATUS" = "200"
 
           python - <<'PY'
           import json
