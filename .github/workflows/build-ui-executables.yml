@@ -14,6 +14,7 @@ on:
       - "core/**"
       - "models/**"
       - "requirements.txt"
+      - "scripts/**"
       - "ui/**"
   pull_request:
     paths:
@@ -22,6 +23,7 @@ on:
       - "core/**"
       - "models/**"
       - "requirements.txt"
+      - "scripts/**"
       - "ui/**"
 
 jobs:
@@ -69,6 +71,16 @@ jobs:
           # tensorboard may also drag in torch; install after CPU torch is present.
           python -m pip install --no-cache-dir tensorboard
 
+      - name: Product smoke
+        shell: bash
+        run: |
+          python cli/run_phase1.py \
+            --config configs/phase1_pctnet.json \
+            --output-dir runs/ci_pctnet_smoke
+          python scripts/assert_harmonization_output.py \
+            --job runs/ci_pctnet_smoke/job.json \
+            --cg fixtures/golden_synthetic_001/cg_rgba.png
+
       - name: Build executable
         shell: bash
         run: >
@@ -100,6 +112,53 @@ jobs:
             chmod +x "./dist/${{ matrix.executable }}"
             "./dist/${{ matrix.executable }}" --help
           fi
+
+      - name: Smoke executable API output
+        shell: bash
+        run: |
+          "./dist/${{ matrix.executable }}" --host 127.0.0.1 --port 7865 &
+          APP_PID=$!
+          cleanup() {
+            kill "$APP_PID" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          python - <<'PY'
+          import time
+          import urllib.request
+
+          deadline = time.time() + 60
+          while time.time() < deadline:
+              try:
+                  with urllib.request.urlopen("http://127.0.0.1:7865/api/gpus", timeout=2) as response:
+                      if response.status == 200:
+                          raise SystemExit(0)
+              except Exception:
+                  time.sleep(1)
+          raise SystemExit("UI executable did not become ready")
+          PY
+
+          curl --fail --silent --show-error \
+            -F cg=@fixtures/golden_synthetic_001/cg_rgba.png \
+            -F plate=@fixtures/golden_synthetic_001/plate_rgb.png \
+            -F alpha=@fixtures/golden_synthetic_001/alpha.png \
+            -F gpu=cpu \
+            http://127.0.0.1:7865/api/run > runs/ui_executable_smoke.json
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          payload = json.loads(Path("runs/ui_executable_smoke.json").read_text())
+          job_url = payload["job_json"]
+          if not job_url.startswith("/file?path="):
+              raise SystemExit(f"unexpected job URL: {job_url}")
+          Path("runs/ui_executable_smoke_job_path.txt").write_text(job_url.split("=", 1)[1] + "\n")
+          PY
+
+          python scripts/assert_harmonization_output.py \
+            --job "$(cat runs/ui_executable_smoke_job_path.txt)" \
+            --cg fixtures/golden_synthetic_001/cg_rgba.png
 
       - name: Upload executable
         uses: actions/upload-artifact@v4
