@@ -60,7 +60,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install 'pyinstaller>=6'
-          python -m pip install opencv-python-headless easydict albumentations
+          python -m pip install opencv-python-headless easydict albumentations einops
           # Install CPU torch FIRST -- this satisfies torch deps for everything else.
           # Linux: CPU torch keeps the distributable ~300-500 MB instead of ~2.5 GB.
           # Windows: CPU torch since windows-latest has no NVIDIA driver.
@@ -101,6 +101,9 @@ jobs:
           --hidden-import=kornia
           --hidden-import=albumentations
           --hidden-import=easydict
+          --hidden-import=einops
+          --hidden-import=einops.layers
+          --hidden-import=einops.layers.torch
           ui/local_app.py
 
       - name: Smoke executable
