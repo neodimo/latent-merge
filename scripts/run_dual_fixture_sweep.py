@@ -119,13 +119,16 @@ def make_contact_sheet(results, plate_rgb, cg_rgb, combined_2d, combined_3d,
 
     def paste(arr, x, y, label, label_color=(220, 220, 0)):
         arr_u8 = (np.clip(arr, 0, 1) * 255).astype(np.uint8)
-        thumb = Image.fromarray(arr_u8).resize((thumb_w, thumb_h), Image.LANCZOS)
+        source = Image.fromarray(arr_u8)
+        thumb = Image.new("RGB", (thumb_w, thumb_h), (16, 16, 16))
+        source.thumbnail((thumb_w, thumb_h), Image.LANCZOS)
+        thumb.paste(source, ((thumb_w - source.width) // 2, (thumb_h - source.height) // 2))
         sheet.paste(thumb, (x, y))
         draw.text((x + 2, y + 2), label, fill=label_color)
 
     # Header row
     paste(plate_rgb,                               0, 0, "PLATE")
-    paste(composite(cg_rgb, plate_rgb, combined_3d), thumb_w,         0, "CG_before", (200, 200, 0))
+    paste(composite(cg_rgb, plate_rgb, combined_3d), thumb_w,         0, "RAW_A_OVER_B", (200, 200, 0))
     alpha_vis = np.clip(np.stack([combined_2d]*3, axis=-1), 0, 1)
     paste(alpha_vis,2 * thumb_w, 0, "ALPHA", (180, 180, 180))
 

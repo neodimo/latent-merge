@@ -110,11 +110,13 @@ def run_pipeline(inputs: PipelineInputs, output_dir: Path, config: PipelineConfi
     else:
         raise ValueError(f"unsupported backend '{config.backend}'")
 
+    raw_a_over_b = cg_rgb * combined_alpha + plate * (1.0 - combined_alpha)
     final_comp = adjusted_rgb * combined_alpha + plate * (1.0 - combined_alpha)
     delta = np.abs(adjusted_rgb - cg_rgb)
     alpha_weighted_delta = delta * combined_alpha
 
     outputs = {
+        "raw_a_over_b": output_dir / "raw_a_over_b.png",
         "adjusted_fg": output_dir / "adjusted_fg.png",
         "final_comp": output_dir / "final_comp.png",
         "delta": output_dir / "delta.png",
@@ -123,6 +125,7 @@ def run_pipeline(inputs: PipelineInputs, output_dir: Path, config: PipelineConfi
         "job": output_dir / "job.json",
     }
 
+    save_rgb(outputs["raw_a_over_b"], raw_a_over_b)
     save_rgba(outputs["adjusted_fg"], adjusted_rgb, combined_alpha)
     save_rgb(outputs["final_comp"], final_comp)
     save_rgb(outputs["delta"], delta)

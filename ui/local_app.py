@@ -43,6 +43,7 @@ DEFAULT_CONFIG = ROOT / "configs" / "phase1_pctnet.json"
 SUPPORTED_A = {".png", ".exr"}
 SUPPORTED_B = {".png", ".jpg", ".jpeg", ".exr"}
 IMAGE_OUTPUTS = [
+    ("raw_a_over_b", "Raw A-over-B"),
     ("final_comp", "Final Comp"),
     ("adjusted_fg", "Adjusted FG"),
     ("alpha_used", "Alpha"),
