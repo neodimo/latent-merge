@@ -114,6 +114,11 @@ def _latest_release() -> dict:
 def _update_status() -> dict:
     latest = _latest_release()
     current = _current_version()
+    digest = latest.get("digest", "")
+    executable = Path(sys.executable)
+    if current == "unknown" and getattr(sys, "frozen", False) and digest.startswith("sha256:") and executable.is_file():
+        if _sha256(executable) == digest.split(":", 1)[1]:
+            current = latest["tag"]
     installed_path = UPDATE_RELEASES / f"{UPDATE_ASSET}-{latest['tag']}"
     return {
         "platform": platform.system().lower(),
