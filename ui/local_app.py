@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import mimetypes
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -15,6 +17,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
+from urllib.request import Request, urlopen
 
 from PIL import Image
 
@@ -39,6 +42,11 @@ from core.pipeline import PipelineInputs, load_config, run_pipeline
 
 
 RUN_ROOT = WORK_ROOT / "runs" / "ui_jobs"
+UPDATE_REPO = "neodimo/latent-merge"
+UPDATE_ASSET = "latent-merge-ui"
+UPDATE_RELEASES = WORK_ROOT / "releases"
+UPDATE_BIN = WORK_ROOT / "bin" / UPDATE_ASSET
+UPDATE_VERSION_FILE = WORK_ROOT / "CURRENT_VERSION"
 DEFAULT_CONFIG = ROOT / "configs" / "phase1_pctnet.json"
 SUPPORTED_A = {".png", ".exr"}
 SUPPORTED_B = {".png", ".jpg", ".jpeg", ".exr"}
@@ -71,6 +79,95 @@ ParsedForm = dict[str, list[FormValue]]
 
 def _json_bytes(payload: object) -> bytes:
     return json.dumps(payload, indent=2).encode("utf-8")
+
+
+def _current_version() -> str:
+    env_version = os.environ.get("LATENT_MERGE_VERSION", "").strip()
+    if env_version:
+        return env_version
+    if UPDATE_VERSION_FILE.is_file():
+        return UPDATE_VERSION_FILE.read_text(encoding="utf-8").strip()
+    return "unknown"
+
+
+def _github_json(url: str) -> dict:
+    request = Request(url, headers={"Accept": "application/vnd.github+json", "User-Agent": "latent-merge-ui"})
+    with urlopen(request, timeout=20) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def _latest_release() -> dict:
+    release = _github_json(f"https://api.github.com/repos/{UPDATE_REPO}/releases/latest")
+    asset = next((item for item in release.get("assets", []) if item.get("name") == UPDATE_ASSET), None)
+    if not asset:
+        raise ValueError(f"latest release has no {UPDATE_ASSET} asset")
+    return {
+        "tag": release["tag_name"],
+        "name": release.get("name") or release["tag_name"],
+        "url": asset["browser_download_url"],
+        "digest": asset.get("digest", ""),
+        "size": asset.get("size", 0),
+        "html_url": release.get("html_url", ""),
+    }
+
+
+def _update_status() -> dict:
+    latest = _latest_release()
+    current = _current_version()
+    installed_path = UPDATE_RELEASES / f"{UPDATE_ASSET}-{latest['tag']}"
+    return {
+        "platform": platform.system().lower(),
+        "supported": platform.system().lower() == "linux",
+        "current": current,
+        "latest": latest["tag"],
+        "latest_name": latest["name"],
+        "release_url": latest["html_url"],
+        "installed": installed_path.is_file(),
+        "update_available": current != latest["tag"],
+    }
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _download_update() -> dict:
+    if platform.system().lower() != "linux":
+        raise ValueError("in-app updates are only wired for the Linux release asset right now")
+
+    latest = _latest_release()
+    UPDATE_RELEASES.mkdir(parents=True, exist_ok=True)
+    UPDATE_BIN.parent.mkdir(parents=True, exist_ok=True)
+
+    target = UPDATE_RELEASES / f"{UPDATE_ASSET}-{latest['tag']}"
+    tmp = target.with_name(target.name + ".download")
+    request = Request(latest["url"], headers={"User-Agent": "latent-merge-ui"})
+    with urlopen(request, timeout=120) as response, tmp.open("wb") as handle:
+        shutil.copyfileobj(response, handle)
+
+    digest = latest.get("digest", "")
+    if digest.startswith("sha256:"):
+        expected = digest.split(":", 1)[1]
+        actual = _sha256(tmp)
+        if actual != expected:
+            tmp.unlink(missing_ok=True)
+            raise ValueError(f"download checksum mismatch: {actual} != {expected}")
+
+    tmp.chmod(0o755)
+    tmp.replace(target)
+    UPDATE_BIN.unlink(missing_ok=True)
+    UPDATE_BIN.symlink_to(target)
+    UPDATE_VERSION_FILE.write_text(latest["tag"] + "\n", encoding="utf-8")
+    return {
+        "current": latest["tag"],
+        "installed_path": str(target),
+        "launcher": str(UPDATE_BIN),
+        "restart_required": True,
+    }
 
 
 def _safe_name(name: str) -> str:
@@ -331,6 +428,12 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/gpus":
             self._send_json(HTTPStatus.OK, {"gpus": _list_gpus()})
             return
+        if parsed.path == "/api/update/status":
+            try:
+                self._send_json(HTTPStatus.OK, _update_status())
+            except Exception as error:
+                self._send_json(HTTPStatus.BAD_GATEWAY, {"error": str(error)})
+            return
         if parsed.path == "/file":
             query = parse_qs(parsed.query)
             raw_path = query.get("path", [""])[0]
@@ -344,7 +447,14 @@ class Handler(BaseHTTPRequestHandler):
         self._send_json(HTTPStatus.NOT_FOUND, {"error": "not found"})
 
     def do_POST(self) -> None:
-        if urlparse(self.path).path != "/api/run":
+        parsed_path = urlparse(self.path).path
+        if parsed_path == "/api/update":
+            try:
+                self._send_json(HTTPStatus.OK, _download_update())
+            except Exception as error:
+                self._send_json(HTTPStatus.BAD_GATEWAY, {"error": str(error)})
+            return
+        if parsed_path != "/api/run":
             self._send_json(HTTPStatus.NOT_FOUND, {"error": "not found"})
             return
         try:

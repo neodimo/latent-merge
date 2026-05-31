@@ -11,6 +11,8 @@ const lists = {
 };
 
 const runButton = document.getElementById("runButton");
+const updateButton = document.getElementById("updateButton");
+const updateStatus = document.getElementById("updateStatus");
 const statusEl = document.getElementById("status");
 const gpuSelect = document.getElementById("gpuSelect");
 const sheetView = document.getElementById("sheetView");
@@ -20,9 +22,15 @@ const singleImage = document.getElementById("singleImage");
 const jobMeta = document.getElementById("jobMeta");
 
 let currentImages = [];
+let latestUpdate = null;
+let updateInstalled = false;
 
 function setStatus(text) {
   statusEl.textContent = text;
+}
+
+function setUpdateStatus(text) {
+  updateStatus.textContent = text;
 }
 
 function renderList(input, list) {
@@ -77,6 +85,63 @@ async function loadGpus() {
     gpuSelect.appendChild(option);
   });
 }
+
+async function loadUpdateStatus() {
+  const response = await fetch("/api/update/status");
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || "update check failed");
+
+  latestUpdate = payload;
+  updateInstalled = false;
+  if (!payload.supported) {
+    updateButton.disabled = true;
+    updateButton.textContent = "Update Unavailable";
+    setUpdateStatus("Linux updater only");
+    return;
+  }
+
+  if (payload.update_available) {
+    updateButton.disabled = false;
+    updateButton.textContent = "Update";
+    setUpdateStatus(`Current ${payload.current}; latest ${payload.latest}`);
+    return;
+  }
+
+  updateButton.disabled = false;
+  updateButton.textContent = "Check for Update";
+  setUpdateStatus(`Current ${payload.current}`);
+}
+
+updateButton.addEventListener("click", async () => {
+  if (updateInstalled) {
+    setUpdateStatus("Close this app and restart ./bin/latent-merge-ui");
+    return;
+  }
+
+  updateButton.disabled = true;
+  const shouldDownload = latestUpdate && latestUpdate.update_available;
+  updateButton.textContent = shouldDownload ? "Updating" : "Checking";
+  setUpdateStatus(shouldDownload ? "Downloading latest release" : "Checking GitHub releases");
+
+  try {
+    if (!shouldDownload) {
+      await loadUpdateStatus();
+      return;
+    }
+
+    const response = await fetch("/api/update", { method: "POST" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "update failed");
+    updateInstalled = true;
+    updateButton.disabled = false;
+    updateButton.textContent = "Restart App";
+    setUpdateStatus(`Installed ${payload.current}; restart to use it`);
+  } catch (error) {
+    updateButton.disabled = false;
+    updateButton.textContent = "Retry Update";
+    setUpdateStatus(error.message);
+  }
+});
 
 function activateSingle(index) {
   const image = currentImages[index];
@@ -149,3 +214,7 @@ runButton.addEventListener("click", async () => {
 });
 
 loadGpus().catch((error) => setStatus(error.message));
+loadUpdateStatus().catch((error) => {
+  updateButton.textContent = "Retry Update";
+  setUpdateStatus(error.message);
+});
