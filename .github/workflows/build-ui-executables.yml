@@ -155,6 +155,14 @@ jobs:
           cat runs/ui_executable_smoke.json
           test "$HTTP_STATUS" = "200"
 
+          # Smoke the UI asset paths (Windows onefile bug: APP_DIR must point to ui/ subdir)
+          HTTP_ROOT=$(curl --silent --show-error --write-out "%{http_code}" --output /dev/null http://127.0.0.1:7865/)
+          test "$HTTP_ROOT" = "200"
+          HTTP_CSS=$(curl --silent --show-error --write-out "%{http_code}" --output /dev/null http://127.0.0.1:7865/app.css)
+          test "$HTTP_CSS" = "200"
+          HTTP_JS=$(curl --silent --show-error --write-out "%{http_code}" --output /dev/null http://127.0.0.1:7865/app.js)
+          test "$HTTP_JS" = "200"
+
           python - <<'PY'
           import json
           from pathlib import Path

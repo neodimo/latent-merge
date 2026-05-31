@@ -25,9 +25,11 @@ os.environ.setdefault("PYTORCH_JIT", "0")
 
 if getattr(sys, "frozen", False):
     ROOT = Path(getattr(sys, "_MEIPASS")).resolve()
+    APP_DIR = ROOT / "ui"
     WORK_ROOT = Path.cwd().resolve()
 else:
     ROOT = Path(__file__).resolve().parents[1]
+    APP_DIR = Path(__file__).resolve().parent
     WORK_ROOT = ROOT
 
 if str(ROOT) not in sys.path:
@@ -36,7 +38,6 @@ if str(ROOT) not in sys.path:
 from core.pipeline import PipelineInputs, load_config, run_pipeline
 
 
-APP_DIR = Path(__file__).resolve().parent
 RUN_ROOT = WORK_ROOT / "runs" / "ui_jobs"
 DEFAULT_CONFIG = ROOT / "configs" / "phase1_pctnet.json"
 SUPPORTED_A = {".png", ".exr"}
