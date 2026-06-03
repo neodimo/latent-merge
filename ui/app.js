@@ -21,6 +21,7 @@ const controlDescription = document.getElementById("controlDescription");
 const backendHint = document.getElementById("backendHint");
 const modelPill = document.getElementById("modelPill");
 const vitControls = document.getElementById("vitControls");
+const icFluxControls = document.getElementById("icFluxControls");
 const controls = {
   strength: document.getElementById("strengthInput"),
   deltaGain: document.getElementById("deltaGainInput"),
@@ -31,6 +32,12 @@ const controls = {
   vitWarmth: document.getElementById("vitWarmthInput"),
   vitSaturation: document.getElementById("vitSaturationInput"),
   vitIdentity: document.getElementById("vitIdentityInput"),
+  icFluxSeed: document.getElementById("icFluxSeedInput"),
+  icFluxSteps: document.getElementById("icFluxStepsInput"),
+  icFluxCfg: document.getElementById("icFluxCfgInput"),
+  icFluxCond: document.getElementById("icFluxCondInput"),
+  icFluxResolution: document.getElementById("icFluxResolutionInput"),
+  icFluxFp16: document.getElementById("icFluxFp16Input"),
 };
 const controlValues = {
   strength: document.getElementById("strengthValue"),
@@ -42,6 +49,12 @@ const controlValues = {
   vitWarmth: document.getElementById("vitWarmthValue"),
   vitSaturation: document.getElementById("vitSaturationValue"),
   vitIdentity: document.getElementById("vitIdentityValue"),
+  icFluxSeed: document.getElementById("icFluxSeedValue"),
+  icFluxSteps: document.getElementById("icFluxStepsValue"),
+  icFluxCfg: document.getElementById("icFluxCfgValue"),
+  icFluxCond: document.getElementById("icFluxCondValue"),
+  icFluxResolution: document.getElementById("icFluxResolutionValue"),
+  icFluxFp16: document.getElementById("icFluxFp16Value"),
 };
 const sheetView = document.getElementById("sheetView");
 const singleView = document.getElementById("singleView");
@@ -93,6 +106,12 @@ function updateControlReadouts() {
   controlValues.vitWarmth.textContent = warmth > 0 ? `+${warmth.toFixed(2)}` : warmth.toFixed(2);
   controlValues.vitSaturation.textContent = Number(controls.vitSaturation.value).toFixed(2);
   controlValues.vitIdentity.textContent = Number(controls.vitIdentity.value).toFixed(2);
+  controlValues.icFluxSeed.textContent = controls.icFluxSeed.value;
+  controlValues.icFluxSteps.textContent = controls.icFluxSteps.value;
+  controlValues.icFluxCfg.textContent = Number(controls.icFluxCfg.value).toFixed(2);
+  controlValues.icFluxCond.textContent = Number(controls.icFluxCond.value).toFixed(2);
+  controlValues.icFluxResolution.textContent = `${controls.icFluxResolution.value} px`;
+  controlValues.icFluxFp16.textContent = controls.icFluxFp16.value === "1" ? "On" : "Off";
 }
 
 Object.values(controls).forEach((input) => input.addEventListener("input", updateControlReadouts));
@@ -101,12 +120,19 @@ updateControlReadouts();
 function updateBackendReadout() {
   const backend = backendSelect.value;
   vitControls.classList.toggle("hidden", backend !== "pctnet_vit_proxy");
+  icFluxControls.classList.toggle("hidden", backend !== "ic_flux_v2");
   if (backend === "pctnet_vit_proxy") {
     controlTitle.textContent = "ViT Controls";
     controlDescription.textContent = "PCT-Net ViT-style stronger foreground harmonization.";
     backendHint.textContent = "ViT pushes harder and can reveal more delta, but identity lock matters.";
     modelPill.textContent = "ViT";
     setStatus("Ready");
+  } else if (backend === "ic_flux_v2") {
+    controlTitle.textContent = "IC Flux Controls";
+    controlDescription.textContent = "IC-Light V2 / FLUX external GPU relighting.";
+    backendHint.textContent = "Requires CUDA, diffusers, local IC-Light and FLUX weights, and LATENT_MERGE_ENABLE_IC_FLUX=1.";
+    modelPill.textContent = "Flux";
+    setStatus("External GPU setup required");
   } else if (backend === "mean_match_stub") {
     controlTitle.textContent = "Baseline Controls";
     controlDescription.textContent = "Mean-match scaffold for quick conservative checks.";
@@ -252,6 +278,7 @@ function renderOutputs(payload) {
     `strength ${ctl.adjustment_strength ?? "?"}x`,
     `delta ${ctl.delta_preview_gain ?? "?"}x`,
     ctl.vit_context !== undefined ? `context ${ctl.vit_context}` : null,
+    ctl.ic_flux_steps !== undefined ? `steps ${ctl.ic_flux_steps}` : null,
     `A ${seq.cg_frames_uploaded || 0} frame(s), B ${seq.plate_frames_uploaded || 0} frame(s)`,
   ].filter(Boolean).join(" | ");
 }
@@ -287,6 +314,12 @@ runButton.addEventListener("click", async () => {
   form.append("vit_warmth", controls.vitWarmth.value);
   form.append("vit_saturation", controls.vitSaturation.value);
   form.append("vit_identity_lock", controls.vitIdentity.value);
+  form.append("ic_flux_seed", controls.icFluxSeed.value);
+  form.append("ic_flux_steps", controls.icFluxSteps.value);
+  form.append("ic_flux_cfg", controls.icFluxCfg.value);
+  form.append("ic_flux_cond_strength", controls.icFluxCond.value);
+  form.append("ic_flux_resolution", controls.icFluxResolution.value);
+  form.append("ic_flux_fp16", controls.icFluxFp16.value);
 
   runButton.disabled = true;
   setStatus(`Running ${backendSelect.options[backendSelect.selectedIndex].textContent}`);

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -33,9 +36,15 @@ class PipelineConfig:
     vit_warmth: float = 0.0
     vit_saturation: float = 1.0
     vit_identity_lock: float = 0.35
+    ic_flux_seed: int = 42
+    ic_flux_steps: int = 20
+    ic_flux_cfg: float = 3.5
+    ic_flux_cond_strength: float = 0.75
+    ic_flux_resolution: int = 768
+    ic_flux_fp16: bool = True
 
     def validate(self) -> None:
-        allowed_backends = {"mean_match_stub", "pctnet", "pctnet_vit_proxy"}
+        allowed_backends = {"mean_match_stub", "pctnet", "pctnet_vit_proxy", "ic_flux_v2"}
         if self.backend not in allowed_backends:
             raise ValueError(f"unsupported backend '{self.backend}'; available: {', '.join(sorted(allowed_backends))}")
         allowed_tiers = {"compact-8", "mid-16", "full-48"}
@@ -59,6 +68,14 @@ class PipelineConfig:
             raise ValueError("vit_saturation must be between 0.0 and 2.0")
         if not 0.0 <= self.vit_identity_lock <= 1.0:
             raise ValueError("vit_identity_lock must be between 0.0 and 1.0")
+        if not 1 <= self.ic_flux_steps <= 60:
+            raise ValueError("ic_flux_steps must be between 1 and 60")
+        if not 1.0 <= self.ic_flux_cfg <= 10.0:
+            raise ValueError("ic_flux_cfg must be between 1.0 and 10.0")
+        if not 0.0 <= self.ic_flux_cond_strength <= 1.5:
+            raise ValueError("ic_flux_cond_strength must be between 0.0 and 1.5")
+        if not 384 <= self.ic_flux_resolution <= 1536:
+            raise ValueError("ic_flux_resolution must be between 384 and 1536")
 
 
 def load_config(path: Path | None) -> PipelineConfig:
@@ -78,6 +95,12 @@ def load_config(path: Path | None) -> PipelineConfig:
         vit_warmth=payload.get("vit_warmth", PipelineConfig.vit_warmth),
         vit_saturation=payload.get("vit_saturation", PipelineConfig.vit_saturation),
         vit_identity_lock=payload.get("vit_identity_lock", PipelineConfig.vit_identity_lock),
+        ic_flux_seed=payload.get("ic_flux_seed", PipelineConfig.ic_flux_seed),
+        ic_flux_steps=payload.get("ic_flux_steps", PipelineConfig.ic_flux_steps),
+        ic_flux_cfg=payload.get("ic_flux_cfg", PipelineConfig.ic_flux_cfg),
+        ic_flux_cond_strength=payload.get("ic_flux_cond_strength", PipelineConfig.ic_flux_cond_strength),
+        ic_flux_resolution=payload.get("ic_flux_resolution", PipelineConfig.ic_flux_resolution),
+        ic_flux_fp16=payload.get("ic_flux_fp16", PipelineConfig.ic_flux_fp16),
     )
 
 
@@ -203,6 +226,85 @@ def _pctnet_vit_proxy(
     }
 
 
+def _load_ic_flux_output(output_dir: Path) -> np.ndarray:
+    from PIL import Image
+
+    path = output_dir / "adjusted_fg.png"
+    if not path.is_file():
+        raise RuntimeError("IC Flux runner completed without adjusted_fg.png")
+    image = Image.open(path).convert("RGB")
+    return np.asarray(image, dtype=np.float32) / 255.0
+
+
+def _run_ic_flux_v2(inputs: PipelineInputs, output_dir: Path, config: PipelineConfig) -> tuple[np.ndarray, dict[str, Any]]:
+    if os.environ.get("LATENT_MERGE_ENABLE_IC_FLUX") != "1":
+        raise RuntimeError(
+            "IC Flux v2 is an external GPU backend. Set LATENT_MERGE_ENABLE_IC_FLUX=1 after installing "
+            "CUDA torch, diffusers, transformers, accelerate, and local weights under weights/ic-light-v2 "
+            "and weights/flux1-dev. See scripts/run_ic_flux_comparison.sh."
+        )
+
+    runner = Path(__file__).resolve().parents[1] / "scripts" / "ic_flux_runner.py"
+    weights_dir = Path(os.environ.get("LATENT_MERGE_IC_FLUX_WEIGHTS", "weights/ic-light-v2"))
+    flux_weights_dir = Path(os.environ.get("LATENT_MERGE_FLUX_WEIGHTS", "weights/flux1-dev"))
+    ic_dir = output_dir / "ic_flux_v2_external"
+    command = [
+        sys.executable,
+        str(runner),
+        "--plate",
+        str(inputs.plate_rgb),
+        "--cg",
+        str(inputs.cg_rgba),
+        "--alpha",
+        str(inputs.alpha),
+        "--seed",
+        str(config.ic_flux_seed),
+        "--steps",
+        str(config.ic_flux_steps),
+        "--cfg",
+        str(config.ic_flux_cfg),
+        "--cond-strength",
+        str(config.ic_flux_cond_strength),
+        "--resolution",
+        str(config.ic_flux_resolution),
+        "--weights-dir",
+        str(weights_dir),
+        "--flux-weights-dir",
+        str(flux_weights_dir),
+        "--out-dir",
+        str(ic_dir),
+    ]
+    if not config.ic_flux_fp16:
+        command.append("--no-fp16")
+
+    try:
+        result = subprocess.run(command, check=True, capture_output=True, text=True, timeout=60 * 30)
+    except subprocess.CalledProcessError as error:
+        detail = (error.stderr or error.stdout or str(error)).strip()
+        raise RuntimeError(f"IC Flux v2 failed: {detail}") from error
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError("IC Flux v2 timed out after 30 minutes") from error
+
+    adjusted = _load_ic_flux_output(ic_dir)
+    job_path = ic_dir / "job.json"
+    external_job = json.loads(job_path.read_text(encoding="utf-8")) if job_path.is_file() else {}
+    return adjusted, {
+        "name": "ic_flux_v2",
+        "model_type": "IC-Light V2 / FLUX",
+        "model_variant": "external GPU runner",
+        "seed": config.ic_flux_seed,
+        "steps": config.ic_flux_steps,
+        "cfg": config.ic_flux_cfg,
+        "cond_strength": config.ic_flux_cond_strength,
+        "resolution": config.ic_flux_resolution,
+        "fp16": config.ic_flux_fp16,
+        "weights_dir": str(weights_dir),
+        "flux_weights_dir": str(flux_weights_dir),
+        "runner_stdout_tail": result.stdout[-2000:],
+        "external_job": external_job,
+    }
+
+
 def run_pipeline(inputs: PipelineInputs, output_dir: Path, config: PipelineConfig) -> Path:
     config.validate()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -242,6 +344,8 @@ def run_pipeline(inputs: PipelineInputs, output_dir: Path, config: PipelineConfi
         }
     elif config.backend == "pctnet_vit_proxy":
         model_adjusted_rgb, backend_report = _pctnet_vit_proxy(plate, cg_rgb, combined_alpha, config)
+    elif config.backend == "ic_flux_v2":
+        model_adjusted_rgb, backend_report = _run_ic_flux_v2(inputs, output_dir, config)
     else:
         raise ValueError(f"unsupported backend '{config.backend}'")
 
@@ -289,6 +393,12 @@ def run_pipeline(inputs: PipelineInputs, output_dir: Path, config: PipelineConfi
             "vit_warmth": config.vit_warmth,
             "vit_saturation": config.vit_saturation,
             "vit_identity_lock": config.vit_identity_lock,
+            "ic_flux_seed": config.ic_flux_seed,
+            "ic_flux_steps": config.ic_flux_steps,
+            "ic_flux_cfg": config.ic_flux_cfg,
+            "ic_flux_cond_strength": config.ic_flux_cond_strength,
+            "ic_flux_resolution": config.ic_flux_resolution,
+            "ic_flux_fp16": config.ic_flux_fp16,
         },
         "inputs": {
             "plate_rgb": {"path": str(inputs.plate_rgb), "sha256": sha256_file(inputs.plate_rgb)},

@@ -377,8 +377,8 @@ def _run_ui_job(form: ParsedForm) -> dict:
     output_dir = job_dir / "outputs"
     selected_gpu = _form_first(form, "gpu", "cpu")
     backend = _form_first(form, "backend", "pctnet")
-    if backend not in {"pctnet", "pctnet_vit_proxy", "mean_match_stub"}:
-        raise ValueError("backend must be pctnet, pctnet_vit_proxy, or mean_match_stub")
+    if backend not in {"pctnet", "pctnet_vit_proxy", "ic_flux_v2", "mean_match_stub"}:
+        raise ValueError("backend must be pctnet, pctnet_vit_proxy, ic_flux_v2, or mean_match_stub")
     adjustment_strength = _form_float(form, "adjustment_strength", 1.0, 0.0, 2.5)
     delta_preview_gain = _form_float(form, "delta_preview_gain", 4.0, 1.0, 16.0)
     correction_softness_px = _form_float(form, "correction_softness_px", 0.0, 0.0, 24.0)
@@ -388,6 +388,12 @@ def _run_ui_job(form: ParsedForm) -> dict:
     vit_warmth = _form_float(form, "vit_warmth", 0.0, -1.0, 1.0)
     vit_saturation = _form_float(form, "vit_saturation", 1.0, 0.0, 2.0)
     vit_identity_lock = _form_float(form, "vit_identity_lock", 0.35, 0.0, 1.0)
+    ic_flux_seed = _form_int(form, "ic_flux_seed", 42, 0, 2147483647)
+    ic_flux_steps = _form_int(form, "ic_flux_steps", 20, 1, 60)
+    ic_flux_cfg = _form_float(form, "ic_flux_cfg", 3.5, 1.0, 10.0)
+    ic_flux_cond_strength = _form_float(form, "ic_flux_cond_strength", 0.75, 0.0, 1.5)
+    ic_flux_resolution = _form_int(form, "ic_flux_resolution", 768, 384, 1536)
+    ic_flux_fp16 = _form_first(form, "ic_flux_fp16", "1") != "0"
     config = replace(
         load_config(DEFAULT_CONFIG),
         backend=backend,
@@ -400,6 +406,12 @@ def _run_ui_job(form: ParsedForm) -> dict:
         vit_warmth=vit_warmth,
         vit_saturation=vit_saturation,
         vit_identity_lock=vit_identity_lock,
+        ic_flux_seed=ic_flux_seed,
+        ic_flux_steps=ic_flux_steps,
+        ic_flux_cfg=ic_flux_cfg,
+        ic_flux_cond_strength=ic_flux_cond_strength,
+        ic_flux_resolution=ic_flux_resolution,
+        ic_flux_fp16=ic_flux_fp16,
     )
     previous_cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES")
     if selected_gpu != "cpu":
@@ -452,6 +464,12 @@ def _run_ui_job(form: ParsedForm) -> dict:
             "vit_warmth": vit_warmth,
             "vit_saturation": vit_saturation,
             "vit_identity_lock": vit_identity_lock,
+            "ic_flux_seed": ic_flux_seed,
+            "ic_flux_steps": ic_flux_steps,
+            "ic_flux_cfg": ic_flux_cfg,
+            "ic_flux_cond_strength": ic_flux_cond_strength,
+            "ic_flux_resolution": ic_flux_resolution,
+            "ic_flux_fp16": ic_flux_fp16,
         },
         "contract": job["contract"],
     }

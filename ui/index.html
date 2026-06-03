@@ -93,6 +93,7 @@
               <select id="backendSelect">
                 <option value="pctnet">PCT-Net CNN</option>
                 <option value="pctnet_vit_proxy">PCT-Net ViT</option>
+                <option value="ic_flux_v2">IC Flux v2</option>
                 <option value="mean_match_stub">Mean Match Baseline</option>
               </select>
               <span class="control-hint" id="backendHint">CNN is safer and more conservative. ViT is stronger, with more identity risk.</span>
@@ -178,6 +179,62 @@
                 </span>
                 <input id="vitIdentityInput" type="range" min="0" max="1" step="0.05" value="0.35" />
                 <span class="control-hint">Left allows bigger changes; right preserves more of the original CG.</span>
+              </label>
+            </div>
+
+            <div id="icFluxControls" class="vit-controls hidden">
+              <label class="control-row">
+                <span class="control-top">
+                  <span>Seed</span>
+                  <output id="icFluxSeedValue">42</output>
+                </span>
+                <input id="icFluxSeedInput" type="range" min="0" max="9999" step="1" value="42" />
+                <span class="control-hint">Lower or higher changes the diffusion sample. Keep fixed for repeatability.</span>
+              </label>
+
+              <label class="control-row">
+                <span class="control-top">
+                  <span>Steps</span>
+                  <output id="icFluxStepsValue">20</output>
+                </span>
+                <input id="icFluxStepsInput" type="range" min="1" max="60" step="1" value="20" />
+                <span class="control-hint">Lower is faster and rougher; higher is slower and more coherent.</span>
+              </label>
+
+              <label class="control-row">
+                <span class="control-top">
+                  <span>CFG Scale</span>
+                  <output id="icFluxCfgValue">3.50</output>
+                </span>
+                <input id="icFluxCfgInput" type="range" min="1" max="10" step="0.1" value="3.5" />
+                <span class="control-hint">Lower lets the plate conditioning dominate; higher pushes the generated subject harder.</span>
+              </label>
+
+              <label class="control-row">
+                <span class="control-top">
+                  <span>Condition Strength</span>
+                  <output id="icFluxCondValue">0.75</output>
+                </span>
+                <input id="icFluxCondInput" type="range" min="0" max="1.5" step="0.05" value="0.75" />
+                <span class="control-hint">Lower weakens plate lighting influence; higher follows the plate more aggressively.</span>
+              </label>
+
+              <label class="control-row">
+                <span class="control-top">
+                  <span>Resolution</span>
+                  <output id="icFluxResolutionValue">768 px</output>
+                </span>
+                <input id="icFluxResolutionInput" type="range" min="384" max="1536" step="64" value="768" />
+                <span class="control-hint">Lower saves VRAM and time; higher keeps more detail but can exceed memory.</span>
+              </label>
+
+              <label class="control-row">
+                <span class="control-top">
+                  <span>Half Precision</span>
+                  <output id="icFluxFp16Value">On</output>
+                </span>
+                <input id="icFluxFp16Input" type="range" min="0" max="1" step="1" value="1" />
+                <span class="control-hint">On saves VRAM. Off may improve numeric stability but costs memory.</span>
               </label>
             </div>
           </aside>
