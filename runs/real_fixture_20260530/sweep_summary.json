@@ -1,0 +1,147 @@
+{
+  "schema": "latent-merge.overnight-sweep.v1",
+  "created_utc": "2026-05-30T17:15:33.068934+00:00",
+  "fixture": "fixtures/compositingpro_sh009_minimal",
+  "backends_run": 9,
+  "backends_errored": 0,
+  "master_comparison": "runs/real_fixture_20260530/master_comparison.jpg",
+  "refinement_top3": "runs/real_fixture_20260530/refinement_top3.jpg",
+  "ic_flux_docs": "runs/real_fixture_20260530/ic_flux_docs.json",
+  "ranking": [
+    {
+      "rank": 1,
+      "backend_key": "03_rgb_affine",
+      "label": "3. RGB Affine (mean+std)",
+      "composite_score": 0.126674,
+      "metrics": {
+        "id_drift_rmse": 0.0958,
+        "integration_rmse": 0.147256,
+        "aw_delta_mean": 0.001725,
+        "contrast_ratio": 0.5842,
+        "plate_repaint_err": 0.21797049
+      },
+      "duration_s": 1.3295,
+      "contact_sheet": "runs/real_fixture_20260530/03_rgb_affine/contact_sheet.jpg"
+    },
+    {
+      "rank": 2,
+      "backend_key": "05_lab_mean_std",
+      "label": "5. Lab Affine (Reinhard 2001)",
+      "composite_score": 0.127366,
+      "metrics": {
+        "id_drift_rmse": 0.09056,
+        "integration_rmse": 0.151904,
+        "aw_delta_mean": 0.001693,
+        "contrast_ratio": 0.6201,
+        "plate_repaint_err": 0.23023824
+      },
+      "duration_s": 2.491,
+      "contact_sheet": "runs/real_fixture_20260530/05_lab_mean_std/contact_sheet.jpg"
+    },
+    {
+      "rank": 3,
+      "backend_key": "06_histogram_match",
+      "label": "6. Histogram CDF Match",
+      "composite_score": 0.134036,
+      "metrics": {
+        "id_drift_rmse": 0.100576,
+        "integration_rmse": 0.156343,
+        "aw_delta_mean": 0.001931,
+        "contrast_ratio": 0.6354,
+        "plate_repaint_err": 0.21725333
+      },
+      "duration_s": 1.208,
+      "contact_sheet": "runs/real_fixture_20260530/06_histogram_match/contact_sheet.jpg"
+    },
+    {
+      "rank": 4,
+      "backend_key": "01_mean_match_stub",
+      "label": "1. Mean Match (baseline)",
+      "composite_score": 0.139338,
+      "metrics": {
+        "id_drift_rmse": 0.056656,
+        "integration_rmse": 0.19446,
+        "aw_delta_mean": 0.000758,
+        "contrast_ratio": 0.9034,
+        "plate_repaint_err": 0.23032105
+      },
+      "duration_s": 1.2639,
+      "contact_sheet": "runs/real_fixture_20260530/01_mean_match_stub/contact_sheet.jpg"
+    },
+    {
+      "rank": 5,
+      "backend_key": "07_gamma_curve",
+      "label": "7. Gamma Curve Correction",
+      "composite_score": 0.14022,
+      "metrics": {
+        "id_drift_rmse": 0.044416,
+        "integration_rmse": 0.204089,
+        "aw_delta_mean": 0.000661,
+        "contrast_ratio": 0.9573,
+        "plate_repaint_err": 0.23311082
+      },
+      "duration_s": 1.2724,
+      "contact_sheet": "runs/real_fixture_20260530/07_gamma_curve/contact_sheet.jpg"
+    },
+    {
+      "rank": 6,
+      "backend_key": "09_polynomial_color",
+      "label": "9. Polynomial Color Fit",
+      "composite_score": 0.14035,
+      "metrics": {
+        "id_drift_rmse": 0.189593,
+        "integration_rmse": 0.107522,
+        "aw_delta_mean": 0.003672,
+        "contrast_ratio": 0.1348,
+        "plate_repaint_err": 0.18427247
+      },
+      "duration_s": 1.2311,
+      "contact_sheet": "runs/real_fixture_20260530/09_polynomial_color/contact_sheet.jpg"
+    },
+    {
+      "rank": 7,
+      "backend_key": "02_unclamped_mean",
+      "label": "2. Unclamped Mean Match",
+      "composite_score": 0.1416,
+      "metrics": {
+        "id_drift_rmse": 0.065704,
+        "integration_rmse": 0.192198,
+        "aw_delta_mean": 0.000862,
+        "contrast_ratio": 0.8921,
+        "plate_repaint_err": 0.23063566
+      },
+      "duration_s": 1.2965,
+      "contact_sheet": "runs/real_fixture_20260530/02_unclamped_mean/contact_sheet.jpg"
+    },
+    {
+      "rank": 8,
+      "backend_key": "04_lab_mean_only",
+      "label": "4. Lab Mean Transfer",
+      "composite_score": 0.141839,
+      "metrics": {
+        "id_drift_rmse": 0.050017,
+        "integration_rmse": 0.203053,
+        "aw_delta_mean": 0.000787,
+        "contrast_ratio": 0.9543,
+        "plate_repaint_err": 0.23526154
+      },
+      "duration_s": 2.3287,
+      "contact_sheet": "runs/real_fixture_20260530/04_lab_mean_only/contact_sheet.jpg"
+    },
+    {
+      "rank": 9,
+      "backend_key": "08_local_spatial",
+      "label": "8. Local Spatial (3\u00d73 tiles)",
+      "composite_score": 0.141959,
+      "metrics": {
+        "id_drift_rmse": 0.067228,
+        "integration_rmse": 0.19178,
+        "aw_delta_mean": 0.000898,
+        "contrast_ratio": 0.8873,
+        "plate_repaint_err": 0.23065536
+      },
+      "duration_s": 1.2901,
+      "contact_sheet": "runs/real_fixture_20260530/08_local_spatial/contact_sheet.jpg"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "status": "BLOCKED_NO_GPU_NO_WEIGHTS",
+  "blocker": "This VPS has no NVIDIA GPU (nvidia-smi returns no devices). IC-Light V2 / FLUX requires a CUDA GPU with \u226512 GB VRAM. torch, diffusers, transformers, and accelerate are not installed. No model weights are cached locally.",
+  "target_hardware": "Gonzo's home server: RTX 3080 Ti (12 GB VRAM)",
+  "install_commands": [
+    "pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121",
+    "pip install diffusers transformers accelerate huggingface_hub",
+    "pip install xformers  # optional, for memory savings"
+  ],
+  "weight_download": [
+    "# IC-Light V2 FLUX weights (HuggingFace):",
+    "from huggingface_hub import snapshot_download",
+    "snapshot_download('lllyasviel/ic-light', local_dir='weights/ic-light-v2')",
+    "# Also grab FLUX backbone if not cached:",
+    "snapshot_download('black-forest-labs/FLUX.1-dev', local_dir='weights/flux1-dev')"
+  ],
+  "run_commands": [
+    "# Baseline comparison run (same fixture):",
+    "python3 scripts/ic_flux_runner.py \\",
+    "  --plate  fixtures/golden_synthetic_001/plate_rgb.png \\",
+    "  --cg     fixtures/golden_synthetic_001/cg_rgba.png \\",
+    "  --alpha  fixtures/golden_synthetic_001/alpha.png \\",
+    "  --seed   42 \\",
+    "  --steps  20 \\",
+    "  --cfg    3.5 \\",
+    "  --out-dir runs/overnight_20260530/ic_flux_baseline",
+    "",
+    "# Side-by-side comparison against best CPU technique:",
+    "python3 scripts/overnight_sweep.py --compare-ic-flux runs/overnight_20260530/ic_flux_baseline"
+  ],
+  "ic_flux_runner_stub": "scripts/ic_flux_runner.py",
+  "key_risks": [
+    "FLUX diffusion rewrites CG textures and identity details.",
+    "VAE encode/decode introduces distortion (especially fine edges).",
+    "Alpha edge seams and halos are common without alpha-aware conditioning.",
+    "SDR-trained; HDR/EXR plates will need tonemapping before inference.",
+    "Each step = ~2-4s on RTX 3080 Ti; 20 steps = ~1-2 min per frame.",
+    "Non-deterministic without fixed seed; always record seed in job.json."
+  ],
+  "recommended_settings": {
+    "steps": "20\u201330 (higher = more coherent but slower)",
+    "cfg_scale": "2.5\u20134.0 (lower = more plate-influenced)",
+    "seed": "42 (or any fixed integer for reproducibility)",
+    "resolution": "512 or 768 px (match fixture resolution)",
+    "conditioning_strength": "0.6\u20130.8 (higher = more IC-Light influence)"
+  }
+}

@@ -376,16 +376,30 @@ def _run_ui_job(form: ParsedForm) -> dict:
 
     output_dir = job_dir / "outputs"
     selected_gpu = _form_first(form, "gpu", "cpu")
+    backend = _form_first(form, "backend", "pctnet")
+    if backend not in {"pctnet", "pctnet_vit_proxy", "mean_match_stub"}:
+        raise ValueError("backend must be pctnet, pctnet_vit_proxy, or mean_match_stub")
     adjustment_strength = _form_float(form, "adjustment_strength", 1.0, 0.0, 2.5)
     delta_preview_gain = _form_float(form, "delta_preview_gain", 4.0, 1.0, 16.0)
     correction_softness_px = _form_float(form, "correction_softness_px", 0.0, 0.0, 24.0)
     correction_choke_px = _form_int(form, "correction_choke_px", 0, -24, 24)
+    vit_context = _form_float(form, "vit_context", 0.45, 0.0, 1.0)
+    vit_contrast = _form_float(form, "vit_contrast", 0.65, 0.0, 1.5)
+    vit_warmth = _form_float(form, "vit_warmth", 0.0, -1.0, 1.0)
+    vit_saturation = _form_float(form, "vit_saturation", 1.0, 0.0, 2.0)
+    vit_identity_lock = _form_float(form, "vit_identity_lock", 0.35, 0.0, 1.0)
     config = replace(
         load_config(DEFAULT_CONFIG),
+        backend=backend,
         adjustment_strength=adjustment_strength,
         delta_preview_gain=delta_preview_gain,
         correction_softness_px=correction_softness_px,
         correction_choke_px=correction_choke_px,
+        vit_context=vit_context,
+        vit_contrast=vit_contrast,
+        vit_warmth=vit_warmth,
+        vit_saturation=vit_saturation,
+        vit_identity_lock=vit_identity_lock,
     )
     previous_cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES")
     if selected_gpu != "cpu":
@@ -433,6 +447,11 @@ def _run_ui_job(form: ParsedForm) -> dict:
             "delta_preview_gain": delta_preview_gain,
             "correction_softness_px": correction_softness_px,
             "correction_choke_px": correction_choke_px,
+            "vit_context": vit_context,
+            "vit_contrast": vit_contrast,
+            "vit_warmth": vit_warmth,
+            "vit_saturation": vit_saturation,
+            "vit_identity_lock": vit_identity_lock,
         },
         "contract": job["contract"],
     }
@@ -464,6 +483,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/app.js":
             self._send(HTTPStatus.OK, (APP_DIR / "app.js").read_bytes(), "text/javascript; charset=utf-8")
+            return
+        if parsed.path == "/icon.png":
+            self._send(HTTPStatus.OK, (APP_DIR / "icon.png").read_bytes(), "image/png")
             return
         if parsed.path == "/api/gpus":
             self._send_json(HTTPStatus.OK, {"gpus": _list_gpus()})

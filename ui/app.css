@@ -261,6 +261,12 @@ li {
   gap: 8px;
 }
 
+.vit-controls {
+  display: grid;
+  gap: 18px;
+  padding-top: 2px;
+}
+
 .control-top span {
   color: var(--text);
   font-size: 13px;

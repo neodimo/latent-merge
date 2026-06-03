@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Latent Merge</title>
+    <link rel="icon" type="image/png" href="/icon.png" />
     <link rel="stylesheet" href="/app.css" />
   </head>
   <body>
@@ -79,11 +80,23 @@
           <aside class="control-panel">
             <div class="section-head">
               <div>
-                <h2>PCT Controls</h2>
-                <p>PCT-Net CNN, foreground-only output.</p>
+                <h2 id="controlTitle">PCT Controls</h2>
+                <p id="controlDescription">PCT-Net CNN, foreground-only output.</p>
               </div>
-              <span class="pill">CNN</span>
+              <span id="modelPill" class="pill">CNN</span>
             </div>
+
+            <label class="control-row">
+              <span class="control-top">
+                <span>Model Variant</span>
+              </span>
+              <select id="backendSelect">
+                <option value="pctnet">PCT-Net CNN</option>
+                <option value="pctnet_vit_proxy">PCT-Net ViT</option>
+                <option value="mean_match_stub">Mean Match Baseline</option>
+              </select>
+              <span class="control-hint" id="backendHint">CNN is safer and more conservative. ViT is stronger, with more identity risk.</span>
+            </label>
 
             <label class="control-row">
               <span class="control-top">
@@ -120,6 +133,53 @@
               <input id="chokeInput" type="range" min="-24" max="24" step="1" value="0" />
               <span class="control-hint">Negative expands correction outward; positive pulls it inward from edges.</span>
             </label>
+
+            <div id="vitControls" class="vit-controls hidden">
+              <label class="control-row">
+                <span class="control-top">
+                  <span>ViT Scene Context</span>
+                  <output id="vitContextValue">0.45</output>
+                </span>
+                <input id="vitContextInput" type="range" min="0" max="1" step="0.05" value="0.45" />
+                <span class="control-hint">Left uses broad color response; right reacts more to nearby plate context.</span>
+              </label>
+
+              <label class="control-row">
+                <span class="control-top">
+                  <span>ViT Contrast Match</span>
+                  <output id="vitContrastValue">0.65</output>
+                </span>
+                <input id="vitContrastInput" type="range" min="0" max="1.5" step="0.05" value="0.65" />
+                <span class="control-hint">Left preserves CG contrast; right follows plate contrast more aggressively.</span>
+              </label>
+
+              <label class="control-row">
+                <span class="control-top">
+                  <span>ViT Warmth Bias</span>
+                  <output id="vitWarmthValue">0.00</output>
+                </span>
+                <input id="vitWarmthInput" type="range" min="-1" max="1" step="0.05" value="0" />
+                <span class="control-hint">Left cools the foreground; right warms it.</span>
+              </label>
+
+              <label class="control-row">
+                <span class="control-top">
+                  <span>ViT Saturation</span>
+                  <output id="vitSaturationValue">1.00</output>
+                </span>
+                <input id="vitSaturationInput" type="range" min="0" max="2" step="0.05" value="1" />
+                <span class="control-hint">Left desaturates; right increases color intensity.</span>
+              </label>
+
+              <label class="control-row">
+                <span class="control-top">
+                  <span>ViT Identity Lock</span>
+                  <output id="vitIdentityValue">0.35</output>
+                </span>
+                <input id="vitIdentityInput" type="range" min="0" max="1" step="0.05" value="0.35" />
+                <span class="control-hint">Left allows bigger changes; right preserves more of the original CG.</span>
+              </label>
+            </div>
           </aside>
         </section>
 

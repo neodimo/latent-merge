@@ -91,6 +91,7 @@ jobs:
           --add-data "ui/index.html${{ matrix.data_sep }}ui"
           --add-data "ui/app.css${{ matrix.data_sep }}ui"
           --add-data "ui/app.js${{ matrix.data_sep }}ui"
+          --add-data "ui/icon.png${{ matrix.data_sep }}ui"
           --add-data "configs${{ matrix.data_sep }}configs"
           --add-data "core${{ matrix.data_sep }}core"
           --add-data "models${{ matrix.data_sep }}models"

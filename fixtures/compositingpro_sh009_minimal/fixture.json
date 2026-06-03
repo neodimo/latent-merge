@@ -1,0 +1,24 @@
+{
+  "source": "compositingpro.com free Nuke CG compositing tutorial files",
+  "license": "personal practice only, not commercial",
+  "plate_exr": "sh009_RAW_v001_1200.exr",
+  "cg_exr": "sh009_STN_monster_BTY_v001_1200.exr",
+  "plate_size_wh": [
+    1920,
+    1080
+  ],
+  "cg_size_raw_wh": [
+    1955,
+    1101
+  ],
+  "cg_crop_offset_xy": [
+    17,
+    10
+  ],
+  "tonemap": "ACES_RRT_Narkowicz + sRGB",
+  "files": {
+    "plate_rgb.png": "3116751562cc0fe8",
+    "cg_rgba.png": "4fadd8eff19488f5",
+    "alpha.png": "444f25d87dad18d0"
+  }
+}
