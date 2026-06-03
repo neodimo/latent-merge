@@ -15,68 +15,89 @@
             <h1>Latent Merge</h1>
             <p>Plate-conditioned foreground harmonization</p>
           </div>
-          <label class="gpu">
-            <span>Model Device</span>
-            <select id="gpuSelect"></select>
-          </label>
+          <div class="top-controls">
+            <label class="field-control">
+              <span>Model</span>
+              <select id="backendSelect"></select>
+            </label>
+            <label class="field-control">
+              <span>Device</span>
+              <select id="gpuSelect"></select>
+            </label>
+          </div>
         </header>
 
-        <section class="inputs">
-          <div class="dropzone" data-target="cgInput">
-            <div class="drop-head">
-              <strong>A</strong>
-              <span>CG with alpha</span>
-            </div>
-            <p>PNG sRGB now. EXR ACEScg is staged for conversion.</p>
-            <input id="cgInput" name="cg" type="file" multiple accept=".png,.exr" />
-            <button type="button" data-browse="cgInput">Browse</button>
-            <ul id="cgList"></ul>
+        <section class="workspace-grid">
+          <div class="setup-panel">
+            <section class="inputs">
+              <div class="dropzone" data-target="cgInput">
+                <div class="drop-head">
+                  <strong>A</strong>
+                  <span>CG with alpha</span>
+                </div>
+                <p>PNG sRGB now. EXR ACEScg is staged for conversion.</p>
+                <input id="cgInput" name="cg" type="file" multiple accept=".png,.exr" />
+                <button type="button" data-browse="cgInput">Browse</button>
+                <ul id="cgList"></ul>
+              </div>
+
+              <div class="dropzone" data-target="plateInput">
+                <div class="drop-head">
+                  <strong>B</strong>
+                  <span>Plate / footage</span>
+                </div>
+                <p>PNG/JPG sRGB now. EXR ACEScg is staged for conversion.</p>
+                <input id="plateInput" name="plate" type="file" multiple accept=".png,.jpg,.jpeg,.exr" />
+                <button type="button" data-browse="plateInput">Browse</button>
+                <ul id="plateList"></ul>
+              </div>
+
+              <div class="dropzone compact" data-target="alphaInput">
+                <div class="drop-head">
+                  <strong>Matte</strong>
+                  <span>Optional override</span>
+                </div>
+                <p>Leave empty to use the A-side PNG alpha.</p>
+                <input id="alphaInput" name="alpha" type="file" multiple accept=".png,.jpg,.jpeg,.exr" />
+                <button type="button" data-browse="alphaInput">Browse</button>
+                <ul id="alphaList"></ul>
+              </div>
+            </section>
+
+            <section class="model-panel">
+              <div class="panel-head">
+                <div>
+                  <h2 id="backendName">Model Controls</h2>
+                  <p id="backendDescription">Choose a model to tune its variables.</p>
+                </div>
+                <span id="backendTagline" class="pill">Ready</span>
+              </div>
+              <div id="parameterControls" class="parameter-grid"></div>
+            </section>
+
+            <section class="actions">
+              <button id="runButton" type="button">Run</button>
+              <span id="status">Ready</span>
+            </section>
           </div>
 
-          <div class="dropzone" data-target="plateInput">
-            <div class="drop-head">
-              <strong>B</strong>
-              <span>Plate / footage</span>
+          <section class="viewer">
+            <div class="viewer-head">
+              <div>
+                <h2>Output</h2>
+                <p id="jobMeta">No run loaded</p>
+              </div>
+              <div class="view-toggle" role="tablist">
+                <button type="button" class="active" data-view="sheet">Contact Sheet</button>
+                <button type="button" data-view="single">Single</button>
+              </div>
             </div>
-            <p>PNG/JPG sRGB now. EXR ACEScg is staged for conversion.</p>
-            <input id="plateInput" name="plate" type="file" multiple accept=".png,.jpg,.jpeg,.exr" />
-            <button type="button" data-browse="plateInput">Browse</button>
-            <ul id="plateList"></ul>
-          </div>
-
-          <div class="dropzone compact" data-target="alphaInput">
-            <div class="drop-head">
-              <strong>Matte</strong>
-              <span>Optional override</span>
+            <div id="sheetView" class="sheet empty">Run a job to populate the viewer.</div>
+            <div id="singleView" class="single hidden">
+              <nav id="imageTabs"></nav>
+              <img id="singleImage" alt="" />
             </div>
-            <p>Leave empty to use the A-side PNG alpha.</p>
-            <input id="alphaInput" name="alpha" type="file" multiple accept=".png,.jpg,.jpeg,.exr" />
-            <button type="button" data-browse="alphaInput">Browse</button>
-            <ul id="alphaList"></ul>
-          </div>
-        </section>
-
-        <section class="actions">
-          <button id="runButton" type="button">Run</button>
-          <span id="status">Ready</span>
-        </section>
-
-        <section class="viewer">
-          <div class="viewer-head">
-            <div>
-              <h2>Output</h2>
-              <p id="jobMeta">No run loaded</p>
-            </div>
-            <div class="view-toggle" role="tablist">
-              <button type="button" class="active" data-view="sheet">Contact Sheet</button>
-              <button type="button" data-view="single">Single</button>
-            </div>
-          </div>
-          <div id="sheetView" class="sheet empty">Run a job to populate the viewer.</div>
-          <div id="singleView" class="single hidden">
-            <nav id="imageTabs"></nav>
-            <img id="singleImage" alt="" />
-          </div>
+          </section>
         </section>
       </section>
     </main>

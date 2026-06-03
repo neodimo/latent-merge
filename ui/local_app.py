@@ -44,6 +44,97 @@ IMAGE_OUTPUTS = [
     ("alpha_weighted_delta", "Alpha Weighted Delta"),
 ]
 
+BACKENDS = [
+    {
+        "id": "mean_match_stub",
+        "name": "Mean Match",
+        "tagline": "Conservative scaffold baseline",
+        "description": "Matches the foreground's average RGB to the plate under the matte. Small, stable shifts.",
+        "parameters": [],
+    },
+    {
+        "id": "pctnet_vit_proxy",
+        "name": "PCT-Net ViT",
+        "tagline": "Stronger experimental harmonization",
+        "description": (
+            "A local controllable proxy for the ViT lane while the external PCT-Net checkpoint runner is stabilized. "
+            "Higher settings make the change easier to see but can risk CG identity."
+        ),
+        "parameters": [
+            {
+                "key": "strength",
+                "label": "Transform Strength",
+                "min": 0.0,
+                "max": 2.0,
+                "step": 0.05,
+                "default": 1.0,
+                "low": "Lower keeps the original CG closer.",
+                "high": "Higher pushes harder toward the plate lighting and color.",
+            },
+            {
+                "key": "locality",
+                "label": "Scene Locality",
+                "min": 0.0,
+                "max": 1.0,
+                "step": 0.05,
+                "default": 0.45,
+                "low": "Lower uses broad whole-image statistics.",
+                "high": "Higher reacts more to nearby plate context.",
+            },
+            {
+                "key": "contrast",
+                "label": "Contrast Match",
+                "min": 0.0,
+                "max": 1.5,
+                "step": 0.05,
+                "default": 0.65,
+                "low": "Lower preserves the CG's original contrast.",
+                "high": "Higher matches the plate's contrast more aggressively.",
+            },
+            {
+                "key": "warmth",
+                "label": "Warmth Bias",
+                "min": -1.0,
+                "max": 1.0,
+                "step": 0.05,
+                "default": 0.0,
+                "low": "Negative cools the foreground.",
+                "high": "Positive warms the foreground.",
+            },
+            {
+                "key": "saturation",
+                "label": "Saturation",
+                "min": 0.0,
+                "max": 2.0,
+                "step": 0.05,
+                "default": 1.0,
+                "low": "Lower desaturates the adjusted CG.",
+                "high": "Higher increases color intensity.",
+            },
+            {
+                "key": "identity_lock",
+                "label": "Identity Lock",
+                "min": 0.0,
+                "max": 1.0,
+                "step": 0.05,
+                "default": 0.35,
+                "low": "Lower allows larger appearance changes.",
+                "high": "Higher preserves the original CG more strongly.",
+            },
+            {
+                "key": "delta_display_gain",
+                "label": "Delta Visibility",
+                "min": 1.0,
+                "max": 8.0,
+                "step": 0.25,
+                "default": 3.0,
+                "low": "Lower shows the raw subtle delta.",
+                "high": "Higher amplifies the delta preview only.",
+            },
+        ],
+    },
+]
+
 
 @dataclass(frozen=True)
 class UploadGroup:
@@ -159,6 +250,28 @@ def _form_first(form: ParsedForm, field: str, default: str = "") -> str:
     return value if isinstance(value, str) else default
 
 
+def _backend_spec(backend_id: str) -> dict:
+    return next((backend for backend in BACKENDS if backend["id"] == backend_id), BACKENDS[0])
+
+
+def _parse_backend_config(form: ParsedForm) -> dict[str, object]:
+    backend_id = _form_first(form, "backend", "mean_match_stub")
+    spec = _backend_spec(backend_id)
+    parameters: dict[str, float] = {}
+    for param in spec["parameters"]:
+        raw = _form_first(form, f"param_{param['key']}", str(param["default"]))
+        try:
+            value = float(raw)
+        except ValueError:
+            value = float(param["default"])
+        parameters[param["key"]] = max(float(param["min"]), min(float(param["max"]), value))
+    return {
+        "backend": spec["id"],
+        "notes": spec["description"],
+        "parameters": parameters,
+    }
+
+
 def _save_uploads(form: ParsedForm, field: str, dest: Path, allowed: set[str]) -> UploadGroup:
     files = [item for item in form.get(field, []) if isinstance(item, UploadedFile) and item.filename]
     if not files:
@@ -256,7 +369,7 @@ def _run_ui_job(form: ParsedForm) -> dict:
         job_path = run_pipeline(
             PipelineInputs(plate_rgb=plate.first_frame, cg_rgba=cg.first_frame, alpha=alpha_path),
             output_dir,
-            load_config(DEFAULT_CONFIG),
+            load_config(DEFAULT_CONFIG, _parse_backend_config(form)),
         )
     finally:
         if previous_cuda_visible is None:
@@ -326,6 +439,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/gpus":
             self._send_json(HTTPStatus.OK, {"gpus": _list_gpus()})
+            return
+        if parsed.path == "/api/backends":
+            self._send_json(HTTPStatus.OK, {"backends": BACKENDS})
             return
         if parsed.path == "/file":
             query = parse_qs(parsed.query)
