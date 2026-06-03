@@ -7,6 +7,7 @@ on:
       - main
       - master
       - bert/phase1-scaffold
+      - gonzo/overnight-technique-sweep
     paths:
       - ".github/workflows/build-ui-executables.yml"
       - "configs/**"
@@ -64,6 +65,7 @@ jobs:
           --add-data "ui/index.html${{ matrix.data_sep }}ui"
           --add-data "ui/app.css${{ matrix.data_sep }}ui"
           --add-data "ui/app.js${{ matrix.data_sep }}ui"
+          --add-data "ui/icon.png${{ matrix.data_sep }}ui"
           --add-data "configs/phase1_stub.json${{ matrix.data_sep }}configs"
           --add-data "core${{ matrix.data_sep }}core"
           ui/local_app.py
