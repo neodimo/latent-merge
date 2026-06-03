@@ -15,6 +15,18 @@ const updateButton = document.getElementById("updateButton");
 const updateStatus = document.getElementById("updateStatus");
 const statusEl = document.getElementById("status");
 const gpuSelect = document.getElementById("gpuSelect");
+const controls = {
+  strength: document.getElementById("strengthInput"),
+  deltaGain: document.getElementById("deltaGainInput"),
+  softness: document.getElementById("softnessInput"),
+  choke: document.getElementById("chokeInput"),
+};
+const controlValues = {
+  strength: document.getElementById("strengthValue"),
+  deltaGain: document.getElementById("deltaGainValue"),
+  softness: document.getElementById("softnessValue"),
+  choke: document.getElementById("chokeValue"),
+};
 const sheetView = document.getElementById("sheetView");
 const singleView = document.getElementById("singleView");
 const imageTabs = document.getElementById("imageTabs");
@@ -52,6 +64,17 @@ function renderList(input, list) {
 Object.entries(fields).forEach(([key, input]) => {
   input.addEventListener("change", () => renderList(input, lists[key]));
 });
+
+function updateControlReadouts() {
+  controlValues.strength.textContent = `${Number(controls.strength.value).toFixed(2)}x`;
+  controlValues.deltaGain.textContent = `${Number(controls.deltaGain.value).toFixed(1).replace(".0", "")}x`;
+  controlValues.softness.textContent = `${controls.softness.value} px`;
+  const choke = Number(controls.choke.value);
+  controlValues.choke.textContent = choke > 0 ? `+${choke} px` : `${choke} px`;
+}
+
+Object.values(controls).forEach((input) => input.addEventListener("input", updateControlReadouts));
+updateControlReadouts();
 
 document.querySelectorAll("[data-browse]").forEach((button) => {
   button.addEventListener("click", () => {
@@ -173,7 +196,14 @@ function renderOutputs(payload) {
   activateSingle(0);
 
   const seq = payload.sequence || {};
-  jobMeta.textContent = `${payload.job_id} | ${payload.backend} | A ${seq.cg_frames_uploaded || 0} frame(s), B ${seq.plate_frames_uploaded || 0} frame(s)`;
+  const ctl = payload.controls || {};
+  jobMeta.textContent = [
+    payload.job_id,
+    payload.backend,
+    `strength ${ctl.adjustment_strength ?? "?"}x`,
+    `delta ${ctl.delta_preview_gain ?? "?"}x`,
+    `A ${seq.cg_frames_uploaded || 0} frame(s), B ${seq.plate_frames_uploaded || 0} frame(s)`,
+  ].join(" | ");
 }
 
 document.querySelectorAll("[data-view]").forEach((button) => {
@@ -197,9 +227,13 @@ runButton.addEventListener("click", async () => {
   Array.from(fields.plate.files).forEach((file) => form.append("plate", file));
   Array.from(fields.alpha.files).forEach((file) => form.append("alpha", file));
   form.append("gpu", gpuSelect.value || "cpu");
+  form.append("adjustment_strength", controls.strength.value);
+  form.append("delta_preview_gain", controls.deltaGain.value);
+  form.append("correction_softness_px", controls.softness.value);
+  form.append("correction_choke_px", controls.choke.value);
 
   runButton.disabled = true;
-  setStatus("Running");
+  setStatus("Running PCT-Net");
   try {
     const response = await fetch("/api/run", { method: "POST", body: form });
     const payload = await response.json();

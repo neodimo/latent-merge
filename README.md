@@ -65,7 +65,7 @@ Then open:
 http://127.0.0.1:7865
 ```
 
-The UI supports drag/drop or browse for A-side CG, B-side plate, optional matte, sequence-shaped multi-file uploads, GPU selection via `nvidia-smi`, contact-sheet viewing, and single-output inspection. See `docs/LOCAL_UI.md` for Windows launch notes and current EXR/ACEScg status.
+The UI supports drag/drop or browse for A-side CG, B-side plate, optional matte, sequence-shaped multi-file uploads, GPU selection via `nvidia-smi`, PCT-Net artist controls, contact-sheet viewing, and single-output inspection. See `docs/LOCAL_UI.md` for Windows launch notes and current EXR/ACEScg status.
 
 ## Core Contract
 

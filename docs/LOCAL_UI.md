@@ -36,7 +36,12 @@ Run it from the GitHub Actions tab with `workflow_dispatch`, or let it run on re
 - B side: PNG or JPG.
 - Optional matte override: PNG or JPG. If omitted, the A-side PNG alpha is used.
 - Multiple uploaded files are accepted so the UI shape matches frame-sequence workflow. The current runner processes the first sorted frame only and records uploaded frame counts in `ui_job.json`.
-- GPU dropdown is populated from `nvidia-smi` when available. The current scaffold backend does not use the GPU yet, but the selection is wired through `CUDA_VISIBLE_DEVICES` for future model backends.
+- GPU dropdown is populated from `nvidia-smi` when available and is wired through `CUDA_VISIBLE_DEVICES`.
+- PCT controls:
+  - Adjustment Strength: `0` keeps original CG, `1` uses the model result, and higher values exaggerate the correction.
+  - Delta Preview Gain: brightens diagnostic delta passes only; it does not alter the adjusted foreground or final comp.
+  - Correction Softness: feathers where the model correction applies, without changing the saved alpha.
+  - Correction Choke: negative values expand correction influence outward; positive values pull it inward from edges.
 - Outputs are written under `runs/ui_jobs/<job-id>/`.
 
 ## EXR / ACEScg

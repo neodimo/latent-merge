@@ -12,7 +12,7 @@ import subprocess
 import sys
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -55,6 +55,7 @@ IMAGE_OUTPUTS = [
     ("final_comp", "Final Comp"),
     ("adjusted_fg", "Adjusted FG"),
     ("alpha_used", "Alpha"),
+    ("correction_matte", "Correction Matte"),
     ("delta", "Delta"),
     ("alpha_weighted_delta", "Alpha Weighted Delta"),
 ]
@@ -268,6 +269,22 @@ def _form_first(form: ParsedForm, field: str, default: str = "") -> str:
     return value if isinstance(value, str) else default
 
 
+def _form_float(form: ParsedForm, field: str, default: float, minimum: float, maximum: float) -> float:
+    raw = _form_first(form, field, str(default)).strip()
+    try:
+        value = float(raw)
+    except ValueError as error:
+        raise ValueError(f"{field} must be a number") from error
+    if not minimum <= value <= maximum:
+        raise ValueError(f"{field} must be between {minimum:g} and {maximum:g}")
+    return value
+
+
+def _form_int(form: ParsedForm, field: str, default: int, minimum: int, maximum: int) -> int:
+    value = round(_form_float(form, field, float(default), float(minimum), float(maximum)))
+    return int(value)
+
+
 def _save_uploads(form: ParsedForm, field: str, dest: Path, allowed: set[str]) -> UploadGroup:
     files = [item for item in form.get(field, []) if isinstance(item, UploadedFile) and item.filename]
     if not files:
@@ -317,7 +334,8 @@ def _build_contact_sheet(job_dir: Path, job: dict) -> Path:
 
     width = 720
     row_h = 292
-    sheet = Image.new("RGB", (width, row_h * 3), (18, 20, 24))
+    rows = (len(thumbs) + 1) // 2
+    sheet = Image.new("RGB", (width, row_h * rows), (18, 20, 24))
     try:
         from PIL import ImageDraw, ImageFont
 
@@ -358,6 +376,17 @@ def _run_ui_job(form: ParsedForm) -> dict:
 
     output_dir = job_dir / "outputs"
     selected_gpu = _form_first(form, "gpu", "cpu")
+    adjustment_strength = _form_float(form, "adjustment_strength", 1.0, 0.0, 2.5)
+    delta_preview_gain = _form_float(form, "delta_preview_gain", 4.0, 1.0, 16.0)
+    correction_softness_px = _form_float(form, "correction_softness_px", 0.0, 0.0, 24.0)
+    correction_choke_px = _form_int(form, "correction_choke_px", 0, -24, 24)
+    config = replace(
+        load_config(DEFAULT_CONFIG),
+        adjustment_strength=adjustment_strength,
+        delta_preview_gain=delta_preview_gain,
+        correction_softness_px=correction_softness_px,
+        correction_choke_px=correction_choke_px,
+    )
     previous_cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES")
     if selected_gpu != "cpu":
         os.environ["CUDA_VISIBLE_DEVICES"] = selected_gpu
@@ -365,7 +394,7 @@ def _run_ui_job(form: ParsedForm) -> dict:
         job_path = run_pipeline(
             PipelineInputs(plate_rgb=plate.first_frame, cg_rgba=cg.first_frame, alpha=alpha_path),
             output_dir,
-            load_config(DEFAULT_CONFIG),
+            config,
         )
     finally:
         if previous_cuda_visible is None:
@@ -399,6 +428,12 @@ def _run_ui_job(form: ParsedForm) -> dict:
             for key, label in IMAGE_OUTPUTS
         ],
         "backend": job["backend_report"]["name"],
+        "controls": {
+            "adjustment_strength": adjustment_strength,
+            "delta_preview_gain": delta_preview_gain,
+            "correction_softness_px": correction_softness_px,
+            "correction_choke_px": correction_choke_px,
+        },
         "contract": job["contract"],
     }
     (job_dir / "ui_job.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")

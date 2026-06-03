@@ -12,7 +12,7 @@
         <header class="topbar">
           <div>
             <h1>Latent Merge</h1>
-            <p>Plate-conditioned foreground harmonization</p>
+            <p>Plate-conditioned foreground harmonization. The plate stays untouched.</p>
           </div>
           <div class="top-controls">
             <div class="update-panel">
@@ -26,44 +26,101 @@
           </div>
         </header>
 
-        <section class="inputs">
-          <div class="dropzone" data-target="cgInput">
-            <div class="drop-head">
-              <strong>A</strong>
-              <span>CG with alpha</span>
+        <section class="workspace-grid">
+          <section class="setup-panel">
+            <div class="section-head">
+              <div>
+                <h2>Inputs</h2>
+                <p>Use one frame or a sorted frame set. This build processes the first frame.</p>
+              </div>
             </div>
-            <p>PNG sRGB now. EXR ACEScg is staged for conversion.</p>
-            <input id="cgInput" name="cg" type="file" multiple accept=".png,.exr" />
-            <button type="button" data-browse="cgInput">Browse</button>
-            <ul id="cgList"></ul>
-          </div>
 
-          <div class="dropzone" data-target="plateInput">
-            <div class="drop-head">
-              <strong>B</strong>
-              <span>Plate / footage</span>
+            <div class="inputs">
+              <div class="dropzone" data-target="cgInput">
+                <div class="drop-head">
+                  <strong>A</strong>
+                  <span>CG with alpha</span>
+                </div>
+                <p>PNG sRGB now. EXR ACEScg is staged for conversion.</p>
+                <input id="cgInput" name="cg" type="file" multiple accept=".png,.exr" />
+                <button type="button" data-browse="cgInput">Browse</button>
+                <ul id="cgList"></ul>
+              </div>
+
+              <div class="dropzone" data-target="plateInput">
+                <div class="drop-head">
+                  <strong>B</strong>
+                  <span>Plate / footage</span>
+                </div>
+                <p>PNG/JPG sRGB now. EXR ACEScg is staged for conversion.</p>
+                <input id="plateInput" name="plate" type="file" multiple accept=".png,.jpg,.jpeg,.exr" />
+                <button type="button" data-browse="plateInput">Browse</button>
+                <ul id="plateList"></ul>
+              </div>
+
+              <div class="dropzone compact" data-target="alphaInput">
+                <div class="drop-head">
+                  <strong>Matte</strong>
+                  <span>Optional override</span>
+                </div>
+                <p>Leave empty to use the A-side PNG alpha.</p>
+                <input id="alphaInput" name="alpha" type="file" multiple accept=".png,.jpg,.jpeg,.exr" />
+                <button type="button" data-browse="alphaInput">Browse</button>
+                <ul id="alphaList"></ul>
+              </div>
             </div>
-            <p>PNG/JPG sRGB now. EXR ACEScg is staged for conversion.</p>
-            <input id="plateInput" name="plate" type="file" multiple accept=".png,.jpg,.jpeg,.exr" />
-            <button type="button" data-browse="plateInput">Browse</button>
-            <ul id="plateList"></ul>
-          </div>
 
-          <div class="dropzone compact" data-target="alphaInput">
-            <div class="drop-head">
-              <strong>Matte</strong>
-              <span>Optional override</span>
+            <div class="actions">
+              <button id="runButton" type="button">Run Harmonize</button>
+              <span id="status">Ready</span>
             </div>
-            <p>Leave empty to use the A-side PNG alpha.</p>
-            <input id="alphaInput" name="alpha" type="file" multiple accept=".png,.jpg,.jpeg,.exr" />
-            <button type="button" data-browse="alphaInput">Browse</button>
-            <ul id="alphaList"></ul>
-          </div>
-        </section>
+          </section>
 
-        <section class="actions">
-          <button id="runButton" type="button">Run</button>
-          <span id="status">Ready</span>
+          <aside class="control-panel">
+            <div class="section-head">
+              <div>
+                <h2>PCT Controls</h2>
+                <p>PCT-Net CNN, foreground-only output.</p>
+              </div>
+              <span class="pill">CNN</span>
+            </div>
+
+            <label class="control-row">
+              <span class="control-top">
+                <span>Adjustment Strength</span>
+                <output id="strengthValue">1.00x</output>
+              </span>
+              <input id="strengthInput" type="range" min="0" max="2.5" step="0.05" value="1" />
+              <span class="control-hint">Left keeps the original CG; right exaggerates the model correction.</span>
+            </label>
+
+            <label class="control-row">
+              <span class="control-top">
+                <span>Delta Preview Gain</span>
+                <output id="deltaGainValue">4x</output>
+              </span>
+              <input id="deltaGainInput" type="range" min="1" max="16" step="0.5" value="4" />
+              <span class="control-hint">Only brightens diagnostic delta passes. It does not change the comp.</span>
+            </label>
+
+            <label class="control-row">
+              <span class="control-top">
+                <span>Correction Softness</span>
+                <output id="softnessValue">0 px</output>
+              </span>
+              <input id="softnessInput" type="range" min="0" max="24" step="1" value="0" />
+              <span class="control-hint">Left is crisp matte influence; right feathers the correction through edges.</span>
+            </label>
+
+            <label class="control-row">
+              <span class="control-top">
+                <span>Correction Choke</span>
+                <output id="chokeValue">0 px</output>
+              </span>
+              <input id="chokeInput" type="range" min="-24" max="24" step="1" value="0" />
+              <span class="control-hint">Negative expands correction outward; positive pulls it inward from edges.</span>
+            </label>
+          </aside>
         </section>
 
         <section class="viewer">
