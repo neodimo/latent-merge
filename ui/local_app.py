@@ -321,6 +321,9 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/app.js":
             self._send(HTTPStatus.OK, (APP_DIR / "app.js").read_bytes(), "text/javascript; charset=utf-8")
             return
+        if parsed.path == "/icon.png":
+            self._send(HTTPStatus.OK, (APP_DIR / "icon.png").read_bytes(), "image/png")
+            return
         if parsed.path == "/api/gpus":
             self._send_json(HTTPStatus.OK, {"gpus": _list_gpus()})
             return
