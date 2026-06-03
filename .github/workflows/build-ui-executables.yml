@@ -95,6 +95,7 @@ jobs:
           --add-data "configs${{ matrix.data_sep }}configs"
           --add-data "core${{ matrix.data_sep }}core"
           --add-data "models${{ matrix.data_sep }}models"
+          --add-data "scripts/ic_flux_runner.py${{ matrix.data_sep }}scripts"
           --hidden-import=torch
           --hidden-import=torchvision
           --hidden-import=torchvision.transforms

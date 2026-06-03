@@ -244,12 +244,23 @@ def _run_ic_flux_v2(inputs: PipelineInputs, output_dir: Path, config: PipelineCo
             "and weights/flux1-dev. See scripts/run_ic_flux_comparison.sh."
         )
 
-    runner = Path(__file__).resolve().parents[1] / "scripts" / "ic_flux_runner.py"
+    repo_root = Path(__file__).resolve().parents[1]
+    runner = repo_root / "scripts" / "ic_flux_runner.py"
+    if not runner.is_file():
+        runner = Path.cwd() / "scripts" / "ic_flux_runner.py"
+    if not runner.is_file():
+        raise RuntimeError(
+            "IC Flux runner not found. Expected scripts/ic_flux_runner.py beside the app or bundled release."
+        )
+
+    python_exe = os.environ.get("LATENT_MERGE_PYTHON")
+    if not python_exe:
+        python_exe = "python3" if getattr(sys, "frozen", False) else sys.executable
     weights_dir = Path(os.environ.get("LATENT_MERGE_IC_FLUX_WEIGHTS", "weights/ic-light-v2"))
     flux_weights_dir = Path(os.environ.get("LATENT_MERGE_FLUX_WEIGHTS", "weights/flux1-dev"))
     ic_dir = output_dir / "ic_flux_v2_external"
     command = [
-        sys.executable,
+        python_exe,
         str(runner),
         "--plate",
         str(inputs.plate_rgb),
