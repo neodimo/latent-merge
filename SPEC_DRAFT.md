@@ -112,9 +112,11 @@ Goals:
 
 Candidate order:
 
-1. IC-Light / IC-Light V2 / FLUX-style background-conditioned relighting through ComfyUI/cloud if accessible
-2. PCT-Net or AICT-style color transform baseline
+1. PCT-Net or AICT-style color transform baseline on the Compositing Pro plate + CG creature + alpha fixture
+2. IC-Light / IC-Light V2 / FLUX-style background-conditioned relighting through ComfyUI/cloud/fal.ai if accessible and license-appropriate
 3. DiffHarmony++ / harmonization baseline
+
+This order was updated after the 2026-05-27 Gonzo-to-Bert handoff: Gonzo has scarce usage credits and a local RTX 3080 Ti, so Bert should handle repo/pipeline work and ask Gonzo only for narrow GPU execution packets.
 
 ### Phase 2: Failure Inventory + Quality Loop
 
@@ -188,8 +190,8 @@ Goals:
 
 ## Open Decisions
 
-- Exact golden fixture path and filenames.
-- Whether the first model run is ComfyUI cloud, local Python, or both.
+- Exact extracted paths and filenames from the Compositing Pro tutorial files.
+- Whether the first PCT-Net/AICT run is fully local on Gonzo's Python/Torch/CUDA setup or prepared by Bert and executed by Gonzo as a narrow packet.
 - Whether the first user surface is CLI, notebook, or Nuke-facing service.
 - Numeric runtime and memory ceilings for alpha.
 - Minimum acceptable flicker/variance measurement for proxy sequences.

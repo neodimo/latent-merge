@@ -53,6 +53,30 @@ The real model backend should keep the same contract:
 
 The first real backend should plug into `core/pipeline.py` behind a named backend rather than changing the CLI or output filenames.
 
+## First Real Fixture
+
+Use the free Compositing Pro Nuke CG compositing tutorial files as the first non-synthetic fixture, subject to its personal-practice-only license.
+
+For Phase 1, collapse the material to the smallest useful contract:
+
+- `plate_rgb`
+- `cg_rgba` for the creature/foreground
+- `alpha`
+
+Do not wire depth, normals, shadows, light groups, or other passes yet. They can become Phase 2/3 conditioning inputs after the baseline proves that plate + foreground + alpha is useful.
+
+## Active Backend Choice
+
+Start with a PCT-Net/AICT-style color-transform harmonization baseline.
+
+Reasoning:
+
+- It is a narrower foreground adjustment than diffusion, so it should preserve CG identity better.
+- It is more likely to run cheaply on Gonzo's RTX 3080 Ti setup.
+- It fits the current trusted-composite contract: adjusted foreground over untouched plate.
+
+Keep IC-Light V2 / FLUX as a documented alternate path, not the first implementation target.
+
 ## Phase 1 Acceptance Checklist
 
 - Reproducible clean-checkout instructions work from `README.md`.

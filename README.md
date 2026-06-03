@@ -50,6 +50,23 @@ PYTHONPATH=".deps:." python3 cli/run_phase1.py --config configs/phase1_stub.json
 
 This writes the same trusted output family under `runs/phase1_scaffold/` and records config, input hashes, backend metadata, and output paths in `job.json`. The current backend is still a stub; the next Phase 1 step is replacing it with the first real relight/harmonize model while preserving the CLI and output contract.
 
+## Local UI
+
+For fast single-frame iteration, run the browser UI:
+
+```bash
+python3 -m pip install --target .deps -r requirements.txt
+PYTHONPATH=".deps:." python3 ui/local_app.py
+```
+
+Then open:
+
+```text
+http://127.0.0.1:7865
+```
+
+The UI supports drag/drop or browse for A-side CG, B-side plate, optional matte, sequence-shaped multi-file uploads, GPU selection via `nvidia-smi`, PCT-Net artist controls, contact-sheet viewing, and single-output inspection. See `docs/LOCAL_UI.md` for Windows launch notes and current EXR/ACEScg status.
+
 ## Core Contract
 
 ```

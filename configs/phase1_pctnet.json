@@ -1,0 +1,5 @@
+{
+    "backend": "pctnet",
+    "tier": "compact-8",
+    "notes": "Phase 1 PCT-Net backend — compact-8 tier (fp16, ~8 GB VRAM). Uses rakutentech/PCT-Net CNN harmonization. Foreground-only harmonization; plate untouched."
+}

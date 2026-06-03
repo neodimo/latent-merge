@@ -1,26 +1,27 @@
 # Hardware Notes
 
-Gonzo checked the current machine on 2026-05-20.
-
 ## Current Machine
 
 - Host: GMKtec NucBox_EVO-X2 / Bazzite
 - CPU: AMD Ryzen AI Max+ 395, 32 threads
 - RAM: 91 GiB
-- GPU currently visible: Radeon 8060S / Strix Halo iGPU
-- USB4 present
-- NVIDIA/CUDA not currently visible; `nvidia-smi` not installed/found
+- GPU: AMD Radeon 8060S / Strix Halo iGPU (built-in)
+- USB4: present
 
-## Suitable Now
+## RTX 3080 Ti — eGPU over USB4
 
-- Nuke scripting/plugin shell work
-- data prep
-- EXR/ACES tests
-- CPU/offline harnesses
-- possible ROCm experiments if stack cooperates
+- Card: NVIDIA RTX 3080 Ti (laptop/desktop variant)
+- Connection: USB4 external GPU (eGPU)
+- VRAM: 12 GB (advertised as 16 GB class, actual ~12 GB on this model)
+- Driver: `595.58.03`, CUDA 13.2
+- Status: **LIVE** — visible as `cuda:0`, `nvidia-smi` works
 
-## With Planned RTX 3080 Ti Over USB4/eGPU
+GPU memory tiers used by `run_pctnet_baseline.sh`:
 
-- Low-res 512-1024px model bakeoff should be viable.
-- fp16/crops/ComfyUI or Python service should fit many candidate models.
-- FLUX-scale or high-res work may be slow/memory constrained, but enough to prove whether the idea has legs.
+| Tier | VRAM | GPUs | Status |
+|------|------|------|--------|
+| `compact-8` | 8–15 GB | RTX 3080 Ti, RTX 4070 | **Test bench** |
+| `mid-16` | 16–31 GB | RTX 4080, RTX 3090 | Supported path |
+| `full-48` | 48+ GB | A100, A6000 Ada | Future path |
+
+For Phase 1 PCT-Net, the RTX 3080 Ti test bench is sufficient to validate and ship.
