@@ -267,6 +267,59 @@ li {
   padding-top: 2px;
 }
 
+.model-setup {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #3c4038;
+  border-radius: 8px;
+  background: #151614;
+}
+
+.model-setup-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.model-setup-head > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.model-setup strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.model-setup button {
+  flex: 0 0 auto;
+  min-width: 168px;
+}
+
+.model-setup progress {
+  width: 100%;
+  height: 10px;
+  overflow: hidden;
+  border: 1px solid #2d3129;
+  border-radius: 999px;
+  background: #0c0d0c;
+}
+
+.model-setup progress::-webkit-progress-bar {
+  background: #0c0d0c;
+}
+
+.model-setup progress::-webkit-progress-value {
+  background: var(--accent);
+}
+
+.model-setup progress::-moz-progress-bar {
+  background: var(--accent);
+}
+
 .control-top span {
   color: var(--text);
   font-size: 13px;
@@ -417,5 +470,14 @@ input[type="range"] {
 
   .inputs {
     grid-template-columns: 1fr;
+  }
+
+  .model-setup-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .model-setup button {
+    width: 100%;
   }
 }

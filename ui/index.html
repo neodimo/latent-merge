@@ -183,6 +183,20 @@
             </div>
 
             <div id="icFluxControls" class="vit-controls hidden">
+              <section class="model-setup" aria-label="IC Flux model setup">
+                <div class="model-setup-head">
+                  <div>
+                    <strong>IC Flux Models</strong>
+                    <span id="icFluxModelStatus">Checking local weights</span>
+                  </div>
+                  <button id="icFluxDownloadButton" type="button">Download IC Flux Models</button>
+                </div>
+                <progress id="icFluxDownloadProgress" value="0" max="100"></progress>
+                <span id="icFluxDownloadDetail" class="control-hint">
+                  Internal/testing backend. FLUX and IC-Light files come from external model sources and are not bundled with this app.
+                </span>
+              </section>
+
               <label class="control-row">
                 <span class="control-top">
                   <span>Seed</span>

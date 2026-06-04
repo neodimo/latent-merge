@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import hashlib
 import json
 import mimetypes
@@ -10,9 +11,10 @@ import platform
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import uuid
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -50,6 +52,7 @@ UPDATE_VERSION_FILE = WORK_ROOT / "CURRENT_VERSION"
 DEFAULT_CONFIG = ROOT / "configs" / "phase1_pctnet.json"
 SUPPORTED_A = {".png", ".exr"}
 SUPPORTED_B = {".png", ".jpg", ".jpeg", ".exr"}
+WEIGHTS_ROOT = WORK_ROOT / "weights"
 IMAGE_OUTPUTS = [
     ("raw_a_over_b", "Raw A-over-B"),
     ("final_comp", "Final Comp"),
@@ -59,6 +62,55 @@ IMAGE_OUTPUTS = [
     ("delta", "Delta"),
     ("alpha_weighted_delta", "Alpha Weighted Delta"),
 ]
+
+
+@dataclass(frozen=True)
+class ModelPackage:
+    key: str
+    label: str
+    repo_id: str
+    local_dir: Path
+    required_paths: tuple[str, ...]
+    ignore_patterns: tuple[str, ...] = ("*.msgpack", "flax_*", "*/flax_*")
+
+
+MODEL_PACKAGES = [
+    ModelPackage(
+        key="ic-light-v2",
+        label="IC-Light V2 ControlNet",
+        repo_id=os.environ.get("LATENT_MERGE_IC_LIGHT_REPO", "lllyasviel/ic-light"),
+        local_dir=Path(os.environ.get("LATENT_MERGE_IC_FLUX_WEIGHTS", str(WEIGHTS_ROOT / "ic-light-v2"))),
+        required_paths=("config.json",),
+    ),
+    ModelPackage(
+        key="flux1-dev",
+        label="FLUX.1-dev",
+        repo_id=os.environ.get("LATENT_MERGE_FLUX_REPO", "black-forest-labs/FLUX.1-dev"),
+        local_dir=Path(os.environ.get("LATENT_MERGE_FLUX_WEIGHTS", str(WEIGHTS_ROOT / "flux1-dev"))),
+        required_paths=("model_index.json",),
+    ),
+]
+
+
+@dataclass
+class ModelDownloadState:
+    running: bool = False
+    status: str = "idle"
+    phase: str = ""
+    current_file: str = ""
+    error: str = ""
+    started_at: float | None = None
+    finished_at: float | None = None
+    downloaded_bytes: int = 0
+    total_bytes: int = 0
+    downloaded_files: int = 0
+    total_files: int = 0
+    packages: list[dict] = field(default_factory=list)
+
+
+MODEL_DOWNLOAD_LOCK = threading.Lock()
+MODEL_DOWNLOAD_STATE = ModelDownloadState()
+MODEL_DOWNLOAD_THREAD: threading.Thread | None = None
 
 
 @dataclass(frozen=True)
@@ -174,6 +226,189 @@ def _download_update() -> dict:
         "launcher": str(UPDATE_BIN),
         "restart_required": True,
     }
+
+
+def _path_size(path: Path) -> int:
+    if path.is_file():
+        return path.stat().st_size
+    if not path.is_dir():
+        return 0
+    return sum(item.stat().st_size for item in path.rglob("*") if item.is_file())
+
+
+def _package_status(package: ModelPackage) -> dict:
+    missing = [item for item in package.required_paths if not (package.local_dir / item).exists()]
+    present = package.local_dir.is_dir() and not missing
+    return {
+        "key": package.key,
+        "label": package.label,
+        "repo_id": package.repo_id,
+        "local_dir": str(package.local_dir),
+        "required_paths": list(package.required_paths),
+        "missing": missing,
+        "present": present,
+        "size_bytes": _path_size(package.local_dir),
+    }
+
+
+def _model_download_state() -> dict:
+    with MODEL_DOWNLOAD_LOCK:
+        payload = MODEL_DOWNLOAD_STATE.__dict__.copy()
+    total = payload.get("total_bytes", 0) or 0
+    done = payload.get("downloaded_bytes", 0) or 0
+    payload["percent"] = round((done / total) * 100, 1) if total else 0.0
+    payload["packages"] = [_package_status(package) for package in MODEL_PACKAGES]
+    payload["ready"] = all(item["present"] for item in payload["packages"])
+    payload["disk_warning"] = "IC Flux model setup can require 30 GB or more of free disk space."
+    payload["release_posture"] = "Internal/testing backend; model files are downloaded from external sources and are not bundled with Latent Merge."
+    return payload
+
+
+def _set_model_download_state(**kwargs: object) -> None:
+    with MODEL_DOWNLOAD_LOCK:
+        for key, value in kwargs.items():
+            setattr(MODEL_DOWNLOAD_STATE, key, value)
+
+
+def _should_skip_hf_file(filename: str, patterns: tuple[str, ...]) -> bool:
+    return any(fnmatch.fnmatch(filename, pattern) for pattern in patterns)
+
+
+def _hf_file_list(package: ModelPackage) -> list[dict[str, object]]:
+    try:
+        from huggingface_hub import HfApi
+    except ImportError as error:
+        raise RuntimeError(
+            "huggingface_hub is required for model downloads. Install requirements.txt, then retry."
+        ) from error
+
+    api = HfApi()
+    info = api.model_info(package.repo_id, files_metadata=True)
+    files = []
+    for sibling in info.siblings:
+        filename = sibling.rfilename
+        if _should_skip_hf_file(filename, package.ignore_patterns):
+            continue
+        files.append({"filename": filename, "size": int(sibling.size or 0)})
+    if not files:
+        raise RuntimeError(f"{package.repo_id} did not return downloadable files")
+    return files
+
+
+def _download_hf_file(package: ModelPackage, filename: str, size: int) -> None:
+    try:
+        from huggingface_hub import hf_hub_url
+        from huggingface_hub.utils import build_hf_headers
+    except ImportError as error:
+        raise RuntimeError(
+            "huggingface_hub is required for model downloads. Install requirements.txt, then retry."
+        ) from error
+
+    target = package.local_dir / filename
+    tmp = target.with_name(target.name + ".download")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if target.is_file() and (not size or target.stat().st_size == size):
+        _set_model_download_state(
+            downloaded_bytes=MODEL_DOWNLOAD_STATE.downloaded_bytes + (size or target.stat().st_size),
+            downloaded_files=MODEL_DOWNLOAD_STATE.downloaded_files + 1,
+        )
+        return
+
+    url = hf_hub_url(package.repo_id, filename)
+    headers = build_hf_headers(token=None)
+    request = Request(url, headers=headers)
+    existing = tmp.stat().st_size if tmp.is_file() else 0
+    mode = "ab" if existing else "wb"
+    if existing:
+        request.add_header("Range", f"bytes={existing}-")
+        _set_model_download_state(downloaded_bytes=MODEL_DOWNLOAD_STATE.downloaded_bytes + existing)
+
+    with urlopen(request, timeout=120) as response, tmp.open(mode) as handle:
+        while True:
+            chunk = response.read(1024 * 1024)
+            if not chunk:
+                break
+            handle.write(chunk)
+            _set_model_download_state(downloaded_bytes=MODEL_DOWNLOAD_STATE.downloaded_bytes + len(chunk))
+
+    if size and tmp.stat().st_size != size:
+        raise RuntimeError(f"download size mismatch for {filename}")
+    tmp.replace(target)
+    _set_model_download_state(downloaded_files=MODEL_DOWNLOAD_STATE.downloaded_files + 1)
+
+
+def _download_models_worker() -> None:
+    try:
+        _set_model_download_state(
+            running=True,
+            status="running",
+            phase="Checking model manifests",
+            current_file="",
+            error="",
+            started_at=time.time(),
+            finished_at=None,
+            downloaded_bytes=0,
+            total_bytes=0,
+            downloaded_files=0,
+            total_files=0,
+        )
+        missing_packages = [package for package in MODEL_PACKAGES if not _package_status(package)["present"]]
+        package_files: list[tuple[ModelPackage, list[dict[str, object]]]] = []
+        total_bytes = 0
+        total_files = 0
+        for package in missing_packages:
+            _set_model_download_state(phase=f"Reading {package.label} manifest")
+            files = _hf_file_list(package)
+            package_files.append((package, files))
+            total_bytes += sum(int(item["size"] or 0) for item in files)
+            total_files += len(files)
+
+        _set_model_download_state(total_bytes=total_bytes, total_files=total_files)
+        for package, files in package_files:
+            package.local_dir.mkdir(parents=True, exist_ok=True)
+            for item in files:
+                filename = str(item["filename"])
+                _set_model_download_state(phase=f"Downloading {package.label}", current_file=filename)
+                _download_hf_file(package, filename, int(item["size"] or 0))
+
+        final_status = _model_download_state()
+        if final_status["ready"]:
+            _set_model_download_state(status="complete", phase="Ready", current_file="")
+        else:
+            missing = []
+            for package in final_status["packages"]:
+                for item in package["missing"]:
+                    missing.append(f"{package['key']}/{item}")
+            raise RuntimeError("download finished but required files are still missing: " + ", ".join(missing))
+    except Exception as error:
+        _set_model_download_state(
+            status="error",
+            phase="Download failed",
+            current_file="",
+            error=str(error),
+        )
+    finally:
+        _set_model_download_state(running=False, finished_at=time.time())
+
+
+def _start_model_download() -> dict:
+    global MODEL_DOWNLOAD_THREAD
+    already_running = False
+    already_ready = False
+    with MODEL_DOWNLOAD_LOCK:
+        if MODEL_DOWNLOAD_STATE.running:
+            already_running = True
+        elif all(_package_status(package)["present"] for package in MODEL_PACKAGES):
+            MODEL_DOWNLOAD_STATE.status = "complete"
+            MODEL_DOWNLOAD_STATE.phase = "Ready"
+            MODEL_DOWNLOAD_STATE.error = ""
+            already_ready = True
+        else:
+            MODEL_DOWNLOAD_THREAD = threading.Thread(target=_download_models_worker, daemon=True)
+            MODEL_DOWNLOAD_THREAD.start()
+    if already_running or already_ready:
+        return _model_download_state()
+    return _model_download_state()
 
 
 def _safe_name(name: str) -> str:
@@ -514,6 +749,9 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as error:
                 self._send_json(HTTPStatus.BAD_GATEWAY, {"error": str(error)})
             return
+        if parsed.path == "/api/models/ic-flux/status":
+            self._send_json(HTTPStatus.OK, _model_download_state())
+            return
         if parsed.path == "/file":
             query = parse_qs(parsed.query)
             raw_path = query.get("path", [""])[0]
@@ -533,6 +771,9 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(HTTPStatus.OK, _download_update())
             except Exception as error:
                 self._send_json(HTTPStatus.BAD_GATEWAY, {"error": str(error)})
+            return
+        if parsed_path == "/api/models/ic-flux/download":
+            self._send_json(HTTPStatus.ACCEPTED, _start_model_download())
             return
         if parsed_path != "/api/run":
             self._send_json(HTTPStatus.NOT_FOUND, {"error": "not found"})

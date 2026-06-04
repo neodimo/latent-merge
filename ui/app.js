@@ -22,6 +22,10 @@ const backendHint = document.getElementById("backendHint");
 const modelPill = document.getElementById("modelPill");
 const vitControls = document.getElementById("vitControls");
 const icFluxControls = document.getElementById("icFluxControls");
+const icFluxModelStatus = document.getElementById("icFluxModelStatus");
+const icFluxDownloadButton = document.getElementById("icFluxDownloadButton");
+const icFluxDownloadProgress = document.getElementById("icFluxDownloadProgress");
+const icFluxDownloadDetail = document.getElementById("icFluxDownloadDetail");
 const controls = {
   strength: document.getElementById("strengthInput"),
   deltaGain: document.getElementById("deltaGainInput"),
@@ -65,6 +69,8 @@ const jobMeta = document.getElementById("jobMeta");
 let currentImages = [];
 let latestUpdate = null;
 let updateInstalled = false;
+let icFluxReady = false;
+let icFluxPolling = null;
 
 function setStatus(text) {
   statusEl.textContent = text;
@@ -72,6 +78,80 @@ function setStatus(text) {
 
 function setUpdateStatus(text) {
   updateStatus.textContent = text;
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let value = bytes;
+  let index = 0;
+  while (value >= 1024 && index < units.length - 1) {
+    value /= 1024;
+    index += 1;
+  }
+  return `${value.toFixed(index ? 1 : 0)} ${units[index]}`;
+}
+
+function summarizeMissingModels(payload) {
+  return (payload.packages || [])
+    .filter((item) => !item.present)
+    .map((item) => item.label)
+    .join(", ");
+}
+
+function renderIcFluxModelStatus(payload) {
+  icFluxReady = Boolean(payload.ready);
+  const percent = Number(payload.percent || 0);
+  icFluxDownloadProgress.value = icFluxReady ? 100 : percent;
+
+  if (payload.running) {
+    icFluxDownloadButton.disabled = true;
+    icFluxDownloadButton.textContent = "Downloading";
+    icFluxModelStatus.textContent = `${percent.toFixed(1)}%`;
+    const byteText = payload.total_bytes
+      ? `${formatBytes(payload.downloaded_bytes)} / ${formatBytes(payload.total_bytes)}`
+      : formatBytes(payload.downloaded_bytes);
+    icFluxDownloadDetail.textContent = [payload.phase, payload.current_file, byteText].filter(Boolean).join(" | ");
+  } else if (icFluxReady) {
+    icFluxDownloadButton.disabled = true;
+    icFluxDownloadButton.textContent = "Models Ready";
+    icFluxModelStatus.textContent = "Ready";
+    icFluxDownloadDetail.textContent = "Required IC-Light and FLUX files are present locally.";
+  } else if (payload.status === "error") {
+    icFluxDownloadButton.disabled = false;
+    icFluxDownloadButton.textContent = "Retry Download";
+    icFluxModelStatus.textContent = "Download failed";
+    icFluxDownloadDetail.textContent = payload.error || "The selected external model source denied or failed the download.";
+  } else {
+    icFluxDownloadButton.disabled = false;
+    icFluxDownloadButton.textContent = "Download IC Flux Models";
+    icFluxModelStatus.textContent = `Missing ${summarizeMissingModels(payload) || "models"}`;
+    icFluxDownloadDetail.textContent = `${payload.disk_warning} ${payload.release_posture}`;
+  }
+
+  if (backendSelect.value === "ic_flux_v2") {
+    runButton.disabled = !icFluxReady;
+    setStatus(icFluxReady ? "IC Flux ready" : payload.running ? "Downloading IC Flux models" : "Download IC Flux models first");
+  }
+}
+
+async function loadIcFluxModelStatus() {
+  const response = await fetch("/api/models/ic-flux/status");
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || "model status check failed");
+  renderIcFluxModelStatus(payload);
+  if (payload.running && !icFluxPolling) {
+    icFluxPolling = window.setInterval(() => {
+      loadIcFluxModelStatus().catch((error) => {
+        window.clearInterval(icFluxPolling);
+        icFluxPolling = null;
+        icFluxDownloadDetail.textContent = error.message;
+      });
+    }, 1000);
+  } else if (!payload.running && icFluxPolling) {
+    window.clearInterval(icFluxPolling);
+    icFluxPolling = null;
+  }
 }
 
 function renderList(input, list) {
@@ -130,20 +210,22 @@ function updateBackendReadout() {
   } else if (backend === "ic_flux_v2") {
     controlTitle.textContent = "IC Flux Controls";
     controlDescription.textContent = "IC-Light V2 / FLUX external GPU relighting.";
-    backendHint.textContent = "Requires CUDA, diffusers, local IC-Light and FLUX weights, and LATENT_MERGE_ENABLE_IC_FLUX=1.";
+    backendHint.textContent = "Internal/testing backend. Downloaded model files stay local and are not bundled with Latent Merge.";
     modelPill.textContent = "Flux";
-    setStatus("External GPU setup required");
+    loadIcFluxModelStatus().catch((error) => setStatus(error.message));
   } else if (backend === "mean_match_stub") {
     controlTitle.textContent = "Baseline Controls";
     controlDescription.textContent = "Mean-match scaffold for quick conservative checks.";
     backendHint.textContent = "Mean Match is CPU-safe and subtle. Use it as a reference, not the final model.";
     modelPill.textContent = "Base";
+    runButton.disabled = false;
     setStatus("Ready");
   } else {
     controlTitle.textContent = "PCT Controls";
     controlDescription.textContent = "PCT-Net CNN, foreground-only output.";
     backendHint.textContent = "CNN is safer and more conservative. ViT is stronger, with more identity risk.";
     modelPill.textContent = "CNN";
+    runButton.disabled = false;
     setStatus("Ready");
   }
 }
@@ -241,6 +323,23 @@ updateButton.addEventListener("click", async () => {
   }
 });
 
+icFluxDownloadButton.addEventListener("click", async () => {
+  icFluxDownloadButton.disabled = true;
+  icFluxDownloadButton.textContent = "Starting";
+  icFluxDownloadDetail.textContent = "Preparing external model download";
+  try {
+    const response = await fetch("/api/models/ic-flux/download", { method: "POST" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "model download failed");
+    renderIcFluxModelStatus(payload);
+    await loadIcFluxModelStatus();
+  } catch (error) {
+    icFluxDownloadButton.disabled = false;
+    icFluxDownloadButton.textContent = "Retry Download";
+    icFluxDownloadDetail.textContent = error.message;
+  }
+});
+
 function activateSingle(index) {
   const image = currentImages[index];
   if (!image) return;
@@ -294,6 +393,11 @@ document.querySelectorAll("[data-view]").forEach((button) => {
 });
 
 runButton.addEventListener("click", async () => {
+  if (backendSelect.value === "ic_flux_v2" && !icFluxReady) {
+    setStatus("Download IC Flux models first");
+    return;
+  }
+
   if (!fields.cg.files.length || !fields.plate.files.length) {
     setStatus("Choose A and B inputs first");
     return;
@@ -337,6 +441,10 @@ runButton.addEventListener("click", async () => {
 });
 
 loadGpus().catch((error) => setStatus(error.message));
+loadIcFluxModelStatus().catch((error) => {
+  icFluxModelStatus.textContent = "Model status unavailable";
+  icFluxDownloadDetail.textContent = error.message;
+});
 loadUpdateStatus().catch((error) => {
   updateButton.textContent = "Retry Update";
   setUpdateStatus(error.message);
