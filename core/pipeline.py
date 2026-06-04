@@ -236,6 +236,17 @@ def _load_ic_flux_output(output_dir: Path) -> np.ndarray:
     return np.asarray(image, dtype=np.float32) / 255.0
 
 
+def _external_runner_env() -> dict[str, str]:
+    env = os.environ.copy()
+    if getattr(sys, "frozen", False):
+        original_library_path = env.get("LD_LIBRARY_PATH_ORIG")
+        if original_library_path is not None:
+            env["LD_LIBRARY_PATH"] = original_library_path
+        else:
+            env.pop("LD_LIBRARY_PATH", None)
+    return env
+
+
 def _run_ic_flux_v2(inputs: PipelineInputs, output_dir: Path, config: PipelineConfig) -> tuple[np.ndarray, dict[str, Any]]:
     if os.environ.get("LATENT_MERGE_ENABLE_IC_FLUX") != "1":
         raise RuntimeError(
@@ -289,7 +300,14 @@ def _run_ic_flux_v2(inputs: PipelineInputs, output_dir: Path, config: PipelineCo
         command.append("--no-fp16")
 
     try:
-        result = subprocess.run(command, check=True, capture_output=True, text=True, timeout=60 * 30)
+        result = subprocess.run(
+            command,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=60 * 30,
+            env=_external_runner_env(),
+        )
     except subprocess.CalledProcessError as error:
         detail = (error.stderr or error.stdout or str(error)).strip()
         raise RuntimeError(f"IC Flux v2 failed: {detail}") from error
