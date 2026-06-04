@@ -24,6 +24,7 @@ const modelPill = document.getElementById("modelPill");
 const vitControls = document.getElementById("vitControls");
 const icFluxControls = document.getElementById("icFluxControls");
 const icFluxModelStatus = document.getElementById("icFluxModelStatus");
+const icFluxLocateButton = document.getElementById("icFluxLocateButton");
 const icFluxDownloadButton = document.getElementById("icFluxDownloadButton");
 const icFluxDownloadProgress = document.getElementById("icFluxDownloadProgress");
 const icFluxDownloadDetail = document.getElementById("icFluxDownloadDetail");
@@ -108,6 +109,7 @@ function renderIcFluxModelStatus(payload) {
   icFluxInlineDownloadButton.classList.toggle("hidden", !icFluxSelected || icFluxReady);
 
   if (payload.running) {
+    icFluxLocateButton.disabled = true;
     icFluxDownloadButton.disabled = true;
     icFluxInlineDownloadButton.disabled = true;
     icFluxDownloadButton.textContent = "Downloading";
@@ -118,6 +120,7 @@ function renderIcFluxModelStatus(payload) {
       : formatBytes(payload.downloaded_bytes);
     icFluxDownloadDetail.textContent = [payload.phase, payload.current_file, byteText].filter(Boolean).join(" | ");
   } else if (icFluxReady) {
+    icFluxLocateButton.disabled = true;
     icFluxDownloadButton.disabled = true;
     icFluxInlineDownloadButton.disabled = true;
     icFluxDownloadButton.textContent = "Models Ready";
@@ -126,6 +129,7 @@ function renderIcFluxModelStatus(payload) {
     const dirs = (payload.packages || []).map((item) => item.local_dir).join(" | ");
     icFluxDownloadDetail.textContent = `Required IC-Light and FLUX files are present locally. ${dirs}`;
   } else if (payload.status === "error") {
+    icFluxLocateButton.disabled = false;
     icFluxDownloadButton.disabled = false;
     icFluxInlineDownloadButton.disabled = false;
     icFluxDownloadButton.textContent = "Retry Download";
@@ -133,12 +137,13 @@ function renderIcFluxModelStatus(payload) {
     icFluxModelStatus.textContent = "Download failed";
     icFluxDownloadDetail.textContent = payload.error || "The selected external model source denied or failed the download.";
   } else {
+    icFluxLocateButton.disabled = false;
     icFluxDownloadButton.disabled = false;
     icFluxInlineDownloadButton.disabled = false;
     icFluxDownloadButton.textContent = "Download IC Flux Models";
     icFluxInlineDownloadButton.textContent = "Download IC Flux Models";
     icFluxModelStatus.textContent = `Missing ${summarizeMissingModels(payload) || "models"}`;
-    icFluxDownloadDetail.textContent = `${payload.disk_warning} ${payload.release_posture}`;
+    icFluxDownloadDetail.textContent = `If files already exist, locate their folder before downloading. ${payload.disk_warning} ${payload.release_posture}`;
   }
 
   if (icFluxSelected) {
@@ -345,7 +350,35 @@ icFluxInlineDownloadButton.addEventListener("click", async () => {
   await startIcFluxModelDownload();
 });
 
+icFluxLocateButton.addEventListener("click", async () => {
+  const path = window.prompt(
+    "Enter the folder that contains weights/ic-light-v2 and weights/flux1-dev, or an exact model folder:",
+    "~/projects/latent-merge/weights"
+  );
+  if (!path) return;
+  icFluxLocateButton.disabled = true;
+  icFluxDownloadDetail.textContent = "Checking existing model files";
+  try {
+    const response = await fetch("/api/models/ic-flux/locate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "model locate failed");
+    renderIcFluxModelStatus(payload);
+    if (!payload.located) {
+      const missing = (payload.missing_at_path || []).map((item) => item.label).join(", ");
+      icFluxDownloadDetail.textContent = payload.error || `Still missing ${missing || "models"} at that path.`;
+    }
+  } catch (error) {
+    icFluxLocateButton.disabled = false;
+    icFluxDownloadDetail.textContent = error.message;
+  }
+});
+
 async function startIcFluxModelDownload() {
+  icFluxLocateButton.disabled = true;
   icFluxDownloadButton.disabled = true;
   icFluxInlineDownloadButton.disabled = true;
   icFluxDownloadButton.textContent = "Starting";
@@ -358,6 +391,7 @@ async function startIcFluxModelDownload() {
     renderIcFluxModelStatus(payload);
     await loadIcFluxModelStatus();
   } catch (error) {
+    icFluxLocateButton.disabled = false;
     icFluxDownloadButton.disabled = false;
     icFluxInlineDownloadButton.disabled = false;
     icFluxDownloadButton.textContent = "Retry Download";

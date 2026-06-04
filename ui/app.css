@@ -299,6 +299,13 @@ li {
   min-width: 168px;
 }
 
+.model-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .model-setup progress {
   width: 100%;
   height: 10px;
@@ -479,5 +486,9 @@ input[type="range"] {
 
   .model-setup button {
     width: 100%;
+  }
+
+  .model-actions {
+    justify-content: stretch;
   }
 }

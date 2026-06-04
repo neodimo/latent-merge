@@ -53,6 +53,7 @@ DEFAULT_CONFIG = ROOT / "configs" / "phase1_pctnet.json"
 SUPPORTED_A = {".png", ".exr"}
 SUPPORTED_B = {".png", ".jpg", ".jpeg", ".exr"}
 WEIGHTS_ROOT = WORK_ROOT / "weights"
+MODEL_PATH_OVERRIDES_FILE = WORK_ROOT / "model_paths.json"
 IMAGE_OUTPUTS = [
     ("raw_a_over_b", "Raw A-over-B"),
     ("final_comp", "Final Comp"),
@@ -262,9 +263,49 @@ def _weight_roots() -> list[Path]:
     return unique
 
 
+def _hf_cache_snapshot_dirs(package: ModelPackage) -> list[Path]:
+    repo_cache_name = "models--" + package.repo_id.replace("/", "--")
+    roots = [
+        Path(os.environ.get("HF_HOME", "")) / "hub" if os.environ.get("HF_HOME") else None,
+        Path(os.environ.get("HUGGINGFACE_HUB_CACHE", "")) if os.environ.get("HUGGINGFACE_HUB_CACHE") else None,
+        Path.home() / ".cache" / "huggingface" / "hub",
+        Path("/var/home/omid/.cache/huggingface/hub"),
+        Path("/home/omid/.cache/huggingface/hub"),
+    ]
+    candidates: list[Path] = []
+    for root in roots:
+        if root is None:
+            continue
+        snapshots = root.expanduser() / repo_cache_name / "snapshots"
+        if snapshots.is_dir():
+            candidates.extend(item for item in snapshots.iterdir() if item.is_dir())
+    return candidates
+
+
+def _model_path_overrides() -> dict[str, str]:
+    if not MODEL_PATH_OVERRIDES_FILE.is_file():
+        return {}
+    try:
+        payload = json.loads(MODEL_PATH_OVERRIDES_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    if not isinstance(payload, dict):
+        return {}
+    return {str(key): str(value) for key, value in payload.items() if isinstance(value, str)}
+
+
+def _save_model_path_overrides(overrides: dict[str, str]) -> None:
+    MODEL_PATH_OVERRIDES_FILE.write_text(json.dumps(overrides, indent=2) + "\n", encoding="utf-8")
+
+
 def _candidate_package_dirs(package: ModelPackage) -> list[Path]:
-    candidates = [package.local_dir]
+    overrides = _model_path_overrides()
+    candidates = []
+    if package.key in overrides:
+        candidates.append(Path(overrides[package.key]))
+    candidates.append(package.local_dir)
     candidates.extend(root / package.key for root in _weight_roots())
+    candidates.extend(_hf_cache_snapshot_dirs(package))
     unique = []
     seen = set()
     for candidate in candidates:
@@ -308,6 +349,78 @@ def _package_status(package: ModelPackage) -> dict:
         "present": present,
         "size_bytes": _path_size(selected_dir),
     }
+
+
+def _locate_candidate_dirs(package: ModelPackage, raw_path: Path) -> list[Path]:
+    base = raw_path.expanduser().resolve()
+    candidates = [
+        base,
+        base / package.key,
+        base / "weights" / package.key,
+    ]
+    if package.key == "ic-light-v2":
+        candidates.extend([base / "ic-light", base / "models--lllyasviel--ic-light"])
+    elif package.key == "flux1-dev":
+        candidates.extend([base / "FLUX.1-dev", base / "models--black-forest-labs--FLUX.1-dev"])
+
+    expanded: list[Path] = []
+    for candidate in candidates:
+        if (candidate / "snapshots").is_dir():
+            expanded.extend(item for item in (candidate / "snapshots").iterdir() if item.is_dir())
+        else:
+            expanded.append(candidate)
+    unique: list[Path] = []
+    seen: set[str] = set()
+    for candidate in expanded:
+        key = str(candidate)
+        if key not in seen:
+            unique.append(candidate)
+            seen.add(key)
+    return unique
+
+
+def _locate_existing_models(raw_path: str) -> dict:
+    if not raw_path.strip():
+        raise ValueError("Enter a folder path that contains the IC-Light and FLUX model files.")
+    base = Path(raw_path.strip()).expanduser()
+    if not base.exists():
+        raise ValueError(f"folder does not exist: {base}")
+
+    overrides = _model_path_overrides()
+    found: dict[str, str] = {}
+    missing: list[dict[str, object]] = []
+    for package in MODEL_PACKAGES:
+        selected: Path | None = None
+        searched = _locate_candidate_dirs(package, base)
+        for candidate in searched:
+            if candidate.is_dir() and not _missing_required_paths(package, candidate):
+                selected = candidate
+                break
+        if selected:
+            found[package.key] = str(selected)
+        else:
+            missing.append(
+                {
+                    "key": package.key,
+                    "label": package.label,
+                    "required_paths": [" or ".join(group) for group in package.required_any],
+                    "searched_dirs": [str(candidate) for candidate in searched],
+                }
+            )
+
+    if missing:
+        return {
+            **_model_download_state(),
+            "located": False,
+            "found": found,
+            "missing_at_path": missing,
+            "error": "That folder does not contain all required IC Flux model files.",
+        }
+
+    overrides.update(found)
+    _save_model_path_overrides(overrides)
+    _set_model_download_state(status="complete", phase="Ready", error="", current_file="")
+    return {**_model_download_state(), "located": True, "found": found}
 
 
 def _model_download_state() -> dict:
@@ -850,6 +963,14 @@ class Handler(BaseHTTPRequestHandler):
             return
         if parsed_path == "/api/models/ic-flux/download":
             self._send_json(HTTPStatus.ACCEPTED, _start_model_download())
+            return
+        if parsed_path == "/api/models/ic-flux/locate":
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+                self._send_json(HTTPStatus.OK, _locate_existing_models(str(payload.get("path", ""))))
+            except Exception as error:
+                self._send_json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
             return
         if parsed_path != "/api/run":
             self._send_json(HTTPStatus.NOT_FOUND, {"error": "not found"})
