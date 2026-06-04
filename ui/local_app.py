@@ -70,7 +70,7 @@ class ModelPackage:
     label: str
     repo_id: str
     local_dir: Path
-    required_paths: tuple[str, ...]
+    required_any: tuple[tuple[str, ...], ...]
     ignore_patterns: tuple[str, ...] = ("*.msgpack", "flax_*", "*/flax_*")
 
 
@@ -80,14 +80,14 @@ MODEL_PACKAGES = [
         label="IC-Light V2 ControlNet",
         repo_id=os.environ.get("LATENT_MERGE_IC_LIGHT_REPO", "lllyasviel/ic-light"),
         local_dir=Path(os.environ.get("LATENT_MERGE_IC_FLUX_WEIGHTS", str(WEIGHTS_ROOT / "ic-light-v2"))),
-        required_paths=("config.json",),
+        required_any=(("config.json", "iclight_sd15_fc.safetensors"),),
     ),
     ModelPackage(
         key="flux1-dev",
         label="FLUX.1-dev",
         repo_id=os.environ.get("LATENT_MERGE_FLUX_REPO", "black-forest-labs/FLUX.1-dev"),
         local_dir=Path(os.environ.get("LATENT_MERGE_FLUX_WEIGHTS", str(WEIGHTS_ROOT / "flux1-dev"))),
-        required_paths=("model_index.json",),
+        required_any=(("model_index.json",),),
     ),
 ]
 
@@ -236,18 +236,77 @@ def _path_size(path: Path) -> int:
     return sum(item.stat().st_size for item in path.rglob("*") if item.is_file())
 
 
+def _weight_roots() -> list[Path]:
+    roots = [
+        WEIGHTS_ROOT,
+        ROOT / "weights",
+        Path.cwd() / "weights",
+        Path.home() / "projects" / "latent-merge" / "weights",
+        Path.home() / ".openclaw" / "workspace" / "weights",
+        Path.home() / ".openclaw" / "workspace" / "repos" / "latent-merge" / "weights",
+        Path("/var/home/omid/projects/latent-merge/weights"),
+        Path("/var/home/omid/.openclaw/workspace/weights"),
+        Path("/var/home/omid/.openclaw/workspace/repos/latent-merge/weights"),
+        Path("/home/omid/projects/latent-merge/weights"),
+        Path("/home/omid/.openclaw/workspace/weights"),
+        Path("/home/omid/.openclaw/workspace/repos/latent-merge/weights"),
+    ]
+    unique = []
+    seen = set()
+    for root in roots:
+        resolved = root.expanduser()
+        key = str(resolved)
+        if key not in seen:
+            unique.append(resolved)
+            seen.add(key)
+    return unique
+
+
+def _candidate_package_dirs(package: ModelPackage) -> list[Path]:
+    candidates = [package.local_dir]
+    candidates.extend(root / package.key for root in _weight_roots())
+    unique = []
+    seen = set()
+    for candidate in candidates:
+        resolved = candidate.expanduser()
+        key = str(resolved)
+        if key not in seen:
+            unique.append(resolved)
+            seen.add(key)
+    return unique
+
+
+def _missing_required_paths(package: ModelPackage, local_dir: Path) -> list[str]:
+    missing = []
+    for group in package.required_any:
+        if not any((local_dir / item).exists() for item in group):
+            missing.append(" or ".join(group))
+    return missing
+
+
 def _package_status(package: ModelPackage) -> dict:
-    missing = [item for item in package.required_paths if not (package.local_dir / item).exists()]
-    present = package.local_dir.is_dir() and not missing
+    candidates = _candidate_package_dirs(package)
+    selected_dir = candidates[0]
+    selected_missing = _missing_required_paths(package, selected_dir)
+    present = False
+    for candidate in candidates:
+        missing = _missing_required_paths(package, candidate)
+        if candidate.is_dir() and not missing:
+            selected_dir = candidate
+            selected_missing = missing
+            present = True
+            break
     return {
         "key": package.key,
         "label": package.label,
         "repo_id": package.repo_id,
-        "local_dir": str(package.local_dir),
-        "required_paths": list(package.required_paths),
-        "missing": missing,
+        "local_dir": str(selected_dir),
+        "download_dir": str(package.local_dir),
+        "required_paths": [" or ".join(group) for group in package.required_any],
+        "searched_dirs": [str(candidate) for candidate in candidates],
+        "missing": selected_missing,
         "present": present,
-        "size_bytes": _path_size(package.local_dir),
+        "size_bytes": _path_size(selected_dir),
     }
 
 
@@ -649,8 +708,17 @@ def _run_ui_job(form: ParsedForm) -> dict:
         ic_flux_fp16=ic_flux_fp16,
     )
     previous_cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES")
+    previous_ic_weights = os.environ.get("LATENT_MERGE_IC_FLUX_WEIGHTS")
+    previous_flux_weights = os.environ.get("LATENT_MERGE_FLUX_WEIGHTS")
     if selected_gpu != "cpu":
         os.environ["CUDA_VISIBLE_DEVICES"] = selected_gpu
+    if backend == "ic_flux_v2":
+        model_state = _model_download_state()
+        if not model_state["ready"]:
+            raise ValueError("IC Flux models are missing. Use Download IC Flux Models before running this backend.")
+        package_dirs = {item["key"]: item["local_dir"] for item in model_state["packages"]}
+        os.environ["LATENT_MERGE_IC_FLUX_WEIGHTS"] = package_dirs["ic-light-v2"]
+        os.environ["LATENT_MERGE_FLUX_WEIGHTS"] = package_dirs["flux1-dev"]
     try:
         job_path = run_pipeline(
             PipelineInputs(plate_rgb=plate.first_frame, cg_rgba=cg.first_frame, alpha=alpha_path),
@@ -662,6 +730,14 @@ def _run_ui_job(form: ParsedForm) -> dict:
             os.environ.pop("CUDA_VISIBLE_DEVICES", None)
         else:
             os.environ["CUDA_VISIBLE_DEVICES"] = previous_cuda_visible
+        if previous_ic_weights is None:
+            os.environ.pop("LATENT_MERGE_IC_FLUX_WEIGHTS", None)
+        else:
+            os.environ["LATENT_MERGE_IC_FLUX_WEIGHTS"] = previous_ic_weights
+        if previous_flux_weights is None:
+            os.environ.pop("LATENT_MERGE_FLUX_WEIGHTS", None)
+        else:
+            os.environ["LATENT_MERGE_FLUX_WEIGHTS"] = previous_flux_weights
 
     job = json.loads(job_path.read_text(encoding="utf-8"))
     contact_sheet = _build_contact_sheet(job_dir, job)

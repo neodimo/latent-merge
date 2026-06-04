@@ -11,6 +11,7 @@ const lists = {
 };
 
 const runButton = document.getElementById("runButton");
+const icFluxInlineDownloadButton = document.getElementById("icFluxInlineDownloadButton");
 const updateButton = document.getElementById("updateButton");
 const updateStatus = document.getElementById("updateStatus");
 const statusEl = document.getElementById("status");
@@ -101,12 +102,16 @@ function summarizeMissingModels(payload) {
 
 function renderIcFluxModelStatus(payload) {
   icFluxReady = Boolean(payload.ready);
+  const icFluxSelected = backendSelect.value === "ic_flux_v2";
   const percent = Number(payload.percent || 0);
   icFluxDownloadProgress.value = icFluxReady ? 100 : percent;
+  icFluxInlineDownloadButton.classList.toggle("hidden", !icFluxSelected || icFluxReady);
 
   if (payload.running) {
     icFluxDownloadButton.disabled = true;
+    icFluxInlineDownloadButton.disabled = true;
     icFluxDownloadButton.textContent = "Downloading";
+    icFluxInlineDownloadButton.textContent = "Downloading";
     icFluxModelStatus.textContent = `${percent.toFixed(1)}%`;
     const byteText = payload.total_bytes
       ? `${formatBytes(payload.downloaded_bytes)} / ${formatBytes(payload.total_bytes)}`
@@ -114,22 +119,29 @@ function renderIcFluxModelStatus(payload) {
     icFluxDownloadDetail.textContent = [payload.phase, payload.current_file, byteText].filter(Boolean).join(" | ");
   } else if (icFluxReady) {
     icFluxDownloadButton.disabled = true;
+    icFluxInlineDownloadButton.disabled = true;
     icFluxDownloadButton.textContent = "Models Ready";
+    icFluxInlineDownloadButton.textContent = "Models Ready";
     icFluxModelStatus.textContent = "Ready";
-    icFluxDownloadDetail.textContent = "Required IC-Light and FLUX files are present locally.";
+    const dirs = (payload.packages || []).map((item) => item.local_dir).join(" | ");
+    icFluxDownloadDetail.textContent = `Required IC-Light and FLUX files are present locally. ${dirs}`;
   } else if (payload.status === "error") {
     icFluxDownloadButton.disabled = false;
+    icFluxInlineDownloadButton.disabled = false;
     icFluxDownloadButton.textContent = "Retry Download";
+    icFluxInlineDownloadButton.textContent = "Retry IC Flux Download";
     icFluxModelStatus.textContent = "Download failed";
     icFluxDownloadDetail.textContent = payload.error || "The selected external model source denied or failed the download.";
   } else {
     icFluxDownloadButton.disabled = false;
+    icFluxInlineDownloadButton.disabled = false;
     icFluxDownloadButton.textContent = "Download IC Flux Models";
+    icFluxInlineDownloadButton.textContent = "Download IC Flux Models";
     icFluxModelStatus.textContent = `Missing ${summarizeMissingModels(payload) || "models"}`;
     icFluxDownloadDetail.textContent = `${payload.disk_warning} ${payload.release_posture}`;
   }
 
-  if (backendSelect.value === "ic_flux_v2") {
+  if (icFluxSelected) {
     runButton.disabled = !icFluxReady;
     setStatus(icFluxReady ? "IC Flux ready" : payload.running ? "Downloading IC Flux models" : "Download IC Flux models first");
   }
@@ -218,6 +230,7 @@ function updateBackendReadout() {
     controlDescription.textContent = "Mean-match scaffold for quick conservative checks.";
     backendHint.textContent = "Mean Match is CPU-safe and subtle. Use it as a reference, not the final model.";
     modelPill.textContent = "Base";
+    icFluxInlineDownloadButton.classList.add("hidden");
     runButton.disabled = false;
     setStatus("Ready");
   } else {
@@ -225,6 +238,7 @@ function updateBackendReadout() {
     controlDescription.textContent = "PCT-Net CNN, foreground-only output.";
     backendHint.textContent = "CNN is safer and more conservative. ViT is stronger, with more identity risk.";
     modelPill.textContent = "CNN";
+    icFluxInlineDownloadButton.classList.add("hidden");
     runButton.disabled = false;
     setStatus("Ready");
   }
@@ -324,8 +338,18 @@ updateButton.addEventListener("click", async () => {
 });
 
 icFluxDownloadButton.addEventListener("click", async () => {
+  await startIcFluxModelDownload();
+});
+
+icFluxInlineDownloadButton.addEventListener("click", async () => {
+  await startIcFluxModelDownload();
+});
+
+async function startIcFluxModelDownload() {
   icFluxDownloadButton.disabled = true;
+  icFluxInlineDownloadButton.disabled = true;
   icFluxDownloadButton.textContent = "Starting";
+  icFluxInlineDownloadButton.textContent = "Starting";
   icFluxDownloadDetail.textContent = "Preparing external model download";
   try {
     const response = await fetch("/api/models/ic-flux/download", { method: "POST" });
@@ -335,10 +359,12 @@ icFluxDownloadButton.addEventListener("click", async () => {
     await loadIcFluxModelStatus();
   } catch (error) {
     icFluxDownloadButton.disabled = false;
+    icFluxInlineDownloadButton.disabled = false;
     icFluxDownloadButton.textContent = "Retry Download";
+    icFluxInlineDownloadButton.textContent = "Retry IC Flux Download";
     icFluxDownloadDetail.textContent = error.message;
   }
-});
+}
 
 function activateSingle(index) {
   const image = currentImages[index];
