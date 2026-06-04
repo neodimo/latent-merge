@@ -831,6 +831,7 @@ def _run_ui_job(form: ParsedForm) -> dict:
         ic_flux_fp16=ic_flux_fp16,
     )
     previous_cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES")
+    previous_ic_enabled = os.environ.get("LATENT_MERGE_ENABLE_IC_FLUX")
     previous_ic_weights = os.environ.get("LATENT_MERGE_IC_FLUX_WEIGHTS")
     previous_flux_weights = os.environ.get("LATENT_MERGE_FLUX_WEIGHTS")
     if selected_gpu != "cpu":
@@ -840,6 +841,7 @@ def _run_ui_job(form: ParsedForm) -> dict:
         if not model_state["ready"]:
             raise ValueError("IC Flux models are missing. Use Download IC Flux Models before running this backend.")
         package_dirs = {item["key"]: item["local_dir"] for item in model_state["packages"]}
+        os.environ["LATENT_MERGE_ENABLE_IC_FLUX"] = "1"
         os.environ["LATENT_MERGE_IC_FLUX_WEIGHTS"] = package_dirs["ic-light-v2"]
         os.environ["LATENT_MERGE_FLUX_WEIGHTS"] = package_dirs["flux1-dev"]
     try:
@@ -853,6 +855,10 @@ def _run_ui_job(form: ParsedForm) -> dict:
             os.environ.pop("CUDA_VISIBLE_DEVICES", None)
         else:
             os.environ["CUDA_VISIBLE_DEVICES"] = previous_cuda_visible
+        if previous_ic_enabled is None:
+            os.environ.pop("LATENT_MERGE_ENABLE_IC_FLUX", None)
+        else:
+            os.environ["LATENT_MERGE_ENABLE_IC_FLUX"] = previous_ic_enabled
         if previous_ic_weights is None:
             os.environ.pop("LATENT_MERGE_IC_FLUX_WEIGHTS", None)
         else:
