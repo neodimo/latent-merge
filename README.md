@@ -9,6 +9,7 @@ Origin: Discord `#project-planning`, 2026-05-20.
 - `SPEC_DRAFT.md` - current aggressive v0 spec, gates, timeline, and risk list
 - `PHASE0.md` - executable Phase 0 smoke contract and exact file paths
 - `PHASE1.md` - Phase 1 scaffold contract and backend interface
+- `PHASE2.md` - Phase 2 evaluation gate and locked user surface
 - `NEXT_STEPS.md` - immediate bakeoff plan and success criteria
 - `REFERENCES.md` - candidate models, papers, and product baselines
 - `HARDWARE.md` - current local hardware notes and eGPU implications
