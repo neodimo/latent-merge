@@ -112,6 +112,7 @@ jobs:
           --hidden-import=einops.layers.torch
           --hidden-import=huggingface_hub
           --hidden-import=huggingface_hub.utils
+          --hidden-import=certifi
           ui/local_app.py
 
       - name: Smoke executable

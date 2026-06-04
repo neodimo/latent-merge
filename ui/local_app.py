@@ -9,6 +9,7 @@ import mimetypes
 import os
 import platform
 import shutil
+import ssl
 import subprocess
 import sys
 import threading
@@ -146,8 +147,17 @@ def _current_version() -> str:
 
 def _github_json(url: str) -> dict:
     request = Request(url, headers={"Accept": "application/vnd.github+json", "User-Agent": "latent-merge-ui"})
-    with urlopen(request, timeout=20) as response:
+    with urlopen(request, timeout=20, context=_ssl_context()) as response:
         return json.loads(response.read().decode("utf-8"))
+
+
+def _ssl_context() -> ssl.SSLContext:
+    try:
+        import certifi
+
+        return ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        return ssl.create_default_context()
 
 
 def _latest_release() -> dict:
@@ -205,7 +215,7 @@ def _download_update() -> dict:
     target = UPDATE_RELEASES / f"{UPDATE_ASSET}-{latest['tag']}"
     tmp = target.with_name(target.name + ".download")
     request = Request(latest["url"], headers={"User-Agent": "latent-merge-ui"})
-    with urlopen(request, timeout=120) as response, tmp.open("wb") as handle:
+    with urlopen(request, timeout=120, context=_ssl_context()) as response, tmp.open("wb") as handle:
         shutil.copyfileobj(response, handle)
 
     digest = latest.get("digest", "")
@@ -495,7 +505,7 @@ def _download_hf_file(package: ModelPackage, filename: str, size: int) -> None:
         request.add_header("Range", f"bytes={existing}-")
         _set_model_download_state(downloaded_bytes=MODEL_DOWNLOAD_STATE.downloaded_bytes + existing)
 
-    with urlopen(request, timeout=120) as response, tmp.open(mode) as handle:
+    with urlopen(request, timeout=120, context=_ssl_context()) as response, tmp.open(mode) as handle:
         while True:
             chunk = response.read(1024 * 1024)
             if not chunk:
