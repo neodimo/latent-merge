@@ -107,7 +107,11 @@ def _load_pipeline(args):
         torch_dtype=dtype,
     )
     pipe.enable_model_cpu_offload()          # keeps 12 GB VRAM usage manageable
-    pipe.enable_xformers_memory_efficient_attention()  # optional, skip if xformers not installed
+    try:
+        pipe.enable_xformers_memory_efficient_attention()
+        print("xformers memory-efficient attention enabled")
+    except Exception as error:
+        print(f"xformers unavailable; continuing without it: {error}")
 
     return pipe, dtype
 

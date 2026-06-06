@@ -102,11 +102,14 @@ function summarizeMissingModels(payload) {
 }
 
 function renderIcFluxModelStatus(payload) {
+  const modelsReady = Boolean(payload.models_ready ?? payload.ready);
+  const runtime = payload.runtime || {};
+  const runtimeReady = Boolean(runtime.ready);
   icFluxReady = Boolean(payload.ready);
   const icFluxSelected = backendSelect.value === "ic_flux_v2";
   const percent = Number(payload.percent || 0);
-  icFluxDownloadProgress.value = icFluxReady ? 100 : percent;
-  icFluxInlineDownloadButton.classList.toggle("hidden", !icFluxSelected || icFluxReady);
+  icFluxDownloadProgress.value = modelsReady ? 100 : percent;
+  icFluxInlineDownloadButton.classList.toggle("hidden", !icFluxSelected || modelsReady);
 
   if (payload.running) {
     icFluxLocateButton.disabled = true;
@@ -119,6 +122,18 @@ function renderIcFluxModelStatus(payload) {
       ? `${formatBytes(payload.downloaded_bytes)} / ${formatBytes(payload.total_bytes)}`
       : formatBytes(payload.downloaded_bytes);
     icFluxDownloadDetail.textContent = [payload.phase, payload.current_file, byteText].filter(Boolean).join(" | ");
+  } else if (modelsReady && !runtimeReady) {
+    icFluxLocateButton.disabled = true;
+    icFluxDownloadButton.disabled = true;
+    icFluxInlineDownloadButton.disabled = true;
+    icFluxDownloadButton.textContent = "Models Ready";
+    icFluxInlineDownloadButton.textContent = "Models Ready";
+    icFluxModelStatus.textContent = "Python setup needed";
+    icFluxDownloadDetail.textContent = [
+      runtime.message || "IC Flux needs an external Python environment with CUDA dependencies.",
+      runtime.python ? `Python: ${runtime.python}` : null,
+      runtime.install_hint ? `Setup: ${runtime.install_hint}` : null,
+    ].filter(Boolean).join(" | ");
   } else if (icFluxReady) {
     icFluxLocateButton.disabled = true;
     icFluxDownloadButton.disabled = true;
@@ -148,7 +163,14 @@ function renderIcFluxModelStatus(payload) {
 
   if (icFluxSelected) {
     runButton.disabled = !icFluxReady;
-    setStatus(icFluxReady ? "IC Flux ready" : payload.running ? "Downloading IC Flux models" : "Download IC Flux models first");
+    const nextStatus = icFluxReady
+      ? "IC Flux ready"
+      : payload.running
+        ? "Downloading IC Flux models"
+        : modelsReady
+          ? "Set up IC Flux Python"
+          : "Download IC Flux models first";
+    setStatus(nextStatus);
   }
 }
 

@@ -41,7 +41,7 @@ else:
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from core.pipeline import PipelineInputs, load_config, run_pipeline
+from core.pipeline import PipelineInputs, ic_flux_runtime_status, load_config, run_pipeline
 
 
 RUN_ROOT = WORK_ROOT / "runs" / "ui_jobs"
@@ -440,9 +440,13 @@ def _model_download_state() -> dict:
     done = payload.get("downloaded_bytes", 0) or 0
     payload["percent"] = round((done / total) * 100, 1) if total else 0.0
     payload["packages"] = [_package_status(package) for package in MODEL_PACKAGES]
-    payload["ready"] = all(item["present"] for item in payload["packages"])
+    payload["models_ready"] = all(item["present"] for item in payload["packages"])
+    payload["runtime"] = ic_flux_runtime_status()
+    payload["ready"] = bool(payload["models_ready"] and payload["runtime"]["ready"])
     payload["disk_warning"] = "IC Flux model setup can require 30 GB or more of free disk space."
-    payload["release_posture"] = "Internal/testing backend; model files are downloaded from external sources and are not bundled with Latent Merge."
+    payload["release_posture"] = (
+        "Internal/testing backend; model files and the CUDA Python runtime are external and are not bundled with Latent Merge."
+    )
     return payload
 
 
@@ -775,6 +779,24 @@ def _build_contact_sheet(job_dir: Path, job: dict) -> Path:
 
 
 def _run_ui_job(form: ParsedForm) -> dict:
+    selected_gpu = _form_first(form, "gpu", "cpu")
+    backend = _form_first(form, "backend", "pctnet")
+    if backend not in {"pctnet", "pctnet_vit_proxy", "ic_flux_v2", "mean_match_stub"}:
+        raise ValueError("backend must be pctnet, pctnet_vit_proxy, ic_flux_v2, or mean_match_stub")
+
+    ic_flux_package_dirs: dict[str, str] | None = None
+    if backend == "ic_flux_v2":
+        model_state = _model_download_state()
+        if not model_state["models_ready"]:
+            raise ValueError("IC Flux models are missing. Use Download IC Flux Models before running this backend.")
+        if not model_state["runtime"]["ready"]:
+            runtime = model_state["runtime"]
+            raise ValueError(
+                "IC Flux Python runtime is not ready. "
+                f"{runtime['message']} Set LATENT_MERGE_PYTHON to a ready environment, or run: {runtime['install_hint']}"
+            )
+        ic_flux_package_dirs = {item["key"]: item["local_dir"] for item in model_state["packages"]}
+
     job_id = time.strftime("%Y%m%d-%H%M%S-") + uuid.uuid4().hex[:8]
     job_dir = RUN_ROOT / job_id
     input_dir = job_dir / "inputs"
@@ -792,10 +814,6 @@ def _run_ui_job(form: ParsedForm) -> dict:
     _validate_runtime_inputs(cg.first_frame, plate.first_frame, alpha_path)
 
     output_dir = job_dir / "outputs"
-    selected_gpu = _form_first(form, "gpu", "cpu")
-    backend = _form_first(form, "backend", "pctnet")
-    if backend not in {"pctnet", "pctnet_vit_proxy", "ic_flux_v2", "mean_match_stub"}:
-        raise ValueError("backend must be pctnet, pctnet_vit_proxy, ic_flux_v2, or mean_match_stub")
     adjustment_strength = _form_float(form, "adjustment_strength", 1.0, 0.0, 2.5)
     delta_preview_gain = _form_float(form, "delta_preview_gain", 4.0, 1.0, 16.0)
     correction_softness_px = _form_float(form, "correction_softness_px", 0.0, 0.0, 24.0)
@@ -837,13 +855,9 @@ def _run_ui_job(form: ParsedForm) -> dict:
     if selected_gpu != "cpu":
         os.environ["CUDA_VISIBLE_DEVICES"] = selected_gpu
     if backend == "ic_flux_v2":
-        model_state = _model_download_state()
-        if not model_state["ready"]:
-            raise ValueError("IC Flux models are missing. Use Download IC Flux Models before running this backend.")
-        package_dirs = {item["key"]: item["local_dir"] for item in model_state["packages"]}
         os.environ["LATENT_MERGE_ENABLE_IC_FLUX"] = "1"
-        os.environ["LATENT_MERGE_IC_FLUX_WEIGHTS"] = package_dirs["ic-light-v2"]
-        os.environ["LATENT_MERGE_FLUX_WEIGHTS"] = package_dirs["flux1-dev"]
+        os.environ["LATENT_MERGE_IC_FLUX_WEIGHTS"] = ic_flux_package_dirs["ic-light-v2"]
+        os.environ["LATENT_MERGE_FLUX_WEIGHTS"] = ic_flux_package_dirs["flux1-dev"]
     try:
         job_path = run_pipeline(
             PipelineInputs(plate_rgb=plate.first_frame, cg_rgba=cg.first_frame, alpha=alpha_path),
