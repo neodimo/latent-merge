@@ -37,6 +37,17 @@ Run it from the GitHub Actions tab with `workflow_dispatch`, or let it run on re
 - Optional matte override: PNG or JPG. If omitted, the A-side PNG alpha is used.
 - Multiple uploaded files are accepted so the UI shape matches frame-sequence workflow. The current runner processes the first sorted frame only and records uploaded frame counts in `ui_job.json`.
 - GPU dropdown is populated from `nvidia-smi` when available and is wired through `CUDA_VISIBLE_DEVICES`.
+- IC Flux v2 is an external GPU backend. The UI executable bundles the control surface and runner script, but it does not bundle the CUDA Python stack. To run IC Flux from a packaged executable, create an environment such as `.ic-flux-venv` in the folder where you launch the UI, or set `LATENT_MERGE_PYTHON`:
+
+```bash
+python3 -m venv .ic-flux-venv
+.ic-flux-venv/bin/python -m pip install -U pip
+.ic-flux-venv/bin/python -m pip install numpy Pillow diffusers transformers accelerate
+.ic-flux-venv/bin/python -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+LATENT_MERGE_PYTHON="$PWD/.ic-flux-venv/bin/python" ./bin/latent-merge-ui
+```
+
+  The UI checks this runtime before enabling IC Flux runs and reports missing packages before files are uploaded into a job.
 - PCT controls:
   - Adjustment Strength: `0` keeps original CG, `1` uses the model result, and higher values exaggerate the correction.
   - Delta Preview Gain: brightens diagnostic delta passes only; it does not alter the adjusted foreground or final comp.
