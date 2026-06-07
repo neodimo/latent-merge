@@ -173,6 +173,10 @@ jobs:
           test "$HTTP_CSS" = "200"
           HTTP_JS=$(curl --silent --show-error --write-out "%{http_code}" --output /dev/null http://127.0.0.1:7865/app.js)
           test "$HTTP_JS" = "200"
+          HTTP_IC_MODELS=$(curl --silent --show-error --write-out "%{http_code}" --output runs/ui_executable_ic_flux_status.json http://127.0.0.1:7865/api/models/ic-flux/status)
+          test "$HTTP_IC_MODELS" = "200"
+          HTTP_IC_RUNTIME=$(curl --silent --show-error --write-out "%{http_code}" --output runs/ui_executable_ic_flux_runtime.json http://127.0.0.1:7865/api/models/ic-flux/runtime/status)
+          test "$HTTP_IC_RUNTIME" = "200"
 
           python - <<'PY'
           import json
@@ -182,6 +186,12 @@ jobs:
           job_url = payload["job_json"]
           if not job_url.startswith("/file?path="):
               raise SystemExit(f"unexpected job URL: {job_url}")
+          runtime = json.loads(Path("runs/ui_executable_ic_flux_runtime.json").read_text())
+          if "setup" not in runtime or "managed_python" not in runtime:
+              raise SystemExit(f"runtime status missing setup fields: {runtime}")
+          model_status = json.loads(Path("runs/ui_executable_ic_flux_status.json").read_text())
+          if "models_ready" not in model_status or "runtime" not in model_status:
+              raise SystemExit(f"model status missing runtime fields: {model_status}")
           Path("runs/ui_executable_smoke_job_path.txt").write_text(job_url.split("=", 1)[1] + "\n")
           PY
 

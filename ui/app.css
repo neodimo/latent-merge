@@ -306,6 +306,31 @@ li {
   justify-content: flex-end;
 }
 
+.runtime-log {
+  display: grid;
+  gap: 8px;
+}
+
+.runtime-log summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.runtime-log pre {
+  max-height: 180px;
+  margin: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border: 1px solid #262923;
+  border-radius: 6px;
+  background: #111211;
+  color: var(--muted);
+  padding: 9px;
+  font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
 .model-setup progress {
   width: 100%;
   height: 10px;
