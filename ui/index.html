@@ -201,6 +201,26 @@
                 </span>
               </section>
 
+              <section class="model-setup" aria-label="IC Flux Python setup">
+                <div class="model-setup-head">
+                  <div>
+                    <strong>IC Flux Python</strong>
+                    <span id="icFluxRuntimeStatus">Checking runtime</span>
+                  </div>
+                  <div class="model-actions">
+                    <button id="icFluxRuntimeLocateButton" type="button">Locate Runtime</button>
+                    <button id="icFluxRuntimeSetupButton" type="button">Set Up IC Flux Python</button>
+                  </div>
+                </div>
+                <span id="icFluxRuntimeDetail" class="control-hint">
+                  IC Flux needs an isolated CUDA Python runtime. The app can create or repair one locally.
+                </span>
+                <details class="runtime-log">
+                  <summary>Setup Log</summary>
+                  <pre id="icFluxRuntimeLog">No setup run yet.</pre>
+                </details>
+              </section>
+
               <label class="control-row">
                 <span class="control-top">
                   <span>Seed</span>

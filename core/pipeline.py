@@ -23,6 +23,8 @@ IC_FLUX_REQUIRED_MODULES = {
     "diffusers": "diffusers",
     "transformers": "transformers",
     "accelerate": "accelerate",
+    "huggingface_hub": "huggingface_hub",
+    "safetensors": "safetensors",
 }
 
 
@@ -266,6 +268,9 @@ def _python_venv_candidates(root: Path) -> list[Path]:
 
 def _ic_flux_python_candidates() -> list[str]:
     candidates: list[str] = []
+    managed_python = os.environ.get("LATENT_MERGE_IC_FLUX_PYTHON", "").strip()
+    if managed_python:
+        candidates.append(managed_python)
     env_python = os.environ.get("LATENT_MERGE_PYTHON", "").strip()
     if env_python:
         candidates.append(env_python)
@@ -307,7 +312,7 @@ def resolve_ic_flux_python() -> str:
 def ic_flux_runtime_status(python_exe: str | None = None) -> dict[str, Any]:
     python_exe = python_exe or resolve_ic_flux_python()
     install_hint = (
-        f"{python_exe} -m pip install numpy Pillow diffusers transformers accelerate\n"
+        f"{python_exe} -m pip install numpy Pillow diffusers transformers accelerate huggingface_hub safetensors\n"
         f"{python_exe} -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121"
     )
     probe = """
@@ -321,9 +326,29 @@ required = {
     "diffusers": "diffusers",
     "transformers": "transformers",
     "accelerate": "accelerate",
+    "huggingface_hub": "huggingface_hub",
+    "safetensors": "safetensors",
 }
 missing = [package for module, package in required.items() if importlib.util.find_spec(module) is None]
-print(json.dumps({"executable": sys.executable, "missing": missing}))
+payload = {"executable": sys.executable, "missing": missing, "versions": {}, "cuda_available": False, "gpu": None}
+if not missing:
+    import importlib.metadata
+    for package in required.values():
+        try:
+            payload["versions"][package] = importlib.metadata.version(package)
+        except importlib.metadata.PackageNotFoundError:
+            payload["versions"][package] = "unknown"
+    import torch
+    payload["torch_version"] = getattr(torch, "__version__", "unknown")
+    payload["cuda_available"] = bool(torch.cuda.is_available())
+    if payload["cuda_available"]:
+        props = torch.cuda.get_device_properties(0)
+        payload["gpu"] = {
+            "name": torch.cuda.get_device_name(0),
+            "memory_mb": round(props.total_memory / (1024 * 1024)),
+            "device_count": torch.cuda.device_count(),
+        }
+print(json.dumps(payload))
 raise SystemExit(1 if missing else 0)
 """
     try:
@@ -340,6 +365,9 @@ raise SystemExit(1 if missing else 0)
             "ready": False,
             "python": python_exe,
             "missing": list(IC_FLUX_REQUIRED_MODULES.values()),
+            "versions": {},
+            "cuda_available": False,
+            "gpu": None,
             "message": f"IC Flux Python was not found: {python_exe}",
             "install_hint": install_hint,
         }
@@ -348,6 +376,9 @@ raise SystemExit(1 if missing else 0)
             "ready": False,
             "python": python_exe,
             "missing": [],
+            "versions": {},
+            "cuda_available": False,
+            "gpu": None,
             "message": f"IC Flux Python probe timed out: {python_exe}",
             "install_hint": install_hint,
         }
@@ -360,10 +391,24 @@ raise SystemExit(1 if missing else 0)
     missing = [str(item) for item in details.get("missing", [])]
     resolved_python = str(details.get("executable") or python_exe)
     if result.returncode == 0 and not missing:
+        if not bool(details.get("cuda_available")):
+            return {
+                "ready": False,
+                "python": resolved_python,
+                "missing": [],
+                "versions": details.get("versions", {}),
+                "cuda_available": False,
+                "gpu": details.get("gpu"),
+                "message": "IC Flux Python has the required packages, but CUDA is not available to torch.",
+                "install_hint": install_hint,
+            }
         return {
             "ready": True,
             "python": resolved_python,
             "missing": [],
+            "versions": details.get("versions", {}),
+            "cuda_available": True,
+            "gpu": details.get("gpu"),
             "message": "IC Flux Python runtime is ready.",
             "install_hint": "",
         }
@@ -376,6 +421,9 @@ raise SystemExit(1 if missing else 0)
         "ready": False,
         "python": resolved_python,
         "missing": missing,
+        "versions": details.get("versions", {}),
+        "cuda_available": bool(details.get("cuda_available")),
+        "gpu": details.get("gpu"),
         "message": message,
         "install_hint": install_hint,
     }
