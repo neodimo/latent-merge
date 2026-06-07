@@ -7,6 +7,8 @@ on:
       - main
       - master
       - bert/phase1-scaffold
+    tags:
+      - "v*"
     paths:
       - ".github/workflows/build-ui-executables.yml"
       - "configs/**"
@@ -20,6 +22,10 @@ on:
       - "core/**"
       - "requirements.txt"
       - "ui/**"
+
+concurrency:
+  group: build-ui-executables-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -79,8 +85,10 @@ jobs:
           fi
 
       - name: Upload executable
+        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: dist/${{ matrix.executable }}
           if-no-files-found: error
+          retention-days: 3
