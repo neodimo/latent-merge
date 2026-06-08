@@ -32,11 +32,15 @@ Reasoning:
 
 ## Acceptance Checklist
 
-- 10 varied cases tested and recorded in the scoring sheet.
-- At least 1 short proxy sequence tested for flicker. **Proxy fixture/tooling added; first local run recorded below.**
-- Runtime, memory, and variance baselines committed. **Runtime/VRAM fields now write into `job.json`; first local RTX 3080 Ti numbers recorded below.**
-- Explicit known-fail list committed.
-- Packaged UI behavior treated as the user-facing contract for this gate.
+Committed scoring sheet: [`PHASE2_SCORING.md`](PHASE2_SCORING.md). Known-fail list: [`PHASE2_KNOWN_FAILS.md`](PHASE2_KNOWN_FAILS.md).
+
+- ⚠️ 10 varied cases tested and recorded in the scoring sheet. **Met on technique breadth (12 GPU + CPU rounds + IC Flux across 2 fixtures), recorded in `PHASE2_SCORING.md`. NOT met on input-case variety (2 stills + 1 proxy sequence); blocked on DiMo's representative cases per `NEXT_STEPS.md` — see known-fail #4.**
+- ✅ At least 1 short proxy sequence tested for flicker. **`fixtures/synthetic_sequence_001` + `scripts/evaluate_sequence_flicker.py`; metrics in `PHASE2_SCORING.md`.**
+- ✅ Runtime, memory, and variance baselines committed. **`core/pipeline.py` writes the `runtime` block into `job.json`; RTX 3080 Ti baselines recorded in `PHASE2_SCORING.md`.**
+- ✅ Explicit known-fail list committed. **`PHASE2_KNOWN_FAILS.md`.**
+- ✅ Packaged UI behavior treated as the user-facing contract for this gate. **Locked surface above; shipped as v0.1.0-phase1-pctnet-v21 Linux/Windows binaries.**
+
+Gate status: **surface lock + evaluation evidence wrapped; one acceptance item (input-case variety) carried forward as a project-level intake dependency, not a code gap.**
 
 ## Scoring Shape
 
