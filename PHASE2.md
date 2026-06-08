@@ -32,7 +32,9 @@ Reasoning:
 
 ## Acceptance Checklist
 
-Committed scoring sheet: [`PHASE2_SCORING.md`](PHASE2_SCORING.md). Known-fail list: [`PHASE2_KNOWN_FAILS.md`](PHASE2_KNOWN_FAILS.md).
+**Formal gate definition: [`PHASE2_GATE.md`](PHASE2_GATE.md)** (two-layer: automated hard-rejection + blind A/B visual scoring, with explicit pass criteria). Committed scoring sheet: [`PHASE2_SCORING.md`](PHASE2_SCORING.md). Known-fail list: [`PHASE2_KNOWN_FAILS.md`](PHASE2_KNOWN_FAILS.md).
+
+Note: the technique sweep in `PHASE2_SCORING.md` uses cheap proxy metrics that *rank* techniques but do **not** validate integration quality. The real gate is `PHASE2_GATE.md`.
 
 - ⚠️ 10 varied cases tested and recorded in the scoring sheet. **Met on technique breadth (12 GPU + CPU rounds + IC Flux across 2 fixtures), recorded in `PHASE2_SCORING.md`. NOT met on input-case variety (2 stills + 1 proxy sequence); blocked on DiMo's representative cases per `NEXT_STEPS.md` — see known-fail #4.**
 - ✅ At least 1 short proxy sequence tested for flicker. **`fixtures/synthetic_sequence_001` + `scripts/evaluate_sequence_flicker.py`; metrics in `PHASE2_SCORING.md`.**
@@ -40,7 +42,7 @@ Committed scoring sheet: [`PHASE2_SCORING.md`](PHASE2_SCORING.md). Known-fail li
 - ✅ Explicit known-fail list committed. **`PHASE2_KNOWN_FAILS.md`.**
 - ✅ Packaged UI behavior treated as the user-facing contract for this gate. **Locked surface above; shipped as v0.1.0-phase1-pctnet-v21 Linux/Windows binaries.**
 
-Gate status: **surface lock + evaluation evidence wrapped; one acceptance item (input-case variety) carried forward as a project-level intake dependency, not a code gap.**
+Gate status: **defined + Layer 1 ready, not yet passed.** Surface lock and evaluation evidence are wrapped; the gate is now formally defined in `PHASE2_GATE.md` with automated hard-rejection checks implemented (`scripts/phase2_rejection_checks.py`) and per-backend contact sheets (`scripts/phase2_contact_sheet.py`). Remaining to *pass*: a locked 10–20 case eval set (DiMo intake) and a completed blind A/B scoring session meeting the criteria. Operational readiness is done; quality is gated, not yet certified.
 
 ## Scoring Shape
 

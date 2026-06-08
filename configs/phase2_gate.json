@@ -1,0 +1,25 @@
+{
+  "_comment": "Phase 2 evaluation gate thresholds. Layer 1 = automated hard-rejection checks (this file). Layer 2 = blind A/B visual scoring (Bert's rubric/harness). See PHASE2_GATE.md.",
+  "plate_untouched": {
+    "alpha_zero_eps": 0.004,
+    "max_abs_delta": 0.012,
+    "_note": "Outside the matte (alpha<=eps) the final comp must equal the original plate. max_abs_delta is in 0..1 (0.012 ~= 3/255 rounding tolerance)."
+  },
+  "edge_seam": {
+    "alpha_low": 0.05,
+    "alpha_high": 0.95,
+    "dilate_px": 2,
+    "max_grad_ratio": 1.25,
+    "_note": "In a band straddling the matte edge, mean edge-gradient energy of final_comp must not exceed raw A-over-B by more than this ratio. Heuristic halo/seam guard."
+  },
+  "runtime": {
+    "max_duration_s": 30.0,
+    "max_process_rss_mb": 6000.0,
+    "max_reserved_vram_mb": 11000.0,
+    "_note": "Per-case runtime ceilings. VRAM check applies only when CUDA was used."
+  },
+  "flicker": {
+    "max_final_comp_temporal_rmse": 0.05,
+    "_note": "Sequence cases only. Consumes sequence_metrics.json from evaluate_sequence_flicker.py."
+  }
+}
