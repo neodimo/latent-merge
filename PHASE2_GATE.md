@@ -53,7 +53,8 @@ knowing which is which, and scores a 1–5 rubric per category:
 Rules: comments required for any score of 1–2; record whether the adjusted
 result is **better, equal, or worse** than raw A-over-B. Rubric + scoring
 harness are Bert-owned; the still inputs come from
-`scripts/phase2_contact_sheet.py`, temporal cases from a short clip.
+`scripts/phase2_contact_sheet.py`, temporal cases from a Discord-viewable MP4
+rendered by `scripts/phase2_sequence_video.py`.
 
 ## Gate pass criteria
 
@@ -73,12 +74,14 @@ trust safety are.
 - 10–20 representative CG-over-plate cases, frozen (fixtures + matte), provided by DiMo.
 - At least one short proxy sequence for flicker.
 - Standardized contact sheets generated per backend for the blind session.
+- Standardized sequence review videos generated for temporal/flicker review.
 
 ## Current status (2026-06-07)
 
 - ✅ Layer 1 implemented and tested (checks have teeth: a tampered plate trips the trust violation).
 - ✅ Contact-sheet tooling implemented; renders inputs + result + delta per case.
 - ✅ Proxy sequence + flicker metric exist (`scripts/evaluate_sequence_flicker.py`).
+- ✅ Sequence review video tooling implemented; renders MP4s viewable in Discord.
 - ⬜ Layer 2 rubric + blind-scoring harness — Bert lane, in progress.
 - ⬜ Locked 10–20 case eval set — **blocked on DiMo intake** (see `NEXT_STEPS.md`).
 

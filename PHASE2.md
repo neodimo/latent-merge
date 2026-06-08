@@ -67,6 +67,7 @@ Added artifacts:
 - `fixtures/synthetic_sequence_001/` - deterministic 6-frame SDR proxy sequence.
 - `scripts/create_sequence_fixture.py` - regenerates that fixture.
 - `scripts/evaluate_sequence_flicker.py` - runs a sequence through the normal Phase 1 pipeline and writes `sequence_metrics.json`.
+- `scripts/phase2_sequence_video.py` - renders a Discord-viewable MP4 for temporal/flicker review from `sequence_metrics.json`.
 - `core/pipeline.py` now records per-run `runtime` telemetry in `job.json`, including duration, process RSS, CUDA visibility, GPU name, total VRAM, and torch peak allocated/reserved memory.
 - `scripts/overnight_sweep.py` now records process memory and `nvidia-smi` snapshots per backend.
 
@@ -104,6 +105,7 @@ Rerun commands:
 ```bash
 PYTHONPATH=".deps:." python3 scripts/create_sequence_fixture.py --out-dir fixtures/synthetic_sequence_001 --frames 6 --width 384 --height 216
 CUDA_VISIBLE_DEVICES=0 PYTHONPATH=".deps:." python3 scripts/evaluate_sequence_flicker.py --sequence-dir fixtures/synthetic_sequence_001 --output-dir runs/phase2_sequence_synthetic_001_pctnet_cuda0 --config configs/phase1_pctnet.json
+PYTHONPATH=".deps:." python3 scripts/phase2_sequence_video.py --sequence-metrics runs/phase2_sequence_synthetic_001_pctnet_cuda0/sequence_metrics.json --out runs/phase2_sequence_synthetic_001_pctnet_cuda0/sequence_review.mp4 --title "Phase 2 sequence review"
 CUDA_VISIBLE_DEVICES=0 PYTHONPATH=".deps:." python3 cli/run_phase1.py --config configs/phase1_pctnet.json --plate fixtures/golden_synthetic_001/plate_rgb.png --cg fixtures/golden_synthetic_001/cg_rgba.png --alpha fixtures/golden_synthetic_001/alpha.png --output-dir runs/phase2_cuda0_pctnet_sweep/golden_synthetic_001
 CUDA_VISIBLE_DEVICES=0 PYTHONPATH=".deps:." python3 cli/run_phase1.py --config configs/phase1_pctnet.json --plate fixtures/compositingpro_sh009_minimal/plate_rgb.png --cg fixtures/compositingpro_sh009_minimal/cg_rgba.png --alpha fixtures/compositingpro_sh009_minimal/alpha.png --output-dir runs/phase2_cuda0_pctnet_sweep/compositingpro_sh009_minimal
 ```
