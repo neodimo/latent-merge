@@ -567,6 +567,13 @@ def _setup_runtime_worker(force: bool = False) -> None:
             _set_runtime_setup_state(phase="Replacing runtime without SSL")
             _append_runtime_log(f"Existing managed Python cannot import ssl; replacing {venv}")
             shutil.rmtree(venv)
+        elif python_exe.is_file():
+            validation = ic_flux_runtime_status(str(python_exe))
+            if not validation["ready"]:
+                _set_runtime_setup_state(phase="Replacing incompatible runtime")
+                _append_runtime_log(f"Existing managed runtime failed validation; replacing {venv}")
+                _append_runtime_log(str(validation["message"]))
+                shutil.rmtree(venv)
         if not python_exe.is_file():
             base_python = _resolve_bootstrap_python()
             venv.parent.mkdir(parents=True, exist_ok=True)
@@ -581,7 +588,6 @@ def _setup_runtime_worker(force: bool = False) -> None:
             "Installing CUDA torch",
         )
         _run_runtime_command([py, "-m", "pip", "install", *IC_FLUX_RUNTIME_DEPS], "Installing IC Flux packages")
-        _run_runtime_command([py, "-m", "pip", "install", "xformers"], "Installing optional xformers", optional=True)
 
         _set_runtime_setup_state(phase="Validating IC Flux Python", current_command=py)
         validation = ic_flux_runtime_status(py)
