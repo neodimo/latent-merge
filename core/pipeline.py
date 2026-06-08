@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -19,6 +20,18 @@ try:
     import resource
 except ImportError:  # pragma: no cover - Windows packaged UI path.
     resource = None
+
+
+IC_FLUX_REQUIRED_MODULES = {
+    "numpy": "numpy",
+    "PIL": "Pillow",
+    "torch": "torch",
+    "diffusers": "diffusers",
+    "transformers": "transformers",
+    "accelerate": "accelerate",
+    "huggingface_hub": "huggingface_hub",
+    "safetensors": "safetensors",
+}
 
 
 @dataclass(frozen=True)
@@ -309,6 +322,185 @@ def _runtime_telemetry(start_time: float, start_rss_kb: int | None) -> dict[str,
     }
 
 
+def _python_venv_candidates(root: Path) -> list[Path]:
+    if os.name == "nt":
+        return [root / ".ic-flux-venv" / "Scripts" / "python.exe", root / ".venv" / "Scripts" / "python.exe"]
+    return [root / ".ic-flux-venv" / "bin" / "python", root / ".venv" / "bin" / "python"]
+
+
+def _ic_flux_python_candidates() -> list[str]:
+    candidates: list[str] = []
+    managed_python = os.environ.get("LATENT_MERGE_IC_FLUX_PYTHON", "").strip()
+    if managed_python:
+        candidates.append(managed_python)
+    env_python = os.environ.get("LATENT_MERGE_PYTHON", "").strip()
+    if env_python:
+        candidates.append(env_python)
+
+    roots = [Path.cwd()]
+    if not getattr(sys, "frozen", False):
+        roots.append(Path(__file__).resolve().parents[1])
+    for root in roots:
+        candidates.extend(str(path) for path in _python_venv_candidates(root))
+
+    if not getattr(sys, "frozen", False):
+        candidates.append(sys.executable)
+    candidates.extend(item for item in (shutil.which("python3"), shutil.which("python")) if item)
+
+    unique: list[str] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(Path(candidate).expanduser()) if os.sep in candidate or candidate.startswith("~") else candidate
+        if key not in seen:
+            unique.append(candidate)
+            seen.add(key)
+    return unique
+
+
+def resolve_ic_flux_python() -> str:
+    candidates = _ic_flux_python_candidates()
+    if not candidates:
+        return "python3"
+    for candidate in candidates:
+        path = Path(candidate).expanduser()
+        if path.is_file():
+            return str(path)
+        resolved = shutil.which(candidate)
+        if resolved:
+            return resolved
+    return candidates[0]
+
+
+def ic_flux_runtime_status(python_exe: str | None = None) -> dict[str, Any]:
+    python_exe = python_exe or resolve_ic_flux_python()
+    install_hint = (
+        f"{python_exe} -m pip install numpy Pillow diffusers transformers accelerate huggingface_hub safetensors\n"
+        f"{python_exe} -m pip install --force-reinstall torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu121"
+    )
+    probe = """
+import importlib.util
+import json
+import sys
+required = {
+    "numpy": "numpy",
+    "PIL": "Pillow",
+    "torch": "torch",
+    "diffusers": "diffusers",
+    "transformers": "transformers",
+    "accelerate": "accelerate",
+    "huggingface_hub": "huggingface_hub",
+    "safetensors": "safetensors",
+}
+missing = [package for module, package in required.items() if importlib.util.find_spec(module) is None]
+payload = {"executable": sys.executable, "missing": missing, "versions": {}, "cuda_available": False, "gpu": None}
+if not missing:
+    import importlib.metadata
+    for package in required.values():
+        try:
+            payload["versions"][package] = importlib.metadata.version(package)
+        except importlib.metadata.PackageNotFoundError:
+            payload["versions"][package] = "unknown"
+    import torch
+    import torchvision
+    if not hasattr(torch.ops, "torchvision") or not hasattr(torch.ops.torchvision, "nms"):
+        payload["torchvision_error"] = "torchvision::nms operator is missing"
+        print(json.dumps(payload))
+        raise SystemExit(2)
+    payload["torch_version"] = getattr(torch, "__version__", "unknown")
+    payload["torchvision_version"] = getattr(torchvision, "__version__", "unknown")
+    payload["cuda_available"] = bool(torch.cuda.is_available())
+    if payload["cuda_available"]:
+        props = torch.cuda.get_device_properties(0)
+        payload["gpu"] = {
+            "name": torch.cuda.get_device_name(0),
+            "memory_mb": round(props.total_memory / (1024 * 1024)),
+            "device_count": torch.cuda.device_count(),
+        }
+print(json.dumps(payload))
+raise SystemExit(1 if missing else 0)
+"""
+    try:
+        result = subprocess.run(
+            [python_exe, "-c", probe],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            env=_external_runner_env(),
+        )
+    except FileNotFoundError:
+        return {
+            "ready": False,
+            "python": python_exe,
+            "missing": list(IC_FLUX_REQUIRED_MODULES.values()),
+            "versions": {},
+            "cuda_available": False,
+            "gpu": None,
+            "message": f"IC Flux Python was not found: {python_exe}",
+            "install_hint": install_hint,
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "ready": False,
+            "python": python_exe,
+            "missing": [],
+            "versions": {},
+            "cuda_available": False,
+            "gpu": None,
+            "message": f"IC Flux Python probe timed out: {python_exe}",
+            "install_hint": install_hint,
+        }
+
+    details: dict[str, Any] = {}
+    try:
+        details = json.loads(result.stdout.strip().splitlines()[-1])
+    except Exception:
+        pass
+    missing = [str(item) for item in details.get("missing", [])]
+    resolved_python = str(details.get("executable") or python_exe)
+    if result.returncode == 0 and not missing:
+        if not bool(details.get("cuda_available")):
+            return {
+                "ready": False,
+                "python": resolved_python,
+                "missing": [],
+                "versions": details.get("versions", {}),
+                "cuda_available": False,
+                "gpu": details.get("gpu"),
+                "message": "IC Flux Python has the required packages, but CUDA is not available to torch.",
+                "install_hint": install_hint,
+            }
+        return {
+            "ready": True,
+            "python": resolved_python,
+            "missing": [],
+            "versions": details.get("versions", {}),
+            "cuda_available": True,
+            "gpu": details.get("gpu"),
+            "message": "IC Flux Python runtime is ready.",
+            "install_hint": "",
+        }
+    torchvision_error = str(details.get("torchvision_error", "")).strip()
+    message = (
+        f"IC Flux Python has an incompatible torch/torchvision install: {torchvision_error}"
+        if torchvision_error
+        else
+        f"IC Flux Python runtime is missing packages: {', '.join(missing)}"
+        if missing
+        else (result.stderr or result.stdout or f"IC Flux Python probe failed with exit code {result.returncode}").strip()
+    )
+    return {
+        "ready": False,
+        "python": resolved_python,
+        "missing": missing,
+        "versions": details.get("versions", {}),
+        "cuda_available": bool(details.get("cuda_available")),
+        "gpu": details.get("gpu"),
+        "message": message,
+        "install_hint": install_hint,
+    }
+
+
 def _run_ic_flux_v2(inputs: PipelineInputs, output_dir: Path, config: PipelineConfig) -> tuple[np.ndarray, dict[str, Any]]:
     if os.environ.get("LATENT_MERGE_ENABLE_IC_FLUX") != "1":
         raise RuntimeError(
@@ -326,9 +518,14 @@ def _run_ic_flux_v2(inputs: PipelineInputs, output_dir: Path, config: PipelineCo
             "IC Flux runner not found. Expected scripts/ic_flux_runner.py beside the app or bundled release."
         )
 
-    python_exe = os.environ.get("LATENT_MERGE_PYTHON")
-    if not python_exe:
-        python_exe = "python3" if getattr(sys, "frozen", False) else sys.executable
+    python_exe = resolve_ic_flux_python()
+    runtime = ic_flux_runtime_status(python_exe)
+    if not runtime["ready"]:
+        raise RuntimeError(
+            "IC Flux Python runtime is not ready. "
+            f"{runtime['message']}\n\nSet LATENT_MERGE_PYTHON to a Python environment with the IC Flux dependencies, or run:\n"
+            f"{runtime['install_hint']}"
+        )
     weights_dir = Path(os.environ.get("LATENT_MERGE_IC_FLUX_WEIGHTS", "weights/ic-light-v2"))
     flux_weights_dir = Path(os.environ.get("LATENT_MERGE_FLUX_WEIGHTS", "weights/flux1-dev"))
     ic_dir = output_dir / "ic_flux_v2_external"
@@ -389,6 +586,7 @@ def _run_ic_flux_v2(inputs: PipelineInputs, output_dir: Path, config: PipelineCo
         "cond_strength": config.ic_flux_cond_strength,
         "resolution": config.ic_flux_resolution,
         "fp16": config.ic_flux_fp16,
+        "python": python_exe,
         "weights_dir": str(weights_dir),
         "flux_weights_dir": str(flux_weights_dir),
         "runner_stdout_tail": result.stdout[-2000:],

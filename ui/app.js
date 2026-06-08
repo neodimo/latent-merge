@@ -28,6 +28,11 @@ const icFluxLocateButton = document.getElementById("icFluxLocateButton");
 const icFluxDownloadButton = document.getElementById("icFluxDownloadButton");
 const icFluxDownloadProgress = document.getElementById("icFluxDownloadProgress");
 const icFluxDownloadDetail = document.getElementById("icFluxDownloadDetail");
+const icFluxRuntimeStatus = document.getElementById("icFluxRuntimeStatus");
+const icFluxRuntimeLocateButton = document.getElementById("icFluxRuntimeLocateButton");
+const icFluxRuntimeSetupButton = document.getElementById("icFluxRuntimeSetupButton");
+const icFluxRuntimeDetail = document.getElementById("icFluxRuntimeDetail");
+const icFluxRuntimeLog = document.getElementById("icFluxRuntimeLog");
 const controls = {
   strength: document.getElementById("strengthInput"),
   deltaGain: document.getElementById("deltaGainInput"),
@@ -72,7 +77,9 @@ let currentImages = [];
 let latestUpdate = null;
 let updateInstalled = false;
 let icFluxReady = false;
+let icFluxRuntimeReady = false;
 let icFluxPolling = null;
+let icFluxRuntimePolling = null;
 
 function setStatus(text) {
   statusEl.textContent = text;
@@ -101,12 +108,61 @@ function summarizeMissingModels(payload) {
     .join(", ");
 }
 
+function renderIcFluxRuntimeStatus(runtime) {
+  const setup = runtime.setup || {};
+  icFluxRuntimeReady = Boolean(runtime.ready);
+  const running = Boolean(setup.running);
+  icFluxRuntimeLocateButton.disabled = running;
+  icFluxRuntimeSetupButton.disabled = running;
+  if (running) {
+    icFluxRuntimeStatus.textContent = setup.phase || "Setting up";
+    icFluxRuntimeSetupButton.textContent = "Setting Up";
+  } else if (icFluxRuntimeReady) {
+    icFluxRuntimeStatus.textContent = "Ready";
+    icFluxRuntimeSetupButton.textContent = "Repair Runtime";
+  } else if (setup.status === "error") {
+    icFluxRuntimeStatus.textContent = "Setup failed";
+    icFluxRuntimeSetupButton.textContent = "Retry Setup";
+  } else {
+    icFluxRuntimeStatus.textContent = "Setup needed";
+    icFluxRuntimeSetupButton.textContent = "Set Up IC Flux Python";
+  }
+
+  const gpu = runtime.gpu || {};
+  const detail = [
+    runtime.message,
+    runtime.python ? `Python: ${runtime.python}` : null,
+    runtime.cuda_available ? `CUDA: ${gpu.name || "available"}` : null,
+    runtime.install_dir ? `Managed: ${runtime.install_dir}` : null,
+  ].filter(Boolean).join(" | ");
+  icFluxRuntimeDetail.textContent = detail || "IC Flux needs an isolated CUDA Python runtime.";
+  const log = setup.log_tail || [];
+  icFluxRuntimeLog.textContent = log.length ? log.join("\n") : "No setup run yet.";
+
+  if (running && !icFluxRuntimePolling) {
+    icFluxRuntimePolling = window.setInterval(() => {
+      loadIcFluxRuntimeStatus().catch((error) => {
+        window.clearInterval(icFluxRuntimePolling);
+        icFluxRuntimePolling = null;
+        icFluxRuntimeDetail.textContent = error.message;
+      });
+    }, 1000);
+  } else if (!running && icFluxRuntimePolling) {
+    window.clearInterval(icFluxRuntimePolling);
+    icFluxRuntimePolling = null;
+  }
+}
+
 function renderIcFluxModelStatus(payload) {
+  const modelsReady = Boolean(payload.models_ready ?? payload.ready);
+  const runtime = payload.runtime || {};
+  const runtimeReady = Boolean(runtime.ready);
   icFluxReady = Boolean(payload.ready);
   const icFluxSelected = backendSelect.value === "ic_flux_v2";
+  renderIcFluxRuntimeStatus(runtime);
   const percent = Number(payload.percent || 0);
-  icFluxDownloadProgress.value = icFluxReady ? 100 : percent;
-  icFluxInlineDownloadButton.classList.toggle("hidden", !icFluxSelected || icFluxReady);
+  icFluxDownloadProgress.value = modelsReady ? 100 : percent;
+  icFluxInlineDownloadButton.classList.toggle("hidden", !icFluxSelected || modelsReady);
 
   if (payload.running) {
     icFluxLocateButton.disabled = true;
@@ -119,6 +175,18 @@ function renderIcFluxModelStatus(payload) {
       ? `${formatBytes(payload.downloaded_bytes)} / ${formatBytes(payload.total_bytes)}`
       : formatBytes(payload.downloaded_bytes);
     icFluxDownloadDetail.textContent = [payload.phase, payload.current_file, byteText].filter(Boolean).join(" | ");
+  } else if (modelsReady && !runtimeReady) {
+    icFluxLocateButton.disabled = true;
+    icFluxDownloadButton.disabled = true;
+    icFluxInlineDownloadButton.disabled = true;
+    icFluxDownloadButton.textContent = "Models Ready";
+    icFluxInlineDownloadButton.textContent = "Models Ready";
+    icFluxModelStatus.textContent = "Python setup needed";
+    icFluxDownloadDetail.textContent = [
+      runtime.message || "IC Flux needs an external Python environment with CUDA dependencies.",
+      runtime.python ? `Python: ${runtime.python}` : null,
+      runtime.install_hint ? `Setup: ${runtime.install_hint}` : null,
+    ].filter(Boolean).join(" | ");
   } else if (icFluxReady) {
     icFluxLocateButton.disabled = true;
     icFluxDownloadButton.disabled = true;
@@ -148,8 +216,23 @@ function renderIcFluxModelStatus(payload) {
 
   if (icFluxSelected) {
     runButton.disabled = !icFluxReady;
-    setStatus(icFluxReady ? "IC Flux ready" : payload.running ? "Downloading IC Flux models" : "Download IC Flux models first");
+    const nextStatus = icFluxReady
+      ? "IC Flux ready"
+      : payload.running
+        ? "Downloading IC Flux models"
+        : modelsReady
+          ? "Set up IC Flux Python"
+          : "Download IC Flux models first";
+    setStatus(nextStatus);
   }
+}
+
+async function loadIcFluxRuntimeStatus() {
+  const response = await fetch("/api/models/ic-flux/runtime/status");
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || "runtime status check failed");
+  renderIcFluxRuntimeStatus(payload);
+  await loadIcFluxModelStatus();
 }
 
 async function loadIcFluxModelStatus() {
@@ -377,6 +460,55 @@ icFluxLocateButton.addEventListener("click", async () => {
   }
 });
 
+icFluxRuntimeLocateButton.addEventListener("click", async () => {
+  const path = window.prompt(
+    "Enter an IC Flux Python executable, virtualenv folder, or managed runtime folder:",
+    "~/projects/latent-merge/runtimes/ic-flux"
+  );
+  if (!path) return;
+  icFluxRuntimeLocateButton.disabled = true;
+  icFluxRuntimeDetail.textContent = "Checking IC Flux Python runtime";
+  try {
+    const response = await fetch("/api/models/ic-flux/runtime/locate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "runtime locate failed");
+    renderIcFluxRuntimeStatus(payload);
+    await loadIcFluxModelStatus();
+  } catch (error) {
+    icFluxRuntimeLocateButton.disabled = false;
+    icFluxRuntimeDetail.textContent = error.message;
+  }
+});
+
+icFluxRuntimeSetupButton.addEventListener("click", async () => {
+  const force = icFluxRuntimeReady && window.confirm("Repair the managed IC Flux Python runtime?");
+  if (icFluxRuntimeReady && !force) return;
+  icFluxRuntimeLocateButton.disabled = true;
+  icFluxRuntimeSetupButton.disabled = true;
+  icFluxRuntimeSetupButton.textContent = "Starting";
+  icFluxRuntimeDetail.textContent = "Preparing IC Flux Python setup";
+  try {
+    const response = await fetch("/api/models/ic-flux/runtime/setup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ force }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "runtime setup failed");
+    renderIcFluxRuntimeStatus(payload);
+    await loadIcFluxRuntimeStatus();
+  } catch (error) {
+    icFluxRuntimeLocateButton.disabled = false;
+    icFluxRuntimeSetupButton.disabled = false;
+    icFluxRuntimeSetupButton.textContent = "Retry Setup";
+    icFluxRuntimeDetail.textContent = error.message;
+  }
+});
+
 async function startIcFluxModelDownload() {
   icFluxLocateButton.disabled = true;
   icFluxDownloadButton.disabled = true;
@@ -454,7 +586,7 @@ document.querySelectorAll("[data-view]").forEach((button) => {
 
 runButton.addEventListener("click", async () => {
   if (backendSelect.value === "ic_flux_v2" && !icFluxReady) {
-    setStatus("Download IC Flux models first");
+    setStatus(icFluxRuntimeReady ? "Download IC Flux models first" : "Set up IC Flux Python first");
     return;
   }
 

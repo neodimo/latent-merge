@@ -12,6 +12,7 @@ import shutil
 import ssl
 import subprocess
 import sys
+import tarfile
 import threading
 import time
 import uuid
@@ -41,7 +42,7 @@ else:
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from core.pipeline import PipelineInputs, load_config, run_pipeline
+from core.pipeline import PipelineInputs, ic_flux_runtime_status, load_config, run_pipeline
 
 
 RUN_ROOT = WORK_ROOT / "runs" / "ui_jobs"
@@ -55,6 +56,26 @@ SUPPORTED_A = {".png", ".exr"}
 SUPPORTED_B = {".png", ".jpg", ".jpeg", ".exr"}
 WEIGHTS_ROOT = WORK_ROOT / "weights"
 MODEL_PATH_OVERRIDES_FILE = WORK_ROOT / "model_paths.json"
+IC_FLUX_RUNTIME_VERSION = os.environ.get("LATENT_MERGE_IC_FLUX_RUNTIME_VERSION", "cuda121-v1")
+IC_FLUX_RUNTIME_ROOT = WORK_ROOT / "runtimes" / "ic-flux" / IC_FLUX_RUNTIME_VERSION
+IC_FLUX_RUNTIME_CONFIG_FILE = WORK_ROOT / "ic_flux_runtime.json"
+IC_FLUX_RUNTIME_DEPS = [
+    "numpy",
+    "Pillow",
+    "diffusers",
+    "transformers",
+    "accelerate",
+    "huggingface_hub",
+    "safetensors",
+    "opencv-python",
+]
+IC_FLUX_TORCH_PACKAGES = ["torch==2.5.1", "torchvision==0.20.1"]
+IC_FLUX_TORCH_INDEX_URL = os.environ.get("LATENT_MERGE_TORCH_INDEX_URL", "https://download.pytorch.org/whl/cu121")
+BOOTSTRAP_PYTHON_RELEASE = "20260602"
+BOOTSTRAP_PYTHON_ASSET = "cpython-3.12.13+20260602-x86_64-unknown-linux-gnu-install_only.tar.gz"
+BOOTSTRAP_PYTHON_URL = (
+    f"https://github.com/indygreg/python-build-standalone/releases/download/{BOOTSTRAP_PYTHON_RELEASE}/{BOOTSTRAP_PYTHON_ASSET}"
+)
 IMAGE_OUTPUTS = [
     ("raw_a_over_b", "Raw A-over-B"),
     ("final_comp", "Final Comp"),
@@ -113,6 +134,23 @@ class ModelDownloadState:
 MODEL_DOWNLOAD_LOCK = threading.Lock()
 MODEL_DOWNLOAD_STATE = ModelDownloadState()
 MODEL_DOWNLOAD_THREAD: threading.Thread | None = None
+
+
+@dataclass
+class RuntimeSetupState:
+    running: bool = False
+    status: str = "idle"
+    phase: str = ""
+    current_command: str = ""
+    error: str = ""
+    started_at: float | None = None
+    finished_at: float | None = None
+    log: list[str] = field(default_factory=list)
+
+
+RUNTIME_SETUP_LOCK = threading.Lock()
+RUNTIME_SETUP_STATE = RuntimeSetupState()
+RUNTIME_SETUP_THREAD: threading.Thread | None = None
 
 
 @dataclass(frozen=True)
@@ -308,6 +346,303 @@ def _save_model_path_overrides(overrides: dict[str, str]) -> None:
     MODEL_PATH_OVERRIDES_FILE.write_text(json.dumps(overrides, indent=2) + "\n", encoding="utf-8")
 
 
+def _runtime_python_for_venv(venv: Path) -> Path:
+    return venv / "Scripts" / "python.exe" if os.name == "nt" else venv / "bin" / "python"
+
+
+def _default_runtime_python() -> Path:
+    return _runtime_python_for_venv(IC_FLUX_RUNTIME_ROOT / "venv")
+
+
+def _runtime_config() -> dict[str, object]:
+    if not IC_FLUX_RUNTIME_CONFIG_FILE.is_file():
+        return {}
+    try:
+        payload = json.loads(IC_FLUX_RUNTIME_CONFIG_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _save_runtime_config(python_exe: Path, source: str, validation: dict[str, object]) -> None:
+    payload = {
+        "schema": "latent-merge.ic-flux-runtime.v1",
+        "runtime_version": IC_FLUX_RUNTIME_VERSION,
+        "python": str(python_exe),
+        "source": source,
+        "dependency_specs": {
+            "torch_index_url": IC_FLUX_TORCH_INDEX_URL,
+            "torch_packages": IC_FLUX_TORCH_PACKAGES,
+            "packages": IC_FLUX_RUNTIME_DEPS,
+        },
+        "platform": {
+            "system": platform.system(),
+            "machine": platform.machine(),
+            "python_launcher": sys.executable,
+        },
+        "last_validation": validation,
+        "updated_at": time.time(),
+    }
+    IC_FLUX_RUNTIME_CONFIG_FILE.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def _configured_runtime_python() -> str:
+    env_python = os.environ.get("LATENT_MERGE_IC_FLUX_PYTHON", "").strip() or os.environ.get("LATENT_MERGE_PYTHON", "").strip()
+    if env_python:
+        return env_python
+    payload = _runtime_config()
+    configured = str(payload.get("python", "")).strip()
+    if configured:
+        return configured
+    return str(_default_runtime_python())
+
+
+def _runtime_setup_payload() -> dict:
+    with RUNTIME_SETUP_LOCK:
+        setup = RUNTIME_SETUP_STATE.__dict__.copy()
+        setup["log_tail"] = setup.pop("log", [])[-80:]
+    python_exe = _configured_runtime_python()
+    status = ic_flux_runtime_status(python_exe)
+    config = _runtime_config()
+    status.update(
+        {
+            "runtime_version": IC_FLUX_RUNTIME_VERSION,
+            "configured_python": python_exe,
+            "managed_python": str(_default_runtime_python()),
+            "install_dir": str(IC_FLUX_RUNTIME_ROOT),
+            "config_file": str(IC_FLUX_RUNTIME_CONFIG_FILE),
+            "setup": setup,
+            "config": config,
+            "dependency_specs": {
+                "torch_index_url": IC_FLUX_TORCH_INDEX_URL,
+                "torch_packages": IC_FLUX_TORCH_PACKAGES,
+                "packages": IC_FLUX_RUNTIME_DEPS,
+            },
+        }
+    )
+    return status
+
+
+def _append_runtime_log(line: str) -> None:
+    with RUNTIME_SETUP_LOCK:
+        RUNTIME_SETUP_STATE.log.append(line)
+        RUNTIME_SETUP_STATE.log = RUNTIME_SETUP_STATE.log[-200:]
+
+
+def _set_runtime_setup_state(**kwargs: object) -> None:
+    with RUNTIME_SETUP_LOCK:
+        for key, value in kwargs.items():
+            setattr(RUNTIME_SETUP_STATE, key, value)
+
+
+def _run_runtime_command(command: list[str], phase: str, optional: bool = False) -> None:
+    display = " ".join(command)
+    _set_runtime_setup_state(phase=phase, current_command=display)
+    _append_runtime_log(f"$ {display}")
+    result = subprocess.run(
+        command,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=60 * 45,
+        env=os.environ.copy(),
+    )
+    output = "\n".join(part for part in (result.stdout.strip(), result.stderr.strip()) if part)
+    if output:
+        for line in output.splitlines()[-80:]:
+            _append_runtime_log(line)
+    if result.returncode != 0:
+        message = f"{phase} failed with exit code {result.returncode}"
+        if optional:
+            _append_runtime_log(f"Optional step skipped: {message}")
+            return
+        raise RuntimeError(message)
+
+
+def _bootstrap_python_candidates() -> list[str]:
+    candidates: list[str] = []
+    env_python = os.environ.get("LATENT_MERGE_BOOTSTRAP_PYTHON", "").strip()
+    if env_python:
+        candidates.append(env_python)
+    if not getattr(sys, "frozen", False):
+        candidates.append(sys.executable)
+    candidates.extend(item for item in ("python3.12", "python3.11", "python3.10", "python3", "python") if shutil.which(item))
+    unique: list[str] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        resolved = shutil.which(candidate) or candidate
+        if resolved not in seen:
+            unique.append(resolved)
+            seen.add(resolved)
+    return unique
+
+
+def _resolve_bootstrap_python() -> str:
+    for candidate in _bootstrap_python_candidates():
+        try:
+            result = subprocess.run(
+                [
+                    candidate,
+                    "-c",
+                    (
+                        "import ssl, sys, venv; "
+                        "raise SystemExit(0 if (3, 10) <= sys.version_info[:2] <= (3, 13) else 1)"
+                    ),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            continue
+        if result.returncode == 0:
+            return candidate
+    return _install_bootstrap_python()
+
+
+def _install_bootstrap_python() -> str:
+    if platform.system().lower() != "linux" or platform.machine().lower() not in {"x86_64", "amd64"}:
+        raise RuntimeError(
+            "A usable Python 3.10-3.13 with SSL and venv support was not found. "
+            "Automatic Python bootstrap currently supports Linux x86_64."
+        )
+    bootstrap_root = IC_FLUX_RUNTIME_ROOT / "bootstrap-python"
+    python_exe = bootstrap_root / "python" / "bin" / "python3"
+    if _python_has_ssl(python_exe):
+        return str(python_exe)
+
+    archive = IC_FLUX_RUNTIME_ROOT / BOOTSTRAP_PYTHON_ASSET
+    IC_FLUX_RUNTIME_ROOT.mkdir(parents=True, exist_ok=True)
+    _set_runtime_setup_state(phase="Downloading portable Python", current_command=BOOTSTRAP_PYTHON_URL)
+    _append_runtime_log(f"Downloading portable Python: {BOOTSTRAP_PYTHON_URL}")
+    request = Request(BOOTSTRAP_PYTHON_URL, headers={"User-Agent": "latent-merge-ui"})
+    with urlopen(request, timeout=180, context=_ssl_context()) as response, archive.open("wb") as handle:
+        shutil.copyfileobj(response, handle)
+
+    _set_runtime_setup_state(phase="Installing portable Python", current_command=str(archive))
+    _append_runtime_log(f"Extracting portable Python to {bootstrap_root}")
+    shutil.rmtree(bootstrap_root, ignore_errors=True)
+    bootstrap_root.mkdir(parents=True, exist_ok=True)
+    with tarfile.open(archive, "r:gz") as bundle:
+        bundle.extractall(bootstrap_root, filter="data")
+    archive.unlink(missing_ok=True)
+    if not _python_has_ssl(python_exe):
+        raise RuntimeError("Downloaded portable Python could not import SSL.")
+    return str(python_exe)
+
+
+def _python_has_ssl(python_exe: Path) -> bool:
+    try:
+        result = subprocess.run(
+            [str(python_exe), "-c", "import ssl; print(ssl.OPENSSL_VERSION)"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0 and bool(result.stdout.strip())
+
+
+def _setup_runtime_worker(force: bool = False) -> None:
+    try:
+        _set_runtime_setup_state(
+            running=True,
+            status="running",
+            phase="Starting",
+            current_command="",
+            error="",
+            started_at=time.time(),
+            finished_at=None,
+            log=[],
+        )
+        venv = IC_FLUX_RUNTIME_ROOT / "venv"
+        python_exe = _runtime_python_for_venv(venv)
+        if force and venv.exists():
+            _set_runtime_setup_state(phase="Removing old runtime")
+            shutil.rmtree(venv)
+        if python_exe.is_file() and not _python_has_ssl(python_exe):
+            _set_runtime_setup_state(phase="Replacing runtime without SSL")
+            _append_runtime_log(f"Existing managed Python cannot import ssl; replacing {venv}")
+            shutil.rmtree(venv)
+        if not python_exe.is_file():
+            base_python = _resolve_bootstrap_python()
+            venv.parent.mkdir(parents=True, exist_ok=True)
+            _run_runtime_command([base_python, "-m", "venv", str(venv)], "Creating IC Flux Python environment")
+        if not _python_has_ssl(python_exe):
+            raise RuntimeError("Managed IC Flux Python was created without SSL support; install Python 3.12 with SSL and retry.")
+
+        py = str(python_exe)
+        _run_runtime_command([py, "-m", "pip", "install", "--upgrade", "pip", "wheel", "setuptools"], "Updating installer")
+        _run_runtime_command(
+            [py, "-m", "pip", "install", "--force-reinstall", *IC_FLUX_TORCH_PACKAGES, "--index-url", IC_FLUX_TORCH_INDEX_URL],
+            "Installing CUDA torch",
+        )
+        _run_runtime_command([py, "-m", "pip", "install", *IC_FLUX_RUNTIME_DEPS], "Installing IC Flux packages")
+        _run_runtime_command([py, "-m", "pip", "install", "xformers"], "Installing optional xformers", optional=True)
+
+        _set_runtime_setup_state(phase="Validating IC Flux Python", current_command=py)
+        validation = ic_flux_runtime_status(py)
+        if not validation["ready"]:
+            raise RuntimeError(validation["message"])
+        _save_runtime_config(python_exe, "managed", validation)
+        _set_runtime_setup_state(status="complete", phase="Ready", current_command="", error="")
+        _append_runtime_log("IC Flux Python runtime is ready.")
+    except Exception as error:
+        _set_runtime_setup_state(status="error", phase="Setup failed", current_command="", error=str(error))
+        _append_runtime_log(f"ERROR: {error}")
+    finally:
+        _set_runtime_setup_state(running=False, finished_at=time.time())
+
+
+def _start_runtime_setup(force: bool = False) -> dict:
+    global RUNTIME_SETUP_THREAD
+    should_start = False
+    with RUNTIME_SETUP_LOCK:
+        if not RUNTIME_SETUP_STATE.running:
+            RUNTIME_SETUP_STATE.running = True
+            RUNTIME_SETUP_STATE.status = "running"
+            RUNTIME_SETUP_STATE.phase = "Queued"
+            RUNTIME_SETUP_STATE.current_command = ""
+            RUNTIME_SETUP_STATE.error = ""
+            should_start = True
+    if should_start:
+        RUNTIME_SETUP_THREAD = threading.Thread(target=_setup_runtime_worker, kwargs={"force": force}, daemon=True)
+        RUNTIME_SETUP_THREAD.start()
+    return _runtime_setup_payload()
+
+
+def _locate_existing_runtime(raw_path: str) -> dict:
+    if not raw_path.strip():
+        raise ValueError("Enter a Python executable, virtualenv folder, or install folder.")
+    base = Path(raw_path.strip()).expanduser()
+    candidates = [base]
+    if base.is_dir():
+        candidates.extend(
+            [
+                _runtime_python_for_venv(base),
+                _runtime_python_for_venv(base / "venv"),
+                base / "bin" / "python",
+                base / "Scripts" / "python.exe",
+            ]
+        )
+    for candidate in candidates:
+        if candidate.is_file():
+            status = ic_flux_runtime_status(str(candidate))
+            if status["ready"]:
+                _save_runtime_config(candidate, "located", status)
+                payload = _runtime_setup_payload()
+                payload["located"] = True
+                return payload
+            payload = _runtime_setup_payload()
+            payload["located"] = False
+            payload["error"] = status["message"]
+            return payload
+    raise ValueError(f"Python runtime not found at {base}")
+
+
 def _candidate_package_dirs(package: ModelPackage) -> list[Path]:
     overrides = _model_path_overrides()
     candidates = []
@@ -440,9 +775,13 @@ def _model_download_state() -> dict:
     done = payload.get("downloaded_bytes", 0) or 0
     payload["percent"] = round((done / total) * 100, 1) if total else 0.0
     payload["packages"] = [_package_status(package) for package in MODEL_PACKAGES]
-    payload["ready"] = all(item["present"] for item in payload["packages"])
+    payload["models_ready"] = all(item["present"] for item in payload["packages"])
+    payload["runtime"] = _runtime_setup_payload()
+    payload["ready"] = bool(payload["models_ready"] and payload["runtime"]["ready"])
     payload["disk_warning"] = "IC Flux model setup can require 30 GB or more of free disk space."
-    payload["release_posture"] = "Internal/testing backend; model files are downloaded from external sources and are not bundled with Latent Merge."
+    payload["release_posture"] = (
+        "Internal/testing backend; model files and the CUDA Python runtime are external and are not bundled with Latent Merge."
+    )
     return payload
 
 
@@ -554,7 +893,7 @@ def _download_models_worker() -> None:
                 _download_hf_file(package, filename, int(item["size"] or 0))
 
         final_status = _model_download_state()
-        if final_status["ready"]:
+        if final_status["models_ready"]:
             _set_model_download_state(status="complete", phase="Ready", current_file="")
         else:
             missing = []
@@ -775,6 +1114,24 @@ def _build_contact_sheet(job_dir: Path, job: dict) -> Path:
 
 
 def _run_ui_job(form: ParsedForm) -> dict:
+    selected_gpu = _form_first(form, "gpu", "cpu")
+    backend = _form_first(form, "backend", "pctnet")
+    if backend not in {"pctnet", "pctnet_vit_proxy", "ic_flux_v2", "mean_match_stub"}:
+        raise ValueError("backend must be pctnet, pctnet_vit_proxy, ic_flux_v2, or mean_match_stub")
+
+    ic_flux_package_dirs: dict[str, str] | None = None
+    if backend == "ic_flux_v2":
+        model_state = _model_download_state()
+        if not model_state["models_ready"]:
+            raise ValueError("IC Flux models are missing. Use Download IC Flux Models before running this backend.")
+        if not model_state["runtime"]["ready"]:
+            runtime = model_state["runtime"]
+            raise ValueError(
+                "IC Flux Python runtime is not ready. "
+                f"{runtime['message']} Set LATENT_MERGE_PYTHON to a ready environment, or run: {runtime['install_hint']}"
+            )
+        ic_flux_package_dirs = {item["key"]: item["local_dir"] for item in model_state["packages"]}
+
     job_id = time.strftime("%Y%m%d-%H%M%S-") + uuid.uuid4().hex[:8]
     job_dir = RUN_ROOT / job_id
     input_dir = job_dir / "inputs"
@@ -792,10 +1149,6 @@ def _run_ui_job(form: ParsedForm) -> dict:
     _validate_runtime_inputs(cg.first_frame, plate.first_frame, alpha_path)
 
     output_dir = job_dir / "outputs"
-    selected_gpu = _form_first(form, "gpu", "cpu")
-    backend = _form_first(form, "backend", "pctnet")
-    if backend not in {"pctnet", "pctnet_vit_proxy", "ic_flux_v2", "mean_match_stub"}:
-        raise ValueError("backend must be pctnet, pctnet_vit_proxy, ic_flux_v2, or mean_match_stub")
     adjustment_strength = _form_float(form, "adjustment_strength", 1.0, 0.0, 2.5)
     delta_preview_gain = _form_float(form, "delta_preview_gain", 4.0, 1.0, 16.0)
     correction_softness_px = _form_float(form, "correction_softness_px", 0.0, 0.0, 24.0)
@@ -832,18 +1185,16 @@ def _run_ui_job(form: ParsedForm) -> dict:
     )
     previous_cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES")
     previous_ic_enabled = os.environ.get("LATENT_MERGE_ENABLE_IC_FLUX")
+    previous_ic_python = os.environ.get("LATENT_MERGE_IC_FLUX_PYTHON")
     previous_ic_weights = os.environ.get("LATENT_MERGE_IC_FLUX_WEIGHTS")
     previous_flux_weights = os.environ.get("LATENT_MERGE_FLUX_WEIGHTS")
     if selected_gpu != "cpu":
         os.environ["CUDA_VISIBLE_DEVICES"] = selected_gpu
     if backend == "ic_flux_v2":
-        model_state = _model_download_state()
-        if not model_state["ready"]:
-            raise ValueError("IC Flux models are missing. Use Download IC Flux Models before running this backend.")
-        package_dirs = {item["key"]: item["local_dir"] for item in model_state["packages"]}
         os.environ["LATENT_MERGE_ENABLE_IC_FLUX"] = "1"
-        os.environ["LATENT_MERGE_IC_FLUX_WEIGHTS"] = package_dirs["ic-light-v2"]
-        os.environ["LATENT_MERGE_FLUX_WEIGHTS"] = package_dirs["flux1-dev"]
+        os.environ["LATENT_MERGE_IC_FLUX_PYTHON"] = model_state["runtime"]["python"]
+        os.environ["LATENT_MERGE_IC_FLUX_WEIGHTS"] = ic_flux_package_dirs["ic-light-v2"]
+        os.environ["LATENT_MERGE_FLUX_WEIGHTS"] = ic_flux_package_dirs["flux1-dev"]
     try:
         job_path = run_pipeline(
             PipelineInputs(plate_rgb=plate.first_frame, cg_rgba=cg.first_frame, alpha=alpha_path),
@@ -859,6 +1210,10 @@ def _run_ui_job(form: ParsedForm) -> dict:
             os.environ.pop("LATENT_MERGE_ENABLE_IC_FLUX", None)
         else:
             os.environ["LATENT_MERGE_ENABLE_IC_FLUX"] = previous_ic_enabled
+        if previous_ic_python is None:
+            os.environ.pop("LATENT_MERGE_IC_FLUX_PYTHON", None)
+        else:
+            os.environ["LATENT_MERGE_IC_FLUX_PYTHON"] = previous_ic_python
         if previous_ic_weights is None:
             os.environ.pop("LATENT_MERGE_IC_FLUX_WEIGHTS", None)
         else:
@@ -957,6 +1312,9 @@ class Handler(BaseHTTPRequestHandler):
         if parsed.path == "/api/models/ic-flux/status":
             self._send_json(HTTPStatus.OK, _model_download_state())
             return
+        if parsed.path == "/api/models/ic-flux/runtime/status":
+            self._send_json(HTTPStatus.OK, _runtime_setup_payload())
+            return
         if parsed.path == "/file":
             query = parse_qs(parsed.query)
             raw_path = query.get("path", [""])[0]
@@ -979,6 +1337,22 @@ class Handler(BaseHTTPRequestHandler):
             return
         if parsed_path == "/api/models/ic-flux/download":
             self._send_json(HTTPStatus.ACCEPTED, _start_model_download())
+            return
+        if parsed_path == "/api/models/ic-flux/runtime/setup":
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}") if length else {}
+                self._send_json(HTTPStatus.ACCEPTED, _start_runtime_setup(force=bool(payload.get("force"))))
+            except Exception as error:
+                self._send_json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
+            return
+        if parsed_path == "/api/models/ic-flux/runtime/locate":
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+                self._send_json(HTTPStatus.OK, _locate_existing_runtime(str(payload.get("path", ""))))
+            except Exception as error:
+                self._send_json(HTTPStatus.BAD_REQUEST, {"error": str(error)})
             return
         if parsed_path == "/api/models/ic-flux/locate":
             try:
