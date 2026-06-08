@@ -313,7 +313,7 @@ def ic_flux_runtime_status(python_exe: str | None = None) -> dict[str, Any]:
     python_exe = python_exe or resolve_ic_flux_python()
     install_hint = (
         f"{python_exe} -m pip install numpy Pillow diffusers transformers accelerate huggingface_hub safetensors\n"
-        f"{python_exe} -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121"
+        f"{python_exe} -m pip install --force-reinstall torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu121"
     )
     probe = """
 import importlib.util
@@ -339,7 +339,13 @@ if not missing:
         except importlib.metadata.PackageNotFoundError:
             payload["versions"][package] = "unknown"
     import torch
+    import torchvision
+    if not hasattr(torch.ops, "torchvision") or not hasattr(torch.ops.torchvision, "nms"):
+        payload["torchvision_error"] = "torchvision::nms operator is missing"
+        print(json.dumps(payload))
+        raise SystemExit(2)
     payload["torch_version"] = getattr(torch, "__version__", "unknown")
+    payload["torchvision_version"] = getattr(torchvision, "__version__", "unknown")
     payload["cuda_available"] = bool(torch.cuda.is_available())
     if payload["cuda_available"]:
         props = torch.cuda.get_device_properties(0)
@@ -412,7 +418,11 @@ raise SystemExit(1 if missing else 0)
             "message": "IC Flux Python runtime is ready.",
             "install_hint": "",
         }
+    torchvision_error = str(details.get("torchvision_error", "")).strip()
     message = (
+        f"IC Flux Python has an incompatible torch/torchvision install: {torchvision_error}"
+        if torchvision_error
+        else
         f"IC Flux Python runtime is missing packages: {', '.join(missing)}"
         if missing
         else (result.stderr or result.stdout or f"IC Flux Python probe failed with exit code {result.returncode}").strip()

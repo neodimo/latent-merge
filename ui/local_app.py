@@ -69,6 +69,7 @@ IC_FLUX_RUNTIME_DEPS = [
     "safetensors",
     "opencv-python",
 ]
+IC_FLUX_TORCH_PACKAGES = ["torch==2.5.1", "torchvision==0.20.1"]
 IC_FLUX_TORCH_INDEX_URL = os.environ.get("LATENT_MERGE_TORCH_INDEX_URL", "https://download.pytorch.org/whl/cu121")
 BOOTSTRAP_PYTHON_RELEASE = "20260602"
 BOOTSTRAP_PYTHON_ASSET = "cpython-3.12.13+20260602-x86_64-unknown-linux-gnu-install_only.tar.gz"
@@ -371,6 +372,7 @@ def _save_runtime_config(python_exe: Path, source: str, validation: dict[str, ob
         "source": source,
         "dependency_specs": {
             "torch_index_url": IC_FLUX_TORCH_INDEX_URL,
+            "torch_packages": IC_FLUX_TORCH_PACKAGES,
             "packages": IC_FLUX_RUNTIME_DEPS,
         },
         "platform": {
@@ -413,6 +415,7 @@ def _runtime_setup_payload() -> dict:
             "config": config,
             "dependency_specs": {
                 "torch_index_url": IC_FLUX_TORCH_INDEX_URL,
+                "torch_packages": IC_FLUX_TORCH_PACKAGES,
                 "packages": IC_FLUX_RUNTIME_DEPS,
             },
         }
@@ -574,7 +577,7 @@ def _setup_runtime_worker(force: bool = False) -> None:
         py = str(python_exe)
         _run_runtime_command([py, "-m", "pip", "install", "--upgrade", "pip", "wheel", "setuptools"], "Updating installer")
         _run_runtime_command(
-            [py, "-m", "pip", "install", "torch", "torchvision", "--index-url", IC_FLUX_TORCH_INDEX_URL],
+            [py, "-m", "pip", "install", "--force-reinstall", *IC_FLUX_TORCH_PACKAGES, "--index-url", IC_FLUX_TORCH_INDEX_URL],
             "Installing CUDA torch",
         )
         _run_runtime_command([py, "-m", "pip", "install", *IC_FLUX_RUNTIME_DEPS], "Installing IC Flux packages")
