@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,6 +14,11 @@ import numpy as np
 from PIL import Image, ImageFilter
 
 from core.image_io import load_alpha, load_rgb, load_rgba, save_alpha, save_rgb, save_rgba, sha256_file
+
+try:
+    import resource
+except ImportError:  # pragma: no cover - Windows packaged UI path.
+    resource = None
 
 
 @dataclass(frozen=True)
@@ -247,6 +253,62 @@ def _external_runner_env() -> dict[str, str]:
     return env
 
 
+def _gpu_memory_snapshot() -> dict[str, Any]:
+    try:
+        import torch
+    except Exception:
+        return {"torch_available": False}
+
+    snapshot: dict[str, Any] = {
+        "torch_available": True,
+        "cuda_available": bool(torch.cuda.is_available()),
+    }
+    if not torch.cuda.is_available():
+        return snapshot
+
+    device_index = torch.cuda.current_device()
+    props = torch.cuda.get_device_properties(device_index)
+    snapshot.update(
+        {
+            "device_index": device_index,
+            "device_name": torch.cuda.get_device_name(device_index),
+            "total_vram_mb": round(props.total_memory / (1024 * 1024)),
+            "allocated_mb": round(torch.cuda.memory_allocated(device_index) / (1024 * 1024), 2),
+            "reserved_mb": round(torch.cuda.memory_reserved(device_index) / (1024 * 1024), 2),
+            "max_allocated_mb": round(torch.cuda.max_memory_allocated(device_index) / (1024 * 1024), 2),
+            "max_reserved_mb": round(torch.cuda.max_memory_reserved(device_index) / (1024 * 1024), 2),
+        }
+    )
+    return snapshot
+
+
+def _reset_gpu_peak_memory() -> None:
+    try:
+        import torch
+    except Exception:
+        return
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats()
+
+
+def _process_max_rss_kb() -> int | None:
+    if resource is None:
+        return None
+    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+
+
+def _runtime_telemetry(start_time: float, start_rss_kb: int | None) -> dict[str, Any]:
+    end_rss_kb = _process_max_rss_kb()
+    rss_delta = None if start_rss_kb is None or end_rss_kb is None else round((end_rss_kb - start_rss_kb) / 1024, 2)
+    return {
+        "duration_s": round(time.perf_counter() - start_time, 4),
+        "process_max_rss_mb": None if end_rss_kb is None else round(end_rss_kb / 1024, 2),
+        "process_rss_delta_mb": rss_delta,
+        "gpu_memory": _gpu_memory_snapshot(),
+        "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
+    }
+
+
 def _run_ic_flux_v2(inputs: PipelineInputs, output_dir: Path, config: PipelineConfig) -> tuple[np.ndarray, dict[str, Any]]:
     if os.environ.get("LATENT_MERGE_ENABLE_IC_FLUX") != "1":
         raise RuntimeError(
@@ -335,6 +397,10 @@ def _run_ic_flux_v2(inputs: PipelineInputs, output_dir: Path, config: PipelineCo
 
 
 def run_pipeline(inputs: PipelineInputs, output_dir: Path, config: PipelineConfig) -> Path:
+    t0 = time.perf_counter()
+    start_rss_kb = _process_max_rss_kb()
+    _reset_gpu_peak_memory()
+
     config.validate()
     output_dir.mkdir(parents=True, exist_ok=True)
     plate = load_rgb(inputs.plate_rgb)
@@ -436,6 +502,7 @@ def run_pipeline(inputs: PipelineInputs, output_dir: Path, config: PipelineConfi
         },
         "outputs": {key: str(path) for key, path in outputs.items() if key != "job"},
         "backend_report": backend_report,
+        "runtime": _runtime_telemetry(t0, start_rss_kb),
         "contract": {
             "plate_repainted": False,
             "primary_model_output": "adjusted foreground RGBA",

@@ -13,7 +13,7 @@
 - Card: NVIDIA RTX 3080 Ti (laptop/desktop variant)
 - Connection: USB4 external GPU (eGPU)
 - VRAM: 12 GB (advertised as 16 GB class, actual ~12 GB on this model)
-- Driver: `595.58.03`, CUDA 13.2
+- Driver observed during 2026-06-07 Phase 2 CUDA sweep: `610.43.02`
 - Status: **LIVE** — visible as `cuda:0`, `nvidia-smi` works
 
 GPU memory tiers used by `run_pctnet_baseline.sh`:
