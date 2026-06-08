@@ -472,7 +472,14 @@ def _resolve_bootstrap_python() -> str:
     for candidate in _bootstrap_python_candidates():
         try:
             result = subprocess.run(
-                [candidate, "-c", "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)"],
+                [
+                    candidate,
+                    "-c",
+                    (
+                        "import ssl, sys, venv; "
+                        "raise SystemExit(0 if (3, 10) <= sys.version_info[:2] <= (3, 13) else 1)"
+                    ),
+                ],
                 check=False,
                 capture_output=True,
                 text=True,
@@ -482,7 +489,24 @@ def _resolve_bootstrap_python() -> str:
             continue
         if result.returncode == 0:
             return candidate
-    raise RuntimeError("Python 3.10+ was not found. Install Python 3.10 or newer, then retry IC Flux setup.")
+    raise RuntimeError(
+        "A usable Python 3.10-3.13 with SSL and venv support was not found. "
+        "Install Python 3.12 or 3.13, then retry IC Flux setup."
+    )
+
+
+def _python_has_ssl(python_exe: Path) -> bool:
+    try:
+        result = subprocess.run(
+            [str(python_exe), "-c", "import ssl; print(ssl.OPENSSL_VERSION)"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0 and bool(result.stdout.strip())
 
 
 def _setup_runtime_worker(force: bool = False) -> None:
@@ -502,10 +526,16 @@ def _setup_runtime_worker(force: bool = False) -> None:
         if force and venv.exists():
             _set_runtime_setup_state(phase="Removing old runtime")
             shutil.rmtree(venv)
+        if python_exe.is_file() and not _python_has_ssl(python_exe):
+            _set_runtime_setup_state(phase="Replacing runtime without SSL")
+            _append_runtime_log(f"Existing managed Python cannot import ssl; replacing {venv}")
+            shutil.rmtree(venv)
         if not python_exe.is_file():
             base_python = _resolve_bootstrap_python()
             venv.parent.mkdir(parents=True, exist_ok=True)
             _run_runtime_command([base_python, "-m", "venv", str(venv)], "Creating IC Flux Python environment")
+        if not _python_has_ssl(python_exe):
+            raise RuntimeError("Managed IC Flux Python was created without SSL support; install Python 3.12 with SSL and retry.")
 
         py = str(python_exe)
         _run_runtime_command([py, "-m", "pip", "install", "--upgrade", "pip", "wheel", "setuptools"], "Updating installer")
