@@ -12,6 +12,7 @@ import shutil
 import ssl
 import subprocess
 import sys
+import tarfile
 import threading
 import time
 import uuid
@@ -69,6 +70,11 @@ IC_FLUX_RUNTIME_DEPS = [
     "opencv-python",
 ]
 IC_FLUX_TORCH_INDEX_URL = os.environ.get("LATENT_MERGE_TORCH_INDEX_URL", "https://download.pytorch.org/whl/cu121")
+BOOTSTRAP_PYTHON_RELEASE = "20260602"
+BOOTSTRAP_PYTHON_ASSET = "cpython-3.12.13+20260602-x86_64-unknown-linux-gnu-install_only.tar.gz"
+BOOTSTRAP_PYTHON_URL = (
+    f"https://github.com/indygreg/python-build-standalone/releases/download/{BOOTSTRAP_PYTHON_RELEASE}/{BOOTSTRAP_PYTHON_ASSET}"
+)
 IMAGE_OUTPUTS = [
     ("raw_a_over_b", "Raw A-over-B"),
     ("final_comp", "Final Comp"),
@@ -489,10 +495,38 @@ def _resolve_bootstrap_python() -> str:
             continue
         if result.returncode == 0:
             return candidate
-    raise RuntimeError(
-        "A usable Python 3.10-3.13 with SSL and venv support was not found. "
-        "Install Python 3.12 or 3.13, then retry IC Flux setup."
-    )
+    return _install_bootstrap_python()
+
+
+def _install_bootstrap_python() -> str:
+    if platform.system().lower() != "linux" or platform.machine().lower() not in {"x86_64", "amd64"}:
+        raise RuntimeError(
+            "A usable Python 3.10-3.13 with SSL and venv support was not found. "
+            "Automatic Python bootstrap currently supports Linux x86_64."
+        )
+    bootstrap_root = IC_FLUX_RUNTIME_ROOT / "bootstrap-python"
+    python_exe = bootstrap_root / "python" / "bin" / "python3"
+    if _python_has_ssl(python_exe):
+        return str(python_exe)
+
+    archive = IC_FLUX_RUNTIME_ROOT / BOOTSTRAP_PYTHON_ASSET
+    IC_FLUX_RUNTIME_ROOT.mkdir(parents=True, exist_ok=True)
+    _set_runtime_setup_state(phase="Downloading portable Python", current_command=BOOTSTRAP_PYTHON_URL)
+    _append_runtime_log(f"Downloading portable Python: {BOOTSTRAP_PYTHON_URL}")
+    request = Request(BOOTSTRAP_PYTHON_URL, headers={"User-Agent": "latent-merge-ui"})
+    with urlopen(request, timeout=180, context=_ssl_context()) as response, archive.open("wb") as handle:
+        shutil.copyfileobj(response, handle)
+
+    _set_runtime_setup_state(phase="Installing portable Python", current_command=str(archive))
+    _append_runtime_log(f"Extracting portable Python to {bootstrap_root}")
+    shutil.rmtree(bootstrap_root, ignore_errors=True)
+    bootstrap_root.mkdir(parents=True, exist_ok=True)
+    with tarfile.open(archive, "r:gz") as bundle:
+        bundle.extractall(bootstrap_root, filter="data")
+    archive.unlink(missing_ok=True)
+    if not _python_has_ssl(python_exe):
+        raise RuntimeError("Downloaded portable Python could not import SSL.")
+    return str(python_exe)
 
 
 def _python_has_ssl(python_exe: Path) -> bool:
