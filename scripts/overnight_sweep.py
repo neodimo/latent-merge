@@ -16,6 +16,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
+import subprocess
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -23,6 +25,11 @@ from typing import Any
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
+
+try:
+    import resource
+except ImportError:  # pragma: no cover - Windows local sweep path.
+    resource = None
 
 
 # ---------------------------------------------------------------------------
@@ -54,6 +61,55 @@ OUTPUTS_ORDER = [
     ("delta",               "Delta"),
     ("alpha_weighted_delta","Alpha-Weighted Delta"),
 ]
+
+
+def _nvidia_smi_snapshot() -> dict[str, Any]:
+    try:
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=index,name,memory.total,memory.used",
+                "--format=csv,noheader,nounits",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except Exception:
+        return {"available": False}
+
+    devices = []
+    for line in result.stdout.splitlines():
+        parts = [part.strip() for part in line.split(",")]
+        if len(parts) >= 4:
+            devices.append(
+                {
+                    "index": parts[0],
+                    "name": parts[1],
+                    "total_vram_mb": int(parts[2]),
+                    "used_vram_mb": int(parts[3]),
+                }
+            )
+    return {"available": bool(devices), "devices": devices}
+
+
+def _process_max_rss_kb() -> int | None:
+    if resource is None:
+        return None
+    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+
+
+def _runtime_record(start_time: float, start_rss_kb: int | None) -> dict[str, Any]:
+    end_rss_kb = _process_max_rss_kb()
+    rss_delta = None if start_rss_kb is None or end_rss_kb is None else round((end_rss_kb - start_rss_kb) / 1024, 2)
+    return {
+        "duration_s": round(time.perf_counter() - start_time, 4),
+        "process_max_rss_mb": None if end_rss_kb is None else round(end_rss_kb / 1024, 2),
+        "process_rss_delta_mb": rss_delta,
+        "gpu_snapshot": _nvidia_smi_snapshot(),
+        "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -919,6 +975,7 @@ def main() -> None:
 
         print(f"\n  [{bk}] {bd['label']}")
         t0 = time.perf_counter()
+        start_rss_kb = _process_max_rss_kb()
 
         try:
             adjusted_rgb, report = bd["fn"](plate, cg_rgb, combined_alpha)
@@ -947,7 +1004,8 @@ def main() -> None:
         save_alpha_img(outputs["alpha_used"], combined_alpha)
 
         metrics = compute_metrics(plate, cg_rgb, adjusted_rgb, combined_alpha)
-        duration = time.perf_counter() - t0
+        runtime = _runtime_record(t0, start_rss_kb)
+        duration = runtime["duration_s"]
 
         cs_path = _render_contact_sheet(
             job_dir=run_dir,
@@ -976,6 +1034,7 @@ def main() -> None:
             "backend_report": report,
             "metrics": metrics,
             "duration_s": round(duration, 4),
+            "runtime": runtime,
         }
         (run_dir / "job.json").write_text(json.dumps(job, indent=2) + "\n")
 
@@ -988,6 +1047,7 @@ def main() -> None:
             "status": "ok",
             "metrics": metrics,
             "duration_s": round(duration, 4),
+            "runtime": runtime,
             "final_comp_path": str(outputs["final_comp"]),
             "contact_sheet": str(cs_path),
         })
@@ -1030,6 +1090,10 @@ def main() -> None:
         "master_comparison": str(master_path),
         "refinement_top3": str(refinement_path),
         "ic_flux_docs": str(ic_flux_path),
+        "runtime": {
+            "gpu_snapshot": _nvidia_smi_snapshot(),
+            "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
+        },
         "ranking": [
             {
                 "rank": i + 1,
@@ -1038,6 +1102,7 @@ def main() -> None:
                 "composite_score": round(r["composite_score"], 6),
                 "metrics": r["metrics"],
                 "duration_s": r["duration_s"],
+                "runtime": r.get("runtime", {}),
                 "contact_sheet": r["contact_sheet"],
             }
             for i, r in enumerate(ranked)

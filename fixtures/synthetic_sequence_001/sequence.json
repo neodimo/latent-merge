@@ -1,0 +1,56 @@
+{
+  "fixture_id": "synthetic_sequence_001",
+  "schema": "latent-merge.sequence-fixture.v1",
+  "created_utc": "2026-06-08T01:05:26.813118+00:00",
+  "purpose": "Deterministic short proxy sequence for Phase 2 temporal/flicker checks.",
+  "dimensions": [
+    384,
+    216
+  ],
+  "frame_count": 6,
+  "color_note": "Synthetic SDR RGB proxy. Not a production-look validation case.",
+  "frames": [
+    {
+      "frame": 0,
+      "directory": "frame_000",
+      "plate_rgb": "plate_rgb.png",
+      "cg_rgba": "cg_rgba.png",
+      "alpha": "alpha.png"
+    },
+    {
+      "frame": 1,
+      "directory": "frame_001",
+      "plate_rgb": "plate_rgb.png",
+      "cg_rgba": "cg_rgba.png",
+      "alpha": "alpha.png"
+    },
+    {
+      "frame": 2,
+      "directory": "frame_002",
+      "plate_rgb": "plate_rgb.png",
+      "cg_rgba": "cg_rgba.png",
+      "alpha": "alpha.png"
+    },
+    {
+      "frame": 3,
+      "directory": "frame_003",
+      "plate_rgb": "plate_rgb.png",
+      "cg_rgba": "cg_rgba.png",
+      "alpha": "alpha.png"
+    },
+    {
+      "frame": 4,
+      "directory": "frame_004",
+      "plate_rgb": "plate_rgb.png",
+      "cg_rgba": "cg_rgba.png",
+      "alpha": "alpha.png"
+    },
+    {
+      "frame": 5,
+      "directory": "frame_005",
+      "plate_rgb": "plate_rgb.png",
+      "cg_rgba": "cg_rgba.png",
+      "alpha": "alpha.png"
+    }
+  ]
+}
