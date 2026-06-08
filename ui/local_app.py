@@ -63,9 +63,14 @@ IC_FLUX_RUNTIME_DEPS = [
     "numpy",
     "Pillow",
     "diffusers",
-    "transformers",
+    # transformers must stay <5: transformers 5.x references torch.float8_e8m0fnu
+    # at module import, which only exists in torch>=2.7. This runtime is pinned to
+    # torch 2.5.1+cu121 (no cu121 wheels past 2.5), so transformers 5.x crashes the
+    # IC Flux import chain (CLIPImageProcessor / FluxControlNetPipeline). hf-hub 1.x
+    # pairs with transformers 5.x, so it is capped to <1 for the same reason.
+    "transformers<5",
     "accelerate",
-    "huggingface_hub",
+    "huggingface_hub<1",
     "safetensors",
     "opencv-python",
 ]
