@@ -1097,8 +1097,15 @@ def _validate_runtime_inputs(cg: Path, plate: Path, alpha: Path) -> None:
 
 def _build_contact_sheet(job_dir: Path, job: dict) -> Path:
     thumbs = []
+    outputs = job.get("outputs", {})
     for key, label in IMAGE_OUTPUTS:
-        path = Path(job["outputs"][key])
+        if key not in outputs:
+            continue
+        path = Path(outputs[key])
+        if not path.is_file():
+            path = job_dir / "outputs" / path.name
+        if not path.is_file():
+            continue
         image = Image.open(path).convert("RGB")
         image.thumbnail((360, 240), Image.Resampling.LANCZOS)
         thumbs.append((label, image.copy()))
@@ -1262,6 +1269,7 @@ def _run_ui_job(form: ParsedForm) -> dict:
                 "url": f"/file?path={Path(job['outputs'][key]).relative_to(WORK_ROOT)}",
             }
             for key, label in IMAGE_OUTPUTS
+            if key in job["outputs"]
         ],
         "backend": job["backend_report"]["name"],
         "controls": {
