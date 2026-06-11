@@ -1167,6 +1167,12 @@ def _run_ui_job(form: ParsedForm) -> dict:
     else:
         alpha_path = _derive_alpha(cg.first_frame, input_dir / "derived_alpha.png")
         alpha_count = 1
+    proposal_path: Path | None = None
+    proposal_count = 0
+    if any(isinstance(item, UploadedFile) and item.filename for item in form.get("proposal", [])):
+        proposal = _save_uploads(form, "proposal", input_dir / "proposal", SUPPORTED_B)
+        proposal_path = proposal.first_frame
+        proposal_count = proposal.count
 
     _validate_runtime_inputs(cg.first_frame, plate.first_frame, alpha_path)
 
@@ -1204,6 +1210,7 @@ def _run_ui_job(form: ParsedForm) -> dict:
         ic_flux_cond_strength=ic_flux_cond_strength,
         ic_flux_resolution=ic_flux_resolution,
         ic_flux_fp16=ic_flux_fp16,
+        latent_proposal_path=str(proposal_path) if backend == "latent_delta_proxy" and proposal_path else "",
     )
     previous_cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES")
     previous_ic_enabled = os.environ.get("LATENT_MERGE_ENABLE_IC_FLUX")
@@ -1254,10 +1261,12 @@ def _run_ui_job(form: ParsedForm) -> dict:
             "cg_frames_uploaded": cg.count,
             "plate_frames_uploaded": plate.count,
             "alpha_frames_uploaded": alpha_count,
+            "proposal_frames_uploaded": proposal_count,
             "active_frame": {
                 "cg": cg.first_frame.name,
                 "plate": plate.first_frame.name,
                 "alpha": alpha_path.name,
+                "proposal": proposal_path.name if proposal_path else "",
             },
         },
         "job_json": f"/file?path={job_path.relative_to(WORK_ROOT)}",

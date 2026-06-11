@@ -57,6 +57,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--kontext-guidance-scale", type=float, default=2.5)
     parser.add_argument("--kontext-resolution", type=int, default=1024)
     parser.add_argument("--kontext-cpu-offload", action="store_true")
+    parser.add_argument("--kontext-device-map", default="", help="Optional Diffusers/Accelerate device_map, e.g. balanced.")
     return parser.parse_args()
 
 
@@ -91,6 +92,8 @@ def _run_kontext_proposal(args: argparse.Namespace) -> Path:
         command.extend(["--prompt", args.kontext_prompt])
     if args.kontext_cpu_offload:
         command.append("--cpu-offload")
+    if args.kontext_device_map:
+        command.extend(["--device-map", args.kontext_device_map])
     try:
         subprocess.run(command, check=True)
     except subprocess.CalledProcessError as error:

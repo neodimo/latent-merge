@@ -2,12 +2,14 @@ const fields = {
   cg: document.getElementById("cgInput"),
   plate: document.getElementById("plateInput"),
   alpha: document.getElementById("alphaInput"),
+  proposal: document.getElementById("proposalInput"),
 };
 
 const lists = {
   cg: document.getElementById("cgList"),
   plate: document.getElementById("plateList"),
   alpha: document.getElementById("alphaList"),
+  proposal: document.getElementById("proposalList"),
 };
 
 const runButton = document.getElementById("runButton");
@@ -607,6 +609,7 @@ runButton.addEventListener("click", async () => {
   Array.from(fields.cg.files).forEach((file) => form.append("cg", file));
   Array.from(fields.plate.files).forEach((file) => form.append("plate", file));
   Array.from(fields.alpha.files).forEach((file) => form.append("alpha", file));
+  Array.from(fields.proposal.files).forEach((file) => form.append("proposal", file));
   form.append("gpu", gpuSelect.value || "cpu");
   form.append("backend", backendSelect.value || "pctnet");
   form.append("adjustment_strength", controls.strength.value);

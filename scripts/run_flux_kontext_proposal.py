@@ -63,10 +63,10 @@ def _load_pipeline(args: argparse.Namespace):
     if args.device_map:
         kwargs["device_map"] = args.device_map
     pipe = FluxKontextPipeline.from_pretrained(model_ref, **kwargs)
-    if not args.device_map:
-        pipe.to(args.device)
     if args.cpu_offload:
         pipe.enable_model_cpu_offload()
+    elif not args.device_map:
+        pipe.to(args.device)
     if args.vae_tiling and hasattr(pipe, "vae"):
         pipe.vae.enable_tiling()
     if args.vae_slicing and hasattr(pipe, "vae"):

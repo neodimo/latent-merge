@@ -108,5 +108,11 @@ The local UI exposes this as `Latent Delta` in the Model Variant dropdown. It
 uses the same pipeline and writes the same artifacts into the UI job output
 folder.
 
-The GUI does not yet upload a custom proposal image. Use the CLI for proposal
-experiments until the FLUX edit/control proposal backend is wired.
+The UI also has an optional `Proposal` upload. When `Latent Delta` is selected
+and a proposal image is provided, that image becomes the proposal source. This
+is the practical GUI bridge for FLUX Kontext/API/AnyDoor/other proposal sources:
+generate a proposal image elsewhere, upload it beside A/B/matte, then inspect
+the constrained transfer result in the normal UI output sheet.
+
+If `Latent Delta` is selected without a proposal upload, the UI uses the local
+proxy. That path is useful for plumbing tests, not for judging the final model.
