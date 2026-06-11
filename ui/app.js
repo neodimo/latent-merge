@@ -313,6 +313,14 @@ function updateBackendReadout() {
     backendHint.textContent = "Internal/testing backend. Downloaded model files stay local and are not bundled with Latent Merge.";
     modelPill.textContent = "Flux";
     loadIcFluxModelStatus().catch((error) => setStatus(error.message));
+  } else if (backend === "latent_delta_proxy") {
+    controlTitle.textContent = "Latent Delta";
+    controlDescription.textContent = "Proposal/delta workflow that preserves CG identity and stages shadows.";
+    backendHint.textContent = "FLUX-ready scaffold: proposal pixels guide low-frequency foreground lighting; final comp keeps the plate contract.";
+    modelPill.textContent = "Delta";
+    icFluxInlineDownloadButton.classList.add("hidden");
+    runButton.disabled = false;
+    setStatus("Ready");
   } else if (backend === "mean_match_stub") {
     controlTitle.textContent = "Baseline Controls";
     controlDescription.textContent = "Mean-match scaffold for quick conservative checks.";

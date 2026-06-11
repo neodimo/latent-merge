@@ -83,12 +83,16 @@ BOOTSTRAP_PYTHON_URL = (
 )
 IMAGE_OUTPUTS = [
     ("raw_a_over_b", "Raw A-over-B"),
+    ("model_proposal", "Model Proposal"),
     ("final_comp", "Final Comp"),
     ("adjusted_fg", "Adjusted FG"),
+    ("lighting_delta", "Lighting Delta"),
     ("alpha_used", "Alpha"),
     ("correction_matte", "Correction Matte"),
     ("delta", "Delta"),
     ("alpha_weighted_delta", "Alpha Weighted Delta"),
+    ("shadow_matte", "Shadow Matte"),
+    ("shadow_preview_comp", "Shadow Preview"),
 ]
 
 
@@ -1127,8 +1131,8 @@ def _build_contact_sheet(job_dir: Path, job: dict) -> Path:
 def _run_ui_job(form: ParsedForm) -> dict:
     selected_gpu = _form_first(form, "gpu", "cpu")
     backend = _form_first(form, "backend", "pctnet")
-    if backend not in {"pctnet", "pctnet_vit_proxy", "ic_flux_v2", "mean_match_stub"}:
-        raise ValueError("backend must be pctnet, pctnet_vit_proxy, ic_flux_v2, or mean_match_stub")
+    if backend not in {"pctnet", "pctnet_vit_proxy", "ic_flux_v2", "latent_delta_proxy", "mean_match_stub"}:
+        raise ValueError("backend must be pctnet, pctnet_vit_proxy, ic_flux_v2, latent_delta_proxy, or mean_match_stub")
 
     ic_flux_package_dirs: dict[str, str] | None = None
     if backend == "ic_flux_v2":

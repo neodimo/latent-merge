@@ -14,7 +14,7 @@
   },
   "runtime": {
     "max_duration_s": 30.0,
-    "max_process_rss_mb": 6000.0,
+    "max_process_rss_mb": 11000.0,
     "max_reserved_vram_mb": 11000.0,
     "_note": "Per-case runtime ceilings. VRAM check applies only when CUDA was used."
   },

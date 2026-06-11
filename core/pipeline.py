@@ -61,9 +61,18 @@ class PipelineConfig:
     ic_flux_cond_strength: float = 0.75
     ic_flux_resolution: int = 768
     ic_flux_fp16: bool = True
+    latent_proposal_path: str = ""
+    latent_delta_blur_px: float = 18.0
+    latent_luma_strength: float = 1.0
+    latent_color_strength: float = 0.35
+    latent_shadow_strength: float = 0.0
+    latent_shadow_offset_x: int = 14
+    latent_shadow_offset_y: int = 18
+    latent_shadow_blur_px: float = 18.0
+    latent_shadow_expand_px: int = 12
 
     def validate(self) -> None:
-        allowed_backends = {"mean_match_stub", "pctnet", "pctnet_vit_proxy", "ic_flux_v2"}
+        allowed_backends = {"mean_match_stub", "pctnet", "pctnet_vit_proxy", "ic_flux_v2", "latent_delta_proxy"}
         if self.backend not in allowed_backends:
             raise ValueError(f"unsupported backend '{self.backend}'; available: {', '.join(sorted(allowed_backends))}")
         allowed_tiers = {"compact-8", "mid-16", "full-48"}
@@ -95,6 +104,22 @@ class PipelineConfig:
             raise ValueError("ic_flux_cond_strength must be between 0.0 and 1.5")
         if not 384 <= self.ic_flux_resolution <= 1536:
             raise ValueError("ic_flux_resolution must be between 384 and 1536")
+        if not 1.0 <= self.latent_delta_blur_px <= 96.0:
+            raise ValueError("latent_delta_blur_px must be between 1.0 and 96.0")
+        if not 0.0 <= self.latent_luma_strength <= 2.0:
+            raise ValueError("latent_luma_strength must be between 0.0 and 2.0")
+        if not 0.0 <= self.latent_color_strength <= 1.0:
+            raise ValueError("latent_color_strength must be between 0.0 and 1.0")
+        if not 0.0 <= self.latent_shadow_strength <= 0.85:
+            raise ValueError("latent_shadow_strength must be between 0.0 and 0.85")
+        if not -256 <= self.latent_shadow_offset_x <= 256:
+            raise ValueError("latent_shadow_offset_x must be between -256 and 256")
+        if not -256 <= self.latent_shadow_offset_y <= 256:
+            raise ValueError("latent_shadow_offset_y must be between -256 and 256")
+        if not 0.0 <= self.latent_shadow_blur_px <= 96.0:
+            raise ValueError("latent_shadow_blur_px must be between 0.0 and 96.0")
+        if not 0 <= self.latent_shadow_expand_px <= 96:
+            raise ValueError("latent_shadow_expand_px must be between 0 and 96")
 
 
 def load_config(path: Path | None) -> PipelineConfig:
@@ -120,6 +145,15 @@ def load_config(path: Path | None) -> PipelineConfig:
         ic_flux_cond_strength=payload.get("ic_flux_cond_strength", PipelineConfig.ic_flux_cond_strength),
         ic_flux_resolution=payload.get("ic_flux_resolution", PipelineConfig.ic_flux_resolution),
         ic_flux_fp16=payload.get("ic_flux_fp16", PipelineConfig.ic_flux_fp16),
+        latent_proposal_path=payload.get("latent_proposal_path", PipelineConfig.latent_proposal_path),
+        latent_delta_blur_px=payload.get("latent_delta_blur_px", PipelineConfig.latent_delta_blur_px),
+        latent_luma_strength=payload.get("latent_luma_strength", PipelineConfig.latent_luma_strength),
+        latent_color_strength=payload.get("latent_color_strength", PipelineConfig.latent_color_strength),
+        latent_shadow_strength=payload.get("latent_shadow_strength", PipelineConfig.latent_shadow_strength),
+        latent_shadow_offset_x=payload.get("latent_shadow_offset_x", PipelineConfig.latent_shadow_offset_x),
+        latent_shadow_offset_y=payload.get("latent_shadow_offset_y", PipelineConfig.latent_shadow_offset_y),
+        latent_shadow_blur_px=payload.get("latent_shadow_blur_px", PipelineConfig.latent_shadow_blur_px),
+        latent_shadow_expand_px=payload.get("latent_shadow_expand_px", PipelineConfig.latent_shadow_expand_px),
     )
 
 
@@ -242,6 +276,129 @@ def _pctnet_vit_proxy(
         "local_alpha_radius_px": radius,
         "global_statistics": global_report,
         "local_statistics": local_report,
+    }
+
+
+def _gaussian_blur_rgb(rgb: np.ndarray, radius: float) -> np.ndarray:
+    if radius <= 0.0:
+        return rgb
+    image = Image.fromarray(np.clip(rgb * 255.0, 0, 255).astype(np.uint8), mode="RGB")
+    image = image.filter(ImageFilter.GaussianBlur(float(radius)))
+    return np.asarray(image, dtype=np.float32) / 255.0
+
+
+def _shadow_matte_from_alpha(alpha: np.ndarray, config: PipelineConfig) -> np.ndarray:
+    matte = np.clip(alpha[..., 0], 0.0, 1.0)
+    image = Image.fromarray((matte * 255.0).astype(np.uint8), mode="L")
+    if config.latent_shadow_expand_px:
+        image = image.filter(ImageFilter.MaxFilter(config.latent_shadow_expand_px * 2 + 1))
+    if config.latent_shadow_blur_px:
+        image = image.filter(ImageFilter.GaussianBlur(float(config.latent_shadow_blur_px)))
+    expanded = np.asarray(image, dtype=np.float32) / 255.0
+
+    shifted = np.zeros_like(expanded)
+    dx = int(config.latent_shadow_offset_x)
+    dy = int(config.latent_shadow_offset_y)
+    src_y0 = max(0, -dy)
+    src_y1 = expanded.shape[0] - max(0, dy)
+    src_x0 = max(0, -dx)
+    src_x1 = expanded.shape[1] - max(0, dx)
+    dst_y0 = max(0, dy)
+    dst_y1 = dst_y0 + max(0, src_y1 - src_y0)
+    dst_x0 = max(0, dx)
+    dst_x1 = dst_x0 + max(0, src_x1 - src_x0)
+    if src_y1 > src_y0 and src_x1 > src_x0:
+        shifted[dst_y0:dst_y1, dst_x0:dst_x1] = expanded[src_y0:src_y1, src_x0:src_x1]
+    receiver = shifted * (1.0 - matte)
+    return np.clip(receiver[..., None], 0.0, 1.0)
+
+
+def _proposal_foreground_from_composite(
+    proposal_rgb: np.ndarray,
+    plate: np.ndarray,
+    cg_rgb: np.ndarray,
+    alpha: np.ndarray,
+) -> np.ndarray:
+    alpha_safe = np.maximum(alpha, 1e-4)
+    recovered = (proposal_rgb - plate * (1.0 - alpha)) / alpha_safe
+    return np.where(alpha > 1e-4, np.clip(recovered, 0.0, 1.0), cg_rgb)
+
+
+def _load_latent_proposal(
+    plate: np.ndarray,
+    cg_rgb: np.ndarray,
+    alpha: np.ndarray,
+    config: PipelineConfig,
+) -> tuple[np.ndarray, np.ndarray, dict[str, Any]]:
+    if config.latent_proposal_path:
+        path = Path(config.latent_proposal_path).expanduser()
+        proposal_rgb = load_rgb(path)
+        if proposal_rgb.shape != plate.shape:
+            raise ValueError(f"latent proposal shape mismatch: proposal={proposal_rgb.shape}, plate={plate.shape}")
+        proposal_fg = _proposal_foreground_from_composite(proposal_rgb, plate, cg_rgb, alpha)
+        return proposal_rgb, proposal_fg, {
+            "source": "external_proposal",
+            "path": str(path),
+            "sha256": sha256_file(path) if path.is_file() else None,
+            "interpretation": "RGB proposal composite; foreground recovered through alpha",
+        }
+
+    proposal_fg, proxy_report = _pctnet_vit_proxy(plate, cg_rgb, alpha, config)
+    proposal_rgb = proposal_fg * alpha + plate * (1.0 - alpha)
+    return proposal_rgb, proposal_fg, {
+        "source": "local_proxy",
+        "interpretation": "deterministic PCT/ViT-style proposal until FLUX edit/control proposal is wired",
+        "proxy_report": proxy_report,
+    }
+
+
+def _latent_delta_proxy(
+    plate: np.ndarray,
+    cg_rgb: np.ndarray,
+    alpha: np.ndarray,
+    config: PipelineConfig,
+) -> tuple[np.ndarray, dict[str, Any], dict[str, np.ndarray]]:
+    proposal_rgb, proposal_fg, proposal_report = _load_latent_proposal(plate, cg_rgb, alpha, config)
+    low_cg = _gaussian_blur_rgb(cg_rgb, config.latent_delta_blur_px)
+    low_proposal = _gaussian_blur_rgb(proposal_fg, config.latent_delta_blur_px)
+    luma_weights = np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
+    cg_luma = np.maximum((low_cg * luma_weights).sum(axis=2, keepdims=True), 1e-4)
+    proposal_luma = np.maximum((low_proposal * luma_weights).sum(axis=2, keepdims=True), 1e-4)
+    luma_ratio = np.clip(proposal_luma / cg_luma, 0.45, 1.9)
+    luma_scaled = cg_rgb * (1.0 + (luma_ratio - 1.0) * config.latent_luma_strength)
+    color_delta = low_proposal - low_cg
+    adjusted = luma_scaled + color_delta * config.latent_color_strength
+    adjusted = np.clip(adjusted, 0.0, 1.0)
+
+    shadow_matte = _shadow_matte_from_alpha(alpha, config)
+    shadow_preview_comp = np.clip(plate * (1.0 - shadow_matte * config.latent_shadow_strength), 0.0, 1.0)
+    lighting_delta = np.clip(np.abs(adjusted - cg_rgb) * alpha, 0.0, 1.0)
+    model_proposal_fg_delta = np.clip(np.abs(proposal_fg - cg_rgb) * alpha, 0.0, 1.0)
+
+    return adjusted, {
+        "name": "latent_delta_proxy",
+        "model_type": "Latent Merge constrained proposal/delta",
+        "model_variant": "FLUX-edit-ready local proxy",
+        "status": "runnable CLI/GUI scaffold; replace proposal source with FLUX Kontext/Fill/control output when available",
+        "proposal": proposal_report,
+        "delta_policy": {
+            "locked_factors": ["shape", "silhouette", "identity", "material_detail", "plate_outside_interaction"],
+            "changed_factors": ["low_frequency_foreground_lighting", "low_frequency_foreground_color"],
+            "shadow_status": "staged_preview_only; not applied to final_comp until an interaction-mask gate exists",
+        },
+        "latent_delta_blur_px": config.latent_delta_blur_px,
+        "latent_luma_strength": config.latent_luma_strength,
+        "latent_color_strength": config.latent_color_strength,
+        "latent_shadow_strength": config.latent_shadow_strength,
+        "latent_shadow_offset": [config.latent_shadow_offset_x, config.latent_shadow_offset_y],
+        "latent_shadow_blur_px": config.latent_shadow_blur_px,
+        "latent_shadow_expand_px": config.latent_shadow_expand_px,
+    }, {
+        "model_proposal": proposal_rgb,
+        "lighting_delta": lighting_delta,
+        "model_proposal_fg_delta": model_proposal_fg_delta,
+        "shadow_matte": shadow_matte,
+        "shadow_preview_comp": shadow_preview_comp,
     }
 
 
@@ -617,6 +774,8 @@ def run_pipeline(inputs: PipelineInputs, output_dir: Path, config: PipelineConfi
         softness_px=config.correction_softness_px,
     )
 
+    auxiliary_images: dict[str, np.ndarray] = {}
+
     if config.backend == "mean_match_stub":
         model_adjusted_rgb, backend_report = _mean_match_stub(plate, cg_rgb, combined_alpha)
     elif config.backend == "pctnet":
@@ -639,6 +798,8 @@ def run_pipeline(inputs: PipelineInputs, output_dir: Path, config: PipelineConfi
         model_adjusted_rgb, backend_report = _pctnet_vit_proxy(plate, cg_rgb, combined_alpha, config)
     elif config.backend == "ic_flux_v2":
         model_adjusted_rgb, backend_report = _run_ic_flux_v2(inputs, output_dir, config)
+    elif config.backend == "latent_delta_proxy":
+        model_adjusted_rgb, backend_report, auxiliary_images = _latent_delta_proxy(plate, cg_rgb, combined_alpha, config)
     else:
         raise ValueError(f"unsupported backend '{config.backend}'")
 
@@ -661,6 +822,8 @@ def run_pipeline(inputs: PipelineInputs, output_dir: Path, config: PipelineConfi
         "correction_matte": output_dir / "correction_matte.png",
         "job": output_dir / "job.json",
     }
+    for key in auxiliary_images:
+        outputs[key] = output_dir / f"{key}.png"
 
     save_rgb(outputs["raw_a_over_b"], raw_a_over_b)
     save_rgba(outputs["adjusted_fg"], adjusted_rgb, combined_alpha)
@@ -669,6 +832,11 @@ def run_pipeline(inputs: PipelineInputs, output_dir: Path, config: PipelineConfi
     save_rgb(outputs["alpha_weighted_delta"], alpha_weighted_delta_visual)
     save_alpha(outputs["alpha_used"], combined_alpha)
     save_alpha(outputs["correction_matte"], correction_matte)
+    for key, image in auxiliary_images.items():
+        if image.ndim == 3 and image.shape[2] == 1:
+            save_alpha(outputs[key], image)
+        else:
+            save_rgb(outputs[key], image)
 
     job = {
         "schema": "latent-merge.phase1-run.v1",
@@ -692,6 +860,15 @@ def run_pipeline(inputs: PipelineInputs, output_dir: Path, config: PipelineConfi
             "ic_flux_cond_strength": config.ic_flux_cond_strength,
             "ic_flux_resolution": config.ic_flux_resolution,
             "ic_flux_fp16": config.ic_flux_fp16,
+            "latent_proposal_path": config.latent_proposal_path,
+            "latent_delta_blur_px": config.latent_delta_blur_px,
+            "latent_luma_strength": config.latent_luma_strength,
+            "latent_color_strength": config.latent_color_strength,
+            "latent_shadow_strength": config.latent_shadow_strength,
+            "latent_shadow_offset_x": config.latent_shadow_offset_x,
+            "latent_shadow_offset_y": config.latent_shadow_offset_y,
+            "latent_shadow_blur_px": config.latent_shadow_blur_px,
+            "latent_shadow_expand_px": config.latent_shadow_expand_px,
         },
         "inputs": {
             "plate_rgb": {"path": str(inputs.plate_rgb), "sha256": sha256_file(inputs.plate_rgb)},
@@ -706,6 +883,7 @@ def run_pipeline(inputs: PipelineInputs, output_dir: Path, config: PipelineConfi
             "primary_model_output": "adjusted foreground RGBA",
             "trusted_composite": "normal A-over-B over original plate",
             "interaction_passes": ["delta", "alpha_weighted_delta", "correction_matte"],
+            "shadow_preview_applied_to_final_comp": False,
         },
     }
     outputs["job"].write_text(json.dumps(job, indent=2) + "\n", encoding="utf-8")

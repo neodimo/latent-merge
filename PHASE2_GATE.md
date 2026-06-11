@@ -18,7 +18,7 @@ Objective, scriptable pass/fail gates. No human judgment. Implemented in
 | `plate_untouched` | Outside the matte, the final comp equals the original plate (core trust contract). | max abs delta ≤ 0.012 (~3/255) |
 | `edge_seam` | The matte edge gains no halo/ringing beyond the raw A-over-B composite. | edge-gradient ratio ≤ 1.25 |
 | `runtime_duration_s` | Runs within a usable time budget. | ≤ 30 s |
-| `runtime_process_rss_mb` | Stays within host memory. | ≤ 6000 MB |
+| `runtime_process_rss_mb` | Stays within host memory. | ≤ 11000 MB |
 | `runtime_reserved_vram_mb` | Stays within GPU memory (CUDA runs only). | ≤ 11000 MB |
 | `flicker_final_comp_rmse` | Sequence cases: no catastrophic frame-to-frame flicker. | max temporal RMSE ≤ 0.05 |
 

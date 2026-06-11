@@ -13,6 +13,10 @@ Open:
 http://127.0.0.1:7865
 ```
 
+That URL is local to the machine running the app. If Gonzo runs the server on a
+remote box, DiMo cannot open Gonzo's `127.0.0.1`; use the packaged GitHub release
+asset and run it locally.
+
 On Windows, use the same command from PowerShell with your Python launcher:
 
 ```powershell
@@ -59,6 +63,10 @@ LATENT_MERGE_IC_FLUX_PYTHON="$PWD/.ic-flux-venv/bin/python" ./bin/latent-merge-u
   - Delta Preview Gain: brightens diagnostic delta passes only; it does not alter the adjusted foreground or final comp.
   - Correction Softness: feathers where the model correction applies, without changing the saved alpha.
   - Correction Choke: negative values expand correction influence outward; positive values pull it inward from edges.
+- Latent Delta backend:
+  - Uses the same upload/run/output surface as the existing UI.
+  - Produces proposal/delta/shadow inspection artifacts while preserving the current trusted final comp contract.
+  - Shadow preview is not baked into `final_comp` until the Layer-1 gate supports an explicit interaction mask.
 - Outputs are written under `runs/ui_jobs/<job-id>/`.
 
 ## EXR / ACEScg

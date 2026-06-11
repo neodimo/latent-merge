@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """
-IC-Light V2 / FLUX runner for latent-merge.
+Speculative IC-Light V2 / FLUX runner for latent-merge.
+
+Status: not verified. This script assumes compatible IC-Light-on-FLUX
+ControlNet weights and an official inference recipe are available locally.
+Do not use its outputs as Phase 2 evidence until that dependency is proven and
+the Blender target-reference cases pass. See docs/IC_LIGHT_FLUX_STATUS.md.
 
 Requires:
   - CUDA GPU with ≥12 GB VRAM (RTX 3080 Ti or better)

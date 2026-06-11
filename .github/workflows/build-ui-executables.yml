@@ -86,6 +86,12 @@ jobs:
           python scripts/assert_harmonization_output.py \
             --job runs/ci_pctnet_smoke/job.json \
             --cg fixtures/golden_synthetic_001/cg_rgba.png
+          python cli/run_phase1.py \
+            --config configs/phase1_latent_delta_proxy.json \
+            --output-dir runs/ci_latent_delta_smoke
+          python scripts/assert_harmonization_output.py \
+            --job runs/ci_latent_delta_smoke/job.json \
+            --cg fixtures/golden_synthetic_001/cg_rgba.png
 
       - name: Build executable
         shell: bash
