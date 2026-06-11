@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import subprocess
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -42,11 +43,72 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--delta-blur", type=float, default=None, help="Low-frequency blur radius for proposal delta extraction.")
     parser.add_argument("--luma-strength", type=float, default=None, help="Foreground luma delta strength.")
     parser.add_argument("--color-strength", type=float, default=None, help="Foreground color delta strength.")
+    parser.add_argument(
+        "--kontext-proposal",
+        action="store_true",
+        help="Generate a FLUX Kontext proposal first, then feed proposal.png into Latent Delta.",
+    )
+    parser.add_argument("--kontext-python", default=sys.executable, help="Python executable for scripts/run_flux_kontext_proposal.py.")
+    parser.add_argument("--kontext-model-dir", type=Path, default=None, help="Optional local FLUX.1-Kontext-dev model directory.")
+    parser.add_argument("--kontext-model-id", default="black-forest-labs/FLUX.1-Kontext-dev")
+    parser.add_argument("--kontext-prompt", default=None, help="Override the default relighting/edit instruction.")
+    parser.add_argument("--kontext-seed", type=int, default=42)
+    parser.add_argument("--kontext-steps", type=int, default=24)
+    parser.add_argument("--kontext-guidance-scale", type=float, default=2.5)
+    parser.add_argument("--kontext-resolution", type=int, default=1024)
+    parser.add_argument("--kontext-cpu-offload", action="store_true")
     return parser.parse_args()
+
+
+def _run_kontext_proposal(args: argparse.Namespace) -> Path:
+    proposal_dir = args.output_dir / "flux_kontext_proposal"
+    runner = ROOT / "scripts" / "run_flux_kontext_proposal.py"
+    command = [
+        args.kontext_python,
+        str(runner),
+        "--plate",
+        str(args.plate),
+        "--cg",
+        str(args.cg),
+        "--alpha",
+        str(args.alpha),
+        "--out-dir",
+        str(proposal_dir),
+        "--model-id",
+        args.kontext_model_id,
+        "--seed",
+        str(args.kontext_seed),
+        "--steps",
+        str(args.kontext_steps),
+        "--guidance-scale",
+        str(args.kontext_guidance_scale),
+        "--resolution",
+        str(args.kontext_resolution),
+    ]
+    if args.kontext_model_dir:
+        command.extend(["--model-dir", str(args.kontext_model_dir)])
+    if args.kontext_prompt:
+        command.extend(["--prompt", args.kontext_prompt])
+    if args.kontext_cpu_offload:
+        command.append("--cpu-offload")
+    try:
+        subprocess.run(command, check=True)
+    except subprocess.CalledProcessError as error:
+        raise RuntimeError(
+            "FLUX Kontext proposal generation failed. "
+            "This is the real proposal-model step, not the local proxy. "
+            "Check model access/weights, CUDA memory, and diffusers version."
+        ) from error
+    proposal = proposal_dir / "proposal.png"
+    if not proposal.is_file():
+        raise RuntimeError(f"FLUX Kontext runner completed without {proposal}")
+    return proposal
 
 
 def main() -> None:
     args = parse_args()
+    if args.proposal and args.kontext_proposal:
+        raise ValueError("use either --proposal or --kontext-proposal, not both")
     missing = [str(path) for path in (args.plate, args.cg, args.alpha) if not path.exists()]
     if args.proposal and not args.proposal.exists():
         missing.append(str(args.proposal))
@@ -55,6 +117,8 @@ def main() -> None:
 
     config = load_config(args.config)
     updates = {"backend": "latent_delta_proxy"}
+    if args.kontext_proposal:
+        args.proposal = _run_kontext_proposal(args)
     if args.proposal:
         updates["latent_proposal_path"] = str(args.proposal)
     if args.delta_blur is not None:

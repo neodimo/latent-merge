@@ -6,17 +6,23 @@ intent, then apply a controlled delta back onto the original CG.
 
 ## Current Status
 
-`latent_delta_proxy` is runnable now. It is not the final model backbone. It is a
-workflow scaffold that keeps the trusted output contract stable while making the
-proposal/delta/shadow stages inspectable.
+`latent_delta_proxy` is runnable now. By itself it is not the final model
+backbone. It is a workflow scaffold that keeps the trusted output contract
+stable while making the proposal/delta/shadow stages inspectable.
 
 The current proposal source is either:
 
 - an external RGB proposal composite passed with `--proposal`, or
 - a deterministic local proxy when no proposal is supplied.
 
-The intended next proposal source is FLUX edit/control output, such as FLUX
-Kontext/Fill/Depth/Canny, once the right weights or API path are wired.
+The intended proposal source is FLUX edit/control output. `scripts/run_flux_kontext_proposal.py`
+is the first real proposal runner: it uses `black-forest-labs/FLUX.1-Kontext-dev`
+through Diffusers to produce `proposal.png`, then the Latent Delta stage extracts
+bounded lighting/color changes from that proposal.
+
+If no external proposal or Kontext proposal is supplied, the backend uses the
+local proxy. That proxy exists only to keep the workflow runnable and testable;
+it can look like PCT-Net because it is not the real FLUX edit model.
 
 ## CLI
 
@@ -45,6 +51,22 @@ PYTHONPATH=".deps:." python3 cli/run_latent_delta.py \
 
 The proposal image is interpreted as an RGB composite. The workflow recovers the
 foreground through alpha and extracts only low-frequency lighting/color deltas.
+
+Run it with a real FLUX Kontext proposal first:
+
+```bash
+PYTHONPATH=".deps:." python3 cli/run_latent_delta.py \
+  --plate fixtures/golden_synthetic_001/plate_rgb.png \
+  --cg fixtures/golden_synthetic_001/cg_rgba.png \
+  --alpha fixtures/golden_synthetic_001/alpha.png \
+  --kontext-proposal \
+  --output-dir runs/latent_delta_kontext
+```
+
+The Kontext runner requires access to `black-forest-labs/FLUX.1-Kontext-dev`,
+a recent Diffusers build with `FluxKontextPipeline`, and enough CUDA/CPU memory
+for a 12B image-editing model. It reads `HF_TOKEN`, `HUGGING_FACE_HUB_TOKEN`, or
+`~/.openclaw/secrets/hf_token` for gated Hugging Face access.
 
 ## Outputs
 
