@@ -53,6 +53,16 @@ def _checker(size: tuple[int, int], square: int = 16) -> Image.Image:
     return Image.fromarray(arr, "RGB")
 
 
+def _letterbox(img: Image.Image, size: tuple[int, int]) -> Image.Image:
+    fit = img.copy()
+    fit.thumbnail(size, Image.Resampling.LANCZOS)
+    canvas = Image.new("RGB", size, (24, 24, 28))
+    x = (size[0] - fit.width) // 2
+    y = (size[1] - fit.height) // 2
+    canvas.paste(fit.convert("RGB"), (x, y))
+    return canvas
+
+
 def _load_tile(path: Path, thumb: int) -> Image.Image:
     img = Image.open(path)
     if img.mode == "RGBA":
@@ -61,9 +71,7 @@ def _load_tile(path: Path, thumb: int) -> Image.Image:
         img = bg
     else:
         img = img.convert("RGB")
-    w, h = img.size
-    scale = thumb / max(w, 1)
-    return img.resize((thumb, max(1, int(h * scale))), Image.BILINEAR)
+    return _letterbox(img, (thumb, thumb))
 
 
 def _resolve(path_str: str, job_dir: Path, prefer_local: bool) -> Path | None:
@@ -102,7 +110,7 @@ def _frame_canvas(frame: dict[str, Any], pair: dict[str, Any] | None, thumb: int
             path = _resolve(entry, job_dir, prefer_local=True) if entry else None
         tiles.append(_load_tile(path, thumb) if path else None)
 
-    tile_h = max((tile.size[1] for tile in tiles if tile), default=thumb)
+    tile_h = thumb
     cell_w = thumb + PAD
     width = ROWLABEL_W + len(COLUMNS) * cell_w + PAD
     height = HEADER_H + LABEL_H + tile_h + PAD
