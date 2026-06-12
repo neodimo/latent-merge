@@ -76,6 +76,15 @@ trust safety are.
 - Standardized contact sheets generated per backend for the blind session.
 - Standardized sequence review videos generated for temporal/flicker review.
 
+## Artifact reporting policy
+
+Scoring and status updates must show representative case variety, not just the
+`golden_synthetic_001` toy fixture. Use the Blender reference cases and real
+plate/CG/alpha fixtures as the primary visual evidence, with before/after stills
+or contact sheets spanning multiple case types. The synthetic sphere/oval fixture
+is acceptable as a quick file-flow or Layer-1 regression sentinel, but it should
+not be the recurring headline artifact for visual-quality updates.
+
 ## Current status (2026-06-07)
 
 - ✅ Layer 1 implemented and tested (checks have teeth: a tampered plate trips the trust violation).
