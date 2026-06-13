@@ -148,6 +148,32 @@ def check_runtime(runtime: dict[str, Any], cfg: dict[str, Any]) -> list[dict[str
     return out
 
 
+def check_evidence_complete(outputs: dict[str, Any], runtime: dict[str, Any]) -> dict[str, Any]:
+    """Fail closed when a job lacks evidence required by the Layer-1 gate."""
+    missing: list[str] = []
+    if "raw_a_over_b" not in outputs:
+        missing.append("outputs.raw_a_over_b")
+    if not isinstance(runtime.get("duration_s"), (int, float)):
+        missing.append("runtime.duration_s")
+    if not isinstance(runtime.get("process_max_rss_mb"), (int, float)):
+        missing.append("runtime.process_max_rss_mb")
+
+    gpu = runtime.get("gpu_memory", {}) or {}
+    has_vram = isinstance(gpu.get("max_reserved_mb"), (int, float)) or isinstance(
+        gpu.get("max_allocated_mb"), (int, float)
+    )
+    if gpu.get("cuda_available") and not has_vram:
+        missing.append("runtime.gpu_memory.max_reserved_mb")
+
+    return _check(
+        "gate_evidence_complete",
+        len(missing),
+        0,
+        not missing,
+        missing=missing,
+    )
+
+
 def check_flicker(metrics_path: Path, cfg: dict[str, Any]) -> dict[str, Any]:
     data = json.loads(metrics_path.read_text(encoding="utf-8"))
     value = (data.get("max_final_comp_temporal_rmse")
@@ -175,13 +201,15 @@ def run(job_path: Path, config: dict[str, Any], sequence_metrics: Path | None) -
     final_comp = _load_rgb(_resolve(outputs["final_comp"], job_dir, prefer_local=True))
 
     checks: list[dict[str, Any]] = []
+    runtime = job.get("runtime", {}) or {}
+    checks.append(check_evidence_complete(outputs, runtime))
     checks.append(check_plate_untouched(plate, final_comp, alpha, config["plate_untouched"]))
 
     if "raw_a_over_b" in outputs:
         raw_over = _load_rgb(_resolve(outputs["raw_a_over_b"], job_dir, prefer_local=True))
         checks.append(check_edge_seam(raw_over, final_comp, alpha, config["edge_seam"]))
 
-    checks.extend(check_runtime(job.get("runtime", {}) or {}, config["runtime"]))
+    checks.extend(check_runtime(runtime, config["runtime"]))
 
     if sequence_metrics and sequence_metrics.is_file():
         checks.append(check_flicker(sequence_metrics, config["flicker"]))
