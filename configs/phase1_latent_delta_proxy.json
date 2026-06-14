@@ -1,0 +1,22 @@
+{
+  "backend": "latent_delta_proxy",
+  "notes": "Latent Merge constrained proposal/delta scaffold. Uses a local deterministic proposal until FLUX edit/control output is wired; applies only bounded foreground lighting/color delta to final_comp and stages shadow artifacts separately.",
+  "adjustment_strength": 1.0,
+  "delta_preview_gain": 4.0,
+  "correction_softness_px": 1.0,
+  "correction_choke_px": 0,
+  "vit_context": 0.55,
+  "vit_contrast": 0.75,
+  "vit_warmth": 0.0,
+  "vit_saturation": 1.0,
+  "vit_identity_lock": 0.55,
+  "latent_proposal_path": "",
+  "latent_delta_blur_px": 18.0,
+  "latent_luma_strength": 1.0,
+  "latent_color_strength": 0.35,
+  "latent_shadow_strength": 0.35,
+  "latent_shadow_offset_x": 14,
+  "latent_shadow_offset_y": 18,
+  "latent_shadow_blur_px": 18.0,
+  "latent_shadow_expand_px": 12
+}

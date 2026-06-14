@@ -83,12 +83,16 @@ BOOTSTRAP_PYTHON_URL = (
 )
 IMAGE_OUTPUTS = [
     ("raw_a_over_b", "Raw A-over-B"),
+    ("model_proposal", "Model Proposal"),
     ("final_comp", "Final Comp"),
     ("adjusted_fg", "Adjusted FG"),
+    ("lighting_delta", "Lighting Delta"),
     ("alpha_used", "Alpha"),
     ("correction_matte", "Correction Matte"),
     ("delta", "Delta"),
     ("alpha_weighted_delta", "Alpha Weighted Delta"),
+    ("shadow_matte", "Shadow Matte"),
+    ("shadow_preview_comp", "Shadow Preview"),
 ]
 
 
@@ -1093,8 +1097,15 @@ def _validate_runtime_inputs(cg: Path, plate: Path, alpha: Path) -> None:
 
 def _build_contact_sheet(job_dir: Path, job: dict) -> Path:
     thumbs = []
+    outputs = job.get("outputs", {})
     for key, label in IMAGE_OUTPUTS:
-        path = Path(job["outputs"][key])
+        if key not in outputs:
+            continue
+        path = Path(outputs[key])
+        if not path.is_file():
+            path = job_dir / "outputs" / path.name
+        if not path.is_file():
+            continue
         image = Image.open(path).convert("RGB")
         image.thumbnail((360, 240), Image.Resampling.LANCZOS)
         thumbs.append((label, image.copy()))
@@ -1127,8 +1138,8 @@ def _build_contact_sheet(job_dir: Path, job: dict) -> Path:
 def _run_ui_job(form: ParsedForm) -> dict:
     selected_gpu = _form_first(form, "gpu", "cpu")
     backend = _form_first(form, "backend", "pctnet")
-    if backend not in {"pctnet", "pctnet_vit_proxy", "ic_flux_v2", "mean_match_stub"}:
-        raise ValueError("backend must be pctnet, pctnet_vit_proxy, ic_flux_v2, or mean_match_stub")
+    if backend not in {"pctnet", "pctnet_vit_proxy", "ic_flux_v2", "latent_delta_proxy", "mean_match_stub"}:
+        raise ValueError("backend must be pctnet, pctnet_vit_proxy, ic_flux_v2, latent_delta_proxy, or mean_match_stub")
 
     ic_flux_package_dirs: dict[str, str] | None = None
     if backend == "ic_flux_v2":
@@ -1156,6 +1167,12 @@ def _run_ui_job(form: ParsedForm) -> dict:
     else:
         alpha_path = _derive_alpha(cg.first_frame, input_dir / "derived_alpha.png")
         alpha_count = 1
+    proposal_path: Path | None = None
+    proposal_count = 0
+    if any(isinstance(item, UploadedFile) and item.filename for item in form.get("proposal", [])):
+        proposal = _save_uploads(form, "proposal", input_dir / "proposal", SUPPORTED_B)
+        proposal_path = proposal.first_frame
+        proposal_count = proposal.count
 
     _validate_runtime_inputs(cg.first_frame, plate.first_frame, alpha_path)
 
@@ -1193,6 +1210,7 @@ def _run_ui_job(form: ParsedForm) -> dict:
         ic_flux_cond_strength=ic_flux_cond_strength,
         ic_flux_resolution=ic_flux_resolution,
         ic_flux_fp16=ic_flux_fp16,
+        latent_proposal_path=str(proposal_path) if backend == "latent_delta_proxy" and proposal_path else "",
     )
     previous_cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES")
     previous_ic_enabled = os.environ.get("LATENT_MERGE_ENABLE_IC_FLUX")
@@ -1243,10 +1261,12 @@ def _run_ui_job(form: ParsedForm) -> dict:
             "cg_frames_uploaded": cg.count,
             "plate_frames_uploaded": plate.count,
             "alpha_frames_uploaded": alpha_count,
+            "proposal_frames_uploaded": proposal_count,
             "active_frame": {
                 "cg": cg.first_frame.name,
                 "plate": plate.first_frame.name,
                 "alpha": alpha_path.name,
+                "proposal": proposal_path.name if proposal_path else "",
             },
         },
         "job_json": f"/file?path={job_path.relative_to(WORK_ROOT)}",
@@ -1258,6 +1278,7 @@ def _run_ui_job(form: ParsedForm) -> dict:
                 "url": f"/file?path={Path(job['outputs'][key]).relative_to(WORK_ROOT)}",
             }
             for key, label in IMAGE_OUTPUTS
+            if key in job["outputs"]
         ],
         "backend": job["backend_report"]["name"],
         "controls": {

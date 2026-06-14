@@ -19,6 +19,11 @@ Phase 2 swept harmonization **techniques** across the available **input fixtures
 
 Input-case variety is the known gap: see "Residual gate dependency" below.
 
+Artifact note: the synthetic fixture is useful for smoke/regression checks, but
+visual-quality posts should not keep leading with it. Scoring evidence should
+show a spread of Blender reference cases and real plate/CG/alpha cases so the
+review reflects actual compositing behavior instead of the toy fixture.
+
 ## GPU technique sweep (Gonzo, RTX 3080 Ti `cuda:0`)
 
 Metrics (lower = better): `fg_delta_mean` (identity drift), `mean_err_vs_plate`

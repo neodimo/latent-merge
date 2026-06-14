@@ -27,6 +27,12 @@ Long-term target: production-capable Nuke workflow for image sequences, 4K+, 16-
 - ComfyUI cloud is useful for the bakeoff as long as every graph is designed around localizable inputs/outputs.
 - Nuke implementation should likely start as a gizmo/Python node talking to a local Python/PyTorch inference service. Do not fight embedded Nuke Python/CUDA packaging before model behavior is proven.
 
+## Active Blocker - Real-Plate CG Intake Fixtures - 2026-06-12
+
+- DiMo corrected the fixture direction: a Blender CG layout rendered and then called the "plate" is not acceptable for the 10-20 representative cases.
+- The plate must be real-life photography. CG should then be inserted into that photographed environment, lit with an HDRI/matched lights, cast shadows into the environment, and use segmentation-level matting/holdouts when CG passes behind plate foreground elements.
+- Gonzo owns producing quick Blender scene files and Python generators that DiMo can open in Blender and inspect if needed.
+
 ## Phase 0 Progress - 2026-05-24
 
 - Gonzo created a deterministic local smoke harness at `scripts/smoke_pipeline.py`.

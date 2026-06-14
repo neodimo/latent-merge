@@ -69,6 +69,17 @@
                 <button type="button" data-browse="alphaInput">Browse</button>
                 <ul id="alphaList"></ul>
               </div>
+
+              <div class="dropzone compact" data-target="proposalInput">
+                <div class="drop-head">
+                  <strong>Proposal</strong>
+                  <span>Latent Delta only</span>
+                </div>
+                <p>Optional RGB proposal composite from Kontext/API/other model.</p>
+                <input id="proposalInput" name="proposal" type="file" accept=".png,.jpg,.jpeg" />
+                <button type="button" data-browse="proposalInput">Browse</button>
+                <ul id="proposalList"></ul>
+              </div>
             </div>
 
             <div class="actions">
@@ -94,6 +105,7 @@
               <select id="backendSelect">
                 <option value="pctnet">PCT-Net CNN</option>
                 <option value="pctnet_vit_proxy">PCT-Net ViT</option>
+                <option value="latent_delta_proxy">Latent Delta</option>
                 <option value="ic_flux_v2">IC Flux v2</option>
                 <option value="mean_match_stub">Mean Match Baseline</option>
               </select>

@@ -32,7 +32,9 @@ Reasoning:
 
 ## Acceptance Checklist
 
-Committed scoring sheet: [`PHASE2_SCORING.md`](PHASE2_SCORING.md). Known-fail list: [`PHASE2_KNOWN_FAILS.md`](PHASE2_KNOWN_FAILS.md).
+**Formal gate definition: [`PHASE2_GATE.md`](PHASE2_GATE.md)** (two-layer: automated hard-rejection + blind A/B visual scoring, with explicit pass criteria). Committed scoring sheet: [`PHASE2_SCORING.md`](PHASE2_SCORING.md). Known-fail list: [`PHASE2_KNOWN_FAILS.md`](PHASE2_KNOWN_FAILS.md).
+
+Note: the technique sweep in `PHASE2_SCORING.md` uses cheap proxy metrics that *rank* techniques but do **not** validate integration quality. The real gate is `PHASE2_GATE.md`.
 
 - ⚠️ 10 varied cases tested and recorded in the scoring sheet. **Met on technique breadth (12 GPU + CPU rounds + IC Flux across 2 fixtures), recorded in `PHASE2_SCORING.md`. NOT met on input-case variety (2 stills + 1 proxy sequence); blocked on DiMo's representative cases per `NEXT_STEPS.md` — see known-fail #4.**
 - ✅ At least 1 short proxy sequence tested for flicker. **`fixtures/synthetic_sequence_001` + `scripts/evaluate_sequence_flicker.py`; metrics in `PHASE2_SCORING.md`.**
@@ -40,7 +42,7 @@ Committed scoring sheet: [`PHASE2_SCORING.md`](PHASE2_SCORING.md). Known-fail li
 - ✅ Explicit known-fail list committed. **`PHASE2_KNOWN_FAILS.md`.**
 - ✅ Packaged UI behavior treated as the user-facing contract for this gate. **Locked surface above; shipped as v0.1.0-phase1-pctnet-v21 Linux/Windows binaries.**
 
-Gate status: **surface lock + evaluation evidence wrapped; one acceptance item (input-case variety) carried forward as a project-level intake dependency, not a code gap.**
+Gate status: **defined + Layer 1 ready, not yet passed.** Surface lock and evaluation evidence are wrapped; the gate is now formally defined in `PHASE2_GATE.md` with automated hard-rejection checks implemented (`scripts/phase2_rejection_checks.py`) and per-backend contact sheets (`scripts/phase2_contact_sheet.py`). Remaining to *pass*: a locked 10–20 case eval set (DiMo intake) and a completed blind A/B scoring session meeting the criteria. Operational readiness is done; quality is gated, not yet certified.
 
 ## Scoring Shape
 
@@ -65,6 +67,7 @@ Added artifacts:
 - `fixtures/synthetic_sequence_001/` - deterministic 6-frame SDR proxy sequence.
 - `scripts/create_sequence_fixture.py` - regenerates that fixture.
 - `scripts/evaluate_sequence_flicker.py` - runs a sequence through the normal Phase 1 pipeline and writes `sequence_metrics.json`.
+- `scripts/phase2_sequence_video.py` - renders a Discord-viewable MP4 for temporal/flicker review from `sequence_metrics.json`.
 - `core/pipeline.py` now records per-run `runtime` telemetry in `job.json`, including duration, process RSS, CUDA visibility, GPU name, total VRAM, and torch peak allocated/reserved memory.
 - `scripts/overnight_sweep.py` now records process memory and `nvidia-smi` snapshots per backend.
 
@@ -102,6 +105,7 @@ Rerun commands:
 ```bash
 PYTHONPATH=".deps:." python3 scripts/create_sequence_fixture.py --out-dir fixtures/synthetic_sequence_001 --frames 6 --width 384 --height 216
 CUDA_VISIBLE_DEVICES=0 PYTHONPATH=".deps:." python3 scripts/evaluate_sequence_flicker.py --sequence-dir fixtures/synthetic_sequence_001 --output-dir runs/phase2_sequence_synthetic_001_pctnet_cuda0 --config configs/phase1_pctnet.json
+PYTHONPATH=".deps:." python3 scripts/phase2_sequence_video.py --sequence-metrics runs/phase2_sequence_synthetic_001_pctnet_cuda0/sequence_metrics.json --out runs/phase2_sequence_synthetic_001_pctnet_cuda0/sequence_review.mp4 --title "Phase 2 sequence review"
 CUDA_VISIBLE_DEVICES=0 PYTHONPATH=".deps:." python3 cli/run_phase1.py --config configs/phase1_pctnet.json --plate fixtures/golden_synthetic_001/plate_rgb.png --cg fixtures/golden_synthetic_001/cg_rgba.png --alpha fixtures/golden_synthetic_001/alpha.png --output-dir runs/phase2_cuda0_pctnet_sweep/golden_synthetic_001
 CUDA_VISIBLE_DEVICES=0 PYTHONPATH=".deps:." python3 cli/run_phase1.py --config configs/phase1_pctnet.json --plate fixtures/compositingpro_sh009_minimal/plate_rgb.png --cg fixtures/compositingpro_sh009_minimal/cg_rgba.png --alpha fixtures/compositingpro_sh009_minimal/alpha.png --output-dir runs/phase2_cuda0_pctnet_sweep/compositingpro_sh009_minimal
 ```
