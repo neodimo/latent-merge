@@ -112,7 +112,7 @@ MODEL_PACKAGES = [
         label="IC-Light V2 ControlNet",
         repo_id=os.environ.get("LATENT_MERGE_IC_LIGHT_REPO", "lllyasviel/ic-light"),
         local_dir=Path(os.environ.get("LATENT_MERGE_IC_FLUX_WEIGHTS", str(WEIGHTS_ROOT / "ic-light-v2"))),
-        required_any=(("config.json", "iclight_sd15_fc.safetensors"),),
+        required_any=(("config.json",),),
     ),
     ModelPackage(
         key="flux1-dev",

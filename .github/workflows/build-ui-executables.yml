@@ -17,6 +17,7 @@ on:
       - "models/**"
       - "requirements.txt"
       - "scripts/**"
+      - "tests/**"
       - "ui/**"
   pull_request:
     paths:
@@ -26,6 +27,7 @@ on:
       - "models/**"
       - "requirements.txt"
       - "scripts/**"
+      - "tests/**"
       - "ui/**"
 
 concurrency:
@@ -80,6 +82,7 @@ jobs:
       - name: Product smoke
         shell: bash
         run: |
+          python -m unittest discover -s tests
           python cli/run_phase1.py \
             --config configs/phase1_pctnet.json \
             --output-dir runs/ci_pctnet_smoke
