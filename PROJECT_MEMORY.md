@@ -21,6 +21,7 @@ Long-term target: production-capable Nuke workflow for image sequences, 4K+, 16-
 ## Current Consensus
 
 - The right v0 is not a fully automatic magic compositor. It is a foreground-preserving harmonization/relighting tool.
+- Keep research and implementation anchored to the actual Latent Merge goal and visual evidence. Stop investing in a workflow when representative tests show it is fundamentally producing the wrong behavior; do not tune around a broken premise. At the same time, remain open to new models and workflows that can demonstrably outperform and replace the current approach without weakening the core A/B/alpha contract.
 - Start aggressively at 512-1024px crops/proxies to get visual signal fast.
 - Test image sequences early at low resolution so flicker risks are visible from the beginning.
 - Do not train a new model from scratch first. Run an offline model bakeoff using existing models/graphs, then localize the winner into a Nuke-facing service.

@@ -10,6 +10,7 @@ Origin: Discord `#project-planning`, 2026-05-20.
 - `PHASE0.md` - executable Phase 0 smoke contract and exact file paths
 - `PHASE1.md` - Phase 1 scaffold contract and backend interface
 - `PHASE2.md` - Phase 2 evaluation gate and locked user surface
+- `PHASE3.md` - Phase 3 alpha release checkpoint (2026-06-14)
 - `NEXT_STEPS.md` - immediate bakeoff plan and success criteria
 - `REFERENCES.md` - candidate models, papers, and product baselines
 - `HARDWARE.md` - current local hardware notes and eGPU implications
