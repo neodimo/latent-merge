@@ -1,0 +1,92 @@
+{
+  "schema": "latent-merge.phase1-run.v1",
+  "created_utc": "2026-06-16T14:11:16.926572+00:00",
+  "config": {
+    "backend": "pctnet",
+    "tier": "compact-8",
+    "notes": "Phase 1 PCT-Net backend \u2014 compact-8 tier (fp16, ~8 GB VRAM). Uses rakutentech/PCT-Net CNN harmonization. Foreground-only harmonization; plate untouched.",
+    "adjustment_strength": 1.0,
+    "delta_preview_gain": 1.0,
+    "correction_softness_px": 0.0,
+    "correction_choke_px": 0,
+    "vit_context": 0.45,
+    "vit_contrast": 0.65,
+    "vit_warmth": 0.0,
+    "vit_saturation": 1.0,
+    "vit_identity_lock": 0.35,
+    "ic_flux_seed": 42,
+    "ic_flux_steps": 20,
+    "ic_flux_cfg": 3.5,
+    "ic_flux_cond_strength": 0.75,
+    "ic_flux_resolution": 768,
+    "ic_flux_fp16": true,
+    "latent_proposal_path": "",
+    "latent_delta_blur_px": 18.0,
+    "latent_luma_strength": 1.0,
+    "latent_color_strength": 0.35,
+    "latent_shadow_strength": 0.0,
+    "latent_shadow_offset_x": 14,
+    "latent_shadow_offset_y": 18,
+    "latent_shadow_blur_px": 18.0,
+    "latent_shadow_expand_px": 12
+  },
+  "inputs": {
+    "plate_rgb": {
+      "path": "reports/phase3-pctnet-real-plate-fixtures-20260616/inputs/meeting_room/plate_rgb.png",
+      "sha256": "543cb2074d3d91322df4d411d2485142a8de8ae470c05cb2c7556c3a2f251bd2"
+    },
+    "cg_rgba": {
+      "path": "reports/phase3-pctnet-real-plate-fixtures-20260616/inputs/meeting_room/cg_rgba.png",
+      "sha256": "c73dd389b3abb14fd00db71617cb47cdffc386cdc83d163091ef6aa0617f51cd"
+    },
+    "alpha": {
+      "path": "reports/phase3-pctnet-real-plate-fixtures-20260616/inputs/meeting_room/alpha.png",
+      "sha256": "1b8c462ec7912e57e2d8d83588f66c552c5e4e858e97d256d06294b773477b94"
+    }
+  },
+  "outputs": {
+    "raw_a_over_b": "reports/phase3-pctnet-real-plate-fixtures-20260616/runs/meeting_room_pctnet/raw_a_over_b.png",
+    "adjusted_fg": "reports/phase3-pctnet-real-plate-fixtures-20260616/runs/meeting_room_pctnet/adjusted_fg.png",
+    "final_comp": "reports/phase3-pctnet-real-plate-fixtures-20260616/runs/meeting_room_pctnet/final_comp.png",
+    "delta": "reports/phase3-pctnet-real-plate-fixtures-20260616/runs/meeting_room_pctnet/delta.png",
+    "alpha_weighted_delta": "reports/phase3-pctnet-real-plate-fixtures-20260616/runs/meeting_room_pctnet/alpha_weighted_delta.png",
+    "alpha_used": "reports/phase3-pctnet-real-plate-fixtures-20260616/runs/meeting_room_pctnet/alpha_used.png",
+    "correction_matte": "reports/phase3-pctnet-real-plate-fixtures-20260616/runs/meeting_room_pctnet/correction_matte.png"
+  },
+  "backend_report": {
+    "name": "pctnet",
+    "model_type": "PCTNet",
+    "model_variant": "CNN",
+    "tier": "compact-8",
+    "model_input": "composite_rgb_plus_alpha_mask",
+    "foreground_reconstruction": "harmonized_composite_minus_plate_divided_by_alpha"
+  },
+  "runtime": {
+    "duration_s": 2.2702,
+    "process_max_rss_mb": 1715.69,
+    "process_rss_delta_mb": 1623.8,
+    "gpu_memory": {
+      "torch_available": true,
+      "cuda_available": true,
+      "device_index": 0,
+      "device_name": "NVIDIA GeForce RTX 3080 Ti",
+      "total_vram_mb": 11910,
+      "allocated_mb": 12.33,
+      "reserved_mb": 162.0,
+      "max_allocated_mb": 95.53,
+      "max_reserved_mb": 162.0
+    },
+    "cuda_visible_devices": "0"
+  },
+  "contract": {
+    "plate_repainted": false,
+    "primary_model_output": "adjusted foreground RGBA",
+    "trusted_composite": "normal A-over-B over original plate",
+    "interaction_passes": [
+      "delta",
+      "alpha_weighted_delta",
+      "correction_matte"
+    ],
+    "shadow_preview_applied_to_final_comp": false
+  }
+}

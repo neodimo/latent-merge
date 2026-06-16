@@ -1,0 +1,58 @@
+[
+  {
+    "case": "meeting_room",
+    "run": "meeting_room_pctnet",
+    "duration_s": 2.2702,
+    "max_reserved_vram_mb": 162.0,
+    "process_max_rss_mb": 1715.69,
+    "fg_delta_mean_alpha_gt_002": 0.088647,
+    "final_vs_raw_delta_mean_alpha_gt_002": 0.087496,
+    "plate_untouched": {
+      "check": "plate_untouched",
+      "value": 0.00392,
+      "threshold": 0.012,
+      "pass": true,
+      "mean_abs_delta": 0.0,
+      "pixels_checked": 898627
+    },
+    "edge_seam": {
+      "check": "edge_seam",
+      "value": 1.1362,
+      "threshold": 1.25,
+      "pass": true,
+      "raw_edge_energy": 0.06502,
+      "final_edge_energy": 0.07388,
+      "band_pixels": 4468
+    },
+    "overall_pass": true,
+    "trust_contract_violation": false
+  },
+  {
+    "case": "table_edge",
+    "run": "table_edge_pctnet",
+    "duration_s": 2.2194,
+    "max_reserved_vram_mb": 162.0,
+    "process_max_rss_mb": 1715.51,
+    "fg_delta_mean_alpha_gt_002": 0.114724,
+    "final_vs_raw_delta_mean_alpha_gt_002": 0.114024,
+    "plate_untouched": {
+      "check": "plate_untouched",
+      "value": 0.00392,
+      "threshold": 0.012,
+      "pass": true,
+      "mean_abs_delta": 0.0,
+      "pixels_checked": 888673
+    },
+    "edge_seam": {
+      "check": "edge_seam",
+      "value": 1.2297,
+      "threshold": 1.25,
+      "pass": true,
+      "raw_edge_energy": 0.02526,
+      "final_edge_energy": 0.03106,
+      "band_pixels": 4535
+    },
+    "overall_pass": true,
+    "trust_contract_violation": false
+  }
+]

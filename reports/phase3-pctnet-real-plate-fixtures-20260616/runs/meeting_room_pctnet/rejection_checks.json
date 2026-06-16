@@ -1,0 +1,52 @@
+{
+  "schema": "latent-merge.phase2-rejection.v1",
+  "job": "reports/phase3-pctnet-real-plate-fixtures-20260616/runs/meeting_room_pctnet/job.json",
+  "overall_pass": true,
+  "trust_contract_violation": false,
+  "checks_passed": 6,
+  "checks_applicable": 6,
+  "checks": [
+    {
+      "check": "gate_evidence_complete",
+      "value": 0,
+      "threshold": 0,
+      "pass": true,
+      "missing": []
+    },
+    {
+      "check": "plate_untouched",
+      "value": 0.00392,
+      "threshold": 0.012,
+      "pass": true,
+      "mean_abs_delta": 0.0,
+      "pixels_checked": 898627
+    },
+    {
+      "check": "edge_seam",
+      "value": 1.1362,
+      "threshold": 1.25,
+      "pass": true,
+      "raw_edge_energy": 0.06502,
+      "final_edge_energy": 0.07388,
+      "band_pixels": 4468
+    },
+    {
+      "check": "runtime_duration_s",
+      "value": 2.2702,
+      "threshold": 30.0,
+      "pass": true
+    },
+    {
+      "check": "runtime_process_rss_mb",
+      "value": 1715.69,
+      "threshold": 11000.0,
+      "pass": true
+    },
+    {
+      "check": "runtime_reserved_vram_mb",
+      "value": 162.0,
+      "threshold": 11000.0,
+      "pass": true
+    }
+  ]
+}
