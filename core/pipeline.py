@@ -479,6 +479,35 @@ def _runtime_telemetry(start_time: float, start_rss_kb: int | None) -> dict[str,
     }
 
 
+def _fixture_metadata_for_input(path: Path) -> tuple[Path, dict[str, Any]] | None:
+    """Return nearby fixture metadata for provenance stamping."""
+    start = path.resolve().parent
+    root = Path(__file__).resolve().parents[1]
+    for directory in (start, *start.parents):
+        for name in ("fixture.json", "manifest.json"):
+            candidate = directory / name
+            if candidate.is_file():
+                return candidate, json.loads(candidate.read_text(encoding="utf-8"))
+        if directory == root:
+            break
+    return None
+
+
+def _input_provenance(inputs: PipelineInputs) -> dict[str, Any]:
+    metadata = _fixture_metadata_for_input(inputs.plate_rgb)
+    if metadata is None:
+        return {
+            "plate_provenance": "unknown",
+            "source": f"no fixture metadata near {inputs.plate_rgb}",
+        }
+    metadata_path, payload = metadata
+    value = payload.get("plate_provenance", "unknown")
+    return {
+        "plate_provenance": value if isinstance(value, str) else "unknown",
+        "source": str(metadata_path),
+    }
+
+
 def _python_venv_candidates(root: Path) -> list[Path]:
     if os.name == "nt":
         return [root / ".ic-flux-venv" / "Scripts" / "python.exe", root / ".venv" / "Scripts" / "python.exe"]
@@ -841,6 +870,7 @@ def run_pipeline(inputs: PipelineInputs, output_dir: Path, config: PipelineConfi
     job = {
         "schema": "latent-merge.phase1-run.v1",
         "created_utc": datetime.now(timezone.utc).isoformat(),
+        "provenance": _input_provenance(inputs),
         "config": {
             "backend": config.backend,
             "tier": config.tier,

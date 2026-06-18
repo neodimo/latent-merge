@@ -10,6 +10,7 @@ human/visual scoring:
                       trust-contract violation.
   - edge_seam       : the matte edge must not gain halos/seams beyond the raw
                       A-over-B composite (heuristic gradient-energy guard).
+  - plate_provenance: quality-gate jobs must use photographic plates.
   - runtime         : duration / process RSS / reserved VRAM stay under ceilings.
   - flicker         : sequence cases only; max temporal RMSE under ceiling
                       (consumes sequence_metrics.json).
@@ -64,6 +65,65 @@ def _resolve(path_str: str, job_dir: Path, prefer_local: bool = False) -> Path:
         if c.is_file():
             return c
     raise FileNotFoundError(f"Could not resolve {path_str} (job_dir={job_dir})")
+
+
+def _metadata_from_path(path: Path, stop_at: Path = ROOT) -> tuple[Path, dict[str, Any]] | None:
+    """Find fixture metadata near an input path.
+
+    Fixture roots use fixture.json; the Blender smoke set currently uses
+    manifest.json. Old report jobs may contain copied inputs with no nearby
+    metadata, so callers must fail closed when this returns None.
+    """
+    try:
+        resolved = path.resolve()
+    except FileNotFoundError:
+        resolved = path
+    search_roots = [resolved.parent if resolved.suffix else resolved]
+    search_roots.extend(search_roots[0].parents)
+    try:
+        stop = stop_at.resolve()
+    except FileNotFoundError:
+        stop = stop_at
+
+    for directory in search_roots:
+        for name in ("fixture.json", "manifest.json"):
+            candidate = directory / name
+            if candidate.is_file():
+                return candidate, json.loads(candidate.read_text(encoding="utf-8"))
+        if directory == stop:
+            break
+    return None
+
+
+def resolve_plate_provenance(job: dict[str, Any], inputs: dict[str, Any], job_dir: Path) -> dict[str, Any]:
+    recorded = job.get("plate_provenance")
+    if isinstance(recorded, str):
+        return {"plate_provenance": recorded, "source": "job.plate_provenance"}
+
+    provenance = job.get("provenance", {})
+    if isinstance(provenance, dict) and isinstance(provenance.get("plate_provenance"), str):
+        return {
+            "plate_provenance": provenance["plate_provenance"],
+            "source": "job.provenance.plate_provenance",
+        }
+
+    plate_info = inputs.get("plate_rgb", {})
+    if not isinstance(plate_info, dict) or "path" not in plate_info:
+        return {"plate_provenance": "unknown", "source": "missing inputs.plate_rgb.path"}
+
+    plate_path = _resolve(plate_info["path"], job_dir)
+    metadata = _metadata_from_path(plate_path)
+    if metadata is None:
+        return {
+            "plate_provenance": "unknown",
+            "source": f"no fixture metadata near {plate_path}",
+        }
+    metadata_path, payload = metadata
+    value = payload.get("plate_provenance", "unknown")
+    return {
+        "plate_provenance": value if isinstance(value, str) else "unknown",
+        "source": str(metadata_path),
+    }
 
 
 def _luma(rgb: np.ndarray) -> np.ndarray:
@@ -174,6 +234,17 @@ def check_evidence_complete(outputs: dict[str, Any], runtime: dict[str, Any]) ->
     )
 
 
+def check_plate_provenance(provenance: dict[str, Any]) -> dict[str, Any]:
+    value = provenance["plate_provenance"]
+    return _check(
+        "plate_provenance_photographic",
+        value,
+        "photographic",
+        value == "photographic",
+        source=provenance["source"],
+    )
+
+
 def check_flicker(metrics_path: Path, cfg: dict[str, Any]) -> dict[str, Any]:
     data = json.loads(metrics_path.read_text(encoding="utf-8"))
     value = (data.get("max_final_comp_temporal_rmse")
@@ -193,6 +264,7 @@ def run(job_path: Path, config: dict[str, Any], sequence_metrics: Path | None) -
 
     inputs = job.get("inputs", {})
     outputs = job.get("outputs", {})
+    provenance = resolve_plate_provenance(job, inputs, job_dir)
     plate = _load_rgb(_resolve(inputs["plate_rgb"]["path"], job_dir))
     if "alpha_used" in outputs:
         alpha = _load_alpha(_resolve(outputs["alpha_used"], job_dir, prefer_local=True))
@@ -203,6 +275,7 @@ def run(job_path: Path, config: dict[str, Any], sequence_metrics: Path | None) -
     checks: list[dict[str, Any]] = []
     runtime = job.get("runtime", {}) or {}
     checks.append(check_evidence_complete(outputs, runtime))
+    checks.append(check_plate_provenance(provenance))
     checks.append(check_plate_untouched(plate, final_comp, alpha, config["plate_untouched"]))
 
     if "raw_a_over_b" in outputs:
@@ -231,6 +304,8 @@ def run(job_path: Path, config: dict[str, Any], sequence_metrics: Path | None) -
         "trust_contract_violation": trust_violation,
         "checks_passed": sum(1 for c in applicable if c["pass"]),
         "checks_applicable": len(applicable),
+        "plate_provenance": provenance["plate_provenance"],
+        "plate_provenance_source": provenance["source"],
         "checks": checks,
     }
 
