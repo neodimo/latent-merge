@@ -1,7 +1,7 @@
-"""Create quick real-plate Blender fixtures for Phase 2 intake.
+"""Create smoke-only Blender fixtures for Phase 2 plumbing.
 
 Run with:
-    blender --background --python scripts/create_real_plate_blender_fixtures.py
+    blender --background --python scripts/create_smoke_blender_fixtures.py
 
 The scenes are intentionally simple and inspectable:
 - real-life photography is used as the plate/background reference
@@ -23,7 +23,7 @@ from mathutils import Vector
 
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "fixtures" / "real_plate_blender"
+OUT = ROOT / "fixtures" / "smoke_blender_set"
 ASSETS = OUT / "assets"
 SCENES = OUT / "scenes"
 
@@ -363,8 +363,8 @@ def write_manifest(scene_entries: list[dict[str, str]]) -> None:
         },
         "scenes": scene_entries,
         "open_in_blender": [
-            "fixtures/real_plate_blender/scenes/real_plate_meeting_room_shadow.blend",
-            "fixtures/real_plate_blender/scenes/real_plate_table_edge_occlusion.blend",
+            "fixtures/smoke_blender_set/scenes/smoke_meeting_room_shadow.blend",
+            "fixtures/smoke_blender_set/scenes/smoke_table_edge_occlusion.blend",
         ],
     }
     (OUT / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")

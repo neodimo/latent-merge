@@ -1,39 +1,41 @@
 {
+  "plate_provenance": "blender_smoke",
+  "_provenance_note": "MISLABELED as real_plate. Plate is Blender/EEVEE-mediated, not pristine photography. Does NOT satisfy LOCKED L1. Plumbing/smoke only. Rename to smoke_blender_set.",
   "purpose": "Real-photo plate Blender fixtures for Phase 2 Layer-1/Layer-2 intake.",
   "blocked_requirement": "Use real-life photography as plate, add CG with HDRI lighting, shadow interaction, and segmentation-level matte occlusion when foreground objects overlap CG.",
   "sources": {
     "meeting_room_plate": {
       "url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Minimalist%20meeting%20room%20%28Unsplash%29.jpg",
-      "path": "fixtures/real_plate_blender/assets/minimalist_meeting_room_unsplash.jpg",
+      "path": "fixtures/smoke_blender_set/assets/minimalist_meeting_room_unsplash.jpg",
       "credit": "Wikimedia Commons: File:Minimalist meeting room (Unsplash).jpg",
       "license": "Unsplash upload on Commons; verify file page before redistribution."
     },
     "table_edge_plate": {
       "url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Photographer%27s%20table%20edge%20%28Unsplash%29.jpg",
-      "path": "fixtures/real_plate_blender/assets/photographers_table_edge_unsplash.jpg",
+      "path": "fixtures/smoke_blender_set/assets/photographers_table_edge_unsplash.jpg",
       "credit": "Wikimedia Commons: File:Photographer's table edge (Unsplash).jpg",
       "license": "Unsplash upload on Commons; verify file page before redistribution."
     },
     "studio_hdri": {
       "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/studio_small_08_1k.hdr",
-      "path": "fixtures/real_plate_blender/assets/studio_small_08_1k.hdr",
+      "path": "fixtures/smoke_blender_set/assets/studio_small_08_1k.hdr",
       "credit": "Poly Haven: studio_small_08",
       "license": "CC0"
     }
   },
   "scenes": [
     {
-      "scene": "fixtures/real_plate_blender/scenes/real_plate_meeting_room_shadow.blend",
-      "plate": "fixtures/real_plate_blender/assets/minimalist_meeting_room_unsplash.jpg"
+      "scene": "fixtures/smoke_blender_set/scenes/smoke_meeting_room_shadow.blend",
+      "plate": "fixtures/smoke_blender_set/assets/minimalist_meeting_room_unsplash.jpg"
     },
     {
-      "scene": "fixtures/real_plate_blender/scenes/real_plate_table_edge_occlusion.blend",
-      "plate": "fixtures/real_plate_blender/assets/photographers_table_edge_unsplash.jpg",
-      "matte": "fixtures/real_plate_blender/assets/table_edge_foreground_segmentation_matte.png"
+      "scene": "fixtures/smoke_blender_set/scenes/smoke_table_edge_occlusion.blend",
+      "plate": "fixtures/smoke_blender_set/assets/photographers_table_edge_unsplash.jpg",
+      "matte": "fixtures/smoke_blender_set/assets/table_edge_foreground_segmentation_matte.png"
     }
   ],
   "open_in_blender": [
-    "fixtures/real_plate_blender/scenes/real_plate_meeting_room_shadow.blend",
-    "fixtures/real_plate_blender/scenes/real_plate_table_edge_occlusion.blend"
+    "fixtures/smoke_blender_set/scenes/smoke_meeting_room_shadow.blend",
+    "fixtures/smoke_blender_set/scenes/smoke_table_edge_occlusion.blend"
   ]
 }

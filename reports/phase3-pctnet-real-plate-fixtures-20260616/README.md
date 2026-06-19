@@ -1,4 +1,10 @@
-# Phase 3 PCT-Net Real-Plate Blender Fixtures - 2026-06-16
+# Phase 3 PCT-Net Blender Smoke Fixtures - 2026-06-16
+
+> ⚠️ **SMOKE ONLY — NOT QUALITY EVIDENCE**
+> The plate in `smoke_blender_set/scenes/` is Blender-mediated (EEVEE render), not
+> pristine photography. This does NOT satisfy LOCKED L1. These cases exercise
+> plumbing only and must never enter a quality table or gate record without the
+> `blender_smoke` provenance label.
 
 Source revision: `b381ca6` (`main`, `origin/main`)
 
@@ -11,13 +17,13 @@ photo plates and alpha mattes, then ran the Phase 1 PCT-Net backend.
 Commands:
 
 ```bash
-blender --background --python scripts/validate_real_plate_blender_fixtures.py
+blender --background --python scripts/validate_smoke_blender_fixtures.py
 
-blender --background fixtures/real_plate_blender/scenes/real_plate_meeting_room_shadow.blend \
+blender --background fixtures/smoke_blender_set/scenes/smoke_meeting_room_shadow.blend \
   --python-expr "import bpy; bpy.context.scene['validation_out_dir']='reports/phase3-pctnet-real-plate-fixtures-20260616/inputs/meeting_room'" \
   --python reports/phase3-real-plate-validation-20260615/render_blender_inputs.py
 
-blender --background fixtures/real_plate_blender/scenes/real_plate_table_edge_occlusion.blend \
+blender --background fixtures/smoke_blender_set/scenes/smoke_table_edge_occlusion.blend \
   --python-expr "import bpy; bpy.context.scene['validation_out_dir']='reports/phase3-pctnet-real-plate-fixtures-20260616/inputs/table_edge'" \
   --python reports/phase3-real-plate-validation-20260615/render_blender_inputs.py
 
@@ -56,7 +62,7 @@ produce the full expected output family.
 
 - `fixture_validator.log` - Blender fixture validator output.
 - `summary_metrics.json` - compact metrics extracted from jobs and Layer-1 checks.
-- `pctnet_real_plate_blender_contact_sheet.png` - full still review sheet.
+- `pctnet_real_plate_blender_contact_sheet.png` - full still review sheet. ⚠️ SMOKE ONLY — see provenance banner above.
 - `pctnet_alpha_edge_review.png` - zoomed alpha-edge review sheet.
 - `runs/meeting_room_pctnet/` and `runs/table_edge_pctnet/` - full PCT-Net output families.
 

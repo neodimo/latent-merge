@@ -1,7 +1,7 @@
 """Validate the committed real-plate Blender fixtures without modifying them.
 
 Run with:
-    blender --background --python scripts/validate_real_plate_blender_fixtures.py
+    blender --background --python scripts/validate_smoke_blender_fixtures.py
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import bpy
 
 
 ROOT = Path(__file__).resolve().parents[1]
-FIXTURE_DIR = ROOT / "fixtures" / "real_plate_blender"
+FIXTURE_DIR = ROOT / "fixtures" / "smoke_blender_set"
 MANIFEST_PATH = FIXTURE_DIR / "manifest.json"
 
 

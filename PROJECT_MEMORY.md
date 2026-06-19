@@ -4,6 +4,16 @@ Project channel: `#latent-merge` planned.
 Origin: Discord `#project-planning`, 2026-05-20.
 People/agents involved so far: DiMo, Gonzo, Bert, Claude Bot research passes.
 
+## 2026-06-17 — Reset (read LOCKED.md + WORKFLOW.md)
+
+Omid called out an AI-slop spiral on relight/integrate plus repeated failure to apply his test-case changes. Evidence-based root causes:
+
+- Fake test data. Only `compositingpro_sh009` is a real photographic plate. `smoke_blender_set` (renamed 2026-06-19 from mislabeled `real_plate_blender`) is Blender-mediated; phase3 "real-plate validation" (06-15/16) ran on these fixtures — smoke only, not quality evidence.
+- Relight never ran. IC-Light v2 = wrong weights (SD1.5 FC not FLUX ControlNet), no `config.json`, HTTP 400, 0 MiB GPU. Every result is PCT-Net color-match; no real relight has ever been produced.
+- Instruction loss. Daily notes died 06-11; the 06-12 correction lived only here and got ignored. memory_search disabled (index model mismatch).
+
+Fix actuated: `LOCKED.md` (non-negotiables), `WORKFLOW.md` (Gonzo/Bert lanes + session protocol + fixture law + token discipline), `NEXT_STEPS.md` rewritten as a live board, `fixtures/README.md` provenance + `plate_provenance` stamps. These now govern the project.
+
 ## Goal
 
 Build a Nuke node/tool that acts like a smarter Merge for VFX integration:

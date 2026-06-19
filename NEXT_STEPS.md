@@ -1,58 +1,23 @@
-# Next Steps
+# Next Steps — Live Board (updated 2026-06-17)
 
-## Immediate Spike
+Read `LOCKED.md` first. This board reflects REAL state, not aspiration.
 
-Run a two-week offline model bakeoff before building too much Nuke code.
+**Status: Bert paused (crons/heartbeats off) 06-17 — Gonzo solo on this project for now.**
 
-Needed from DiMo/team:
+## Reality check (2026-06-17)
 
-- 20-30 representative CG-over-plate test cases if available
-- CG RGBA
-- plate
-- alpha/matte
-- desired artist comp/reference if available
-- optional depth/normal/AOVs
-- at least a few short sequences, even if proxy/cropped, to expose flicker early
+- Only real-plate case we have: `compositingpro_sh009`. Everything else is synthetic or Blender-mediated.
+- IC-Light v2 (the relight lane) has NEVER run: wrong weights (SD1.5 FC, not FLUX ControlNet), no `config.json`, HTTP 400, 0 MiB GPU. All "results" to date are PCT-Net color-match only — no real relight has ever been produced.
+- Phase3 "real-plate validation" (06-15/06-16) ran headline cases on Blender plates. Those PASS 5/5 numbers are plumbing on fake data, not quality evidence.
 
-## Candidate First Tests
+## Current cycle (in order)
 
-- PCT-Net or AICT-style color-transform baseline
-- IC-Light / IC-Light V2 / FLUX relighting graph via ComfyUI cloud or fal.ai
-- DiffHarmony++ / harmonization baseline
-- ControlCom if accessible
-- DreamLight/CFDiffusion if accessible and practical
+1. [Gonzo] Build a small REAL-plate eval set the sh009 way: 5-8 cases, pristine photographic plates (B untouched), CG inserted A-over-B, HDRI matched per plate (not a generic 1k studio), contact-shadow + segmentation holdout where needed. Stamp `plate_provenance: photographic`.
+2. [Gonzo] Unblock ONE real relight backend on the 3080 Ti: fix IC-Light v2 weights/contract (correct package + `config.json`) OR stand up IC-Light/FLUX relight via local diffusers. Goal: first actual relight output to compare against PCT-Net.
+3. [Gonzo] On the real-plate set, produce a side-by-side raw A-over-B vs PCT-Net vs relight contact sheet + run Layer-1. Post to channel.
+4. [Gonzo] Add `plate_provenance` to the gate so non-photographic cases cannot enter a quality table; relabel existing reports accordingly. (was Bert's; folded in while Bert is paused)
+5. [Gonzo] ✅ DONE 2026-06-19. Renamed `fixtures/real_plate_blender` -> `fixtures/smoke_blender_set`; scripts renamed and updated; smoke-only warning added to phase3 report README.
 
-Current priority after DiMo/Gonzo handoff:
+## Needs Omid (one decision)
 
-1. Use the Compositing Pro free Nuke CG compositing tutorial files as the first practical non-synthetic case.
-2. Simplify the fixture to only:
-   - plate
-   - CG creature foreground
-   - alpha/matte
-3. Ignore extra render passes for the first proof, even if the download contains them.
-4. Try PCT-Net/AICT-style harmonization first because it is likely cheaper, more deterministic, and less identity-drifting than diffusion.
-5. Keep IC-Light V2 / FLUX as a parallel option to evaluate after the baseline is wired, especially if PCT-Net/AICT cannot produce enough lighting change.
-
-## Bert Phase 1 Lane
-
-- Keep `cli/run_phase1.py` stable as the reproducible entrypoint.
-- Add the first real backend behind `core/pipeline.py` without changing output filenames.
-- Preserve `job.json` input hashes, backend metadata, and diagnostics for every run.
-- Treat Nuke as a later thin caller of the CLI/service until the backend produces useful results.
-- Do repo/docs/config work from Bert. Ask Gonzo only for GPU/image-generation execution packets that are small enough to conserve credits.
-
-## Success Criteria
-
-- CG asset identity preserved.
-- Lighting/color integration visibly improved.
-- Plate remains untouched and inspectable.
-- Alpha edges do not become worse.
-- Short sequence does not flicker catastrophically at proxy settings.
-
-## First Nuke Prototype Shape
-
-- Nuke gizmo/Python node accepts A/B/alpha and optional AOVs.
-- Nuke sends cropped/proxy frames to a local inference service.
-- Service returns adjusted foreground and diagnostics.
-- Nuke performs the trusted A-over-B composite over original plate.
-- Debug outputs are exposed as inspectable passes.
+Plate sourcing: Gonzo sources CC0/free real photographic backplates + matched HDRIs (default, starting on your nod), OR you drop in your own shots/footage for your actual use case. Either way the plate stays a pristine photograph.
