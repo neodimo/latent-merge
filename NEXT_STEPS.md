@@ -15,7 +15,7 @@ Read `LOCKED.md` first. This board reflects REAL state, not aspiration.
 1. [Gonzo] Build a small REAL-plate eval set the sh009 way: 5-8 cases, pristine photographic plates (B untouched), CG inserted A-over-B, HDRI matched per plate (not a generic 1k studio), contact-shadow + segmentation holdout where needed. Stamp `plate_provenance: photographic`.
 2. [Gonzo] Unblock ONE real relight backend on the 3080 Ti: fix IC-Light v2 weights/contract (correct package + `config.json`) OR stand up IC-Light/FLUX relight via local diffusers. Goal: first actual relight output to compare against PCT-Net.
 3. [Gonzo] On the real-plate set, produce a side-by-side raw A-over-B vs PCT-Net vs relight contact sheet + run Layer-1. Post to channel.
-4. [Gonzo] Add `plate_provenance` to the gate so non-photographic cases cannot enter a quality table; relabel existing reports accordingly. (was Bert's; folded in while Bert is paused)
+4. [Gonzo] ✅ DONE 2026-06-19 (afternoon). Gate already fails closed on non-photographic plates (commit d66bffb). Stamped the sh009 anchor fixture `plate_provenance: photographic` (commit 2505721) so the gate's fixture-metadata fallback recognizes THE real plate. Verified: on `runs/pctnet_compositingpro_sh009/vit` (a job that does not self-declare provenance) the gate resolves unknown→photographic from fixture.json with the stamp, unknown without it. Note: that legacy PCT-Net run still fails `plate_untouched` (0.204 ≫ 0.012) — correct rejection per L2, PCT-Net repaints the whole composite.
 5. [Gonzo] ✅ DONE 2026-06-19. Renamed `fixtures/real_plate_blender` -> `fixtures/smoke_blender_set`; scripts renamed and updated; smoke-only warning added to phase3 report README.
 
 ## Needs Omid (one decision)
