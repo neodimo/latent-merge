@@ -1,0 +1,45 @@
+{
+  "schema": "latent-merge.ic-light-runtime-check.v1",
+  "weights_dir": "/var/home/omid/projects/latent-merge/weights/ic-light-v2",
+  "models": {
+    "fbc": {
+      "filename": "iclight_sd15_fbc.safetensors",
+      "conv_in_channels": 12,
+      "role": "foreground + background conditioned SD1.5 IC-Light",
+      "path": "/var/home/omid/projects/latent-merge/weights/ic-light-v2/iclight_sd15_fbc.safetensors",
+      "present": true,
+      "size_bytes": 1719171352,
+      "valid": true,
+      "error": ""
+    },
+    "fc": {
+      "filename": "iclight_sd15_fc.safetensors",
+      "conv_in_channels": 8,
+      "role": "foreground/text conditioned SD1.5 IC-Light diagnostic",
+      "path": "/var/home/omid/projects/latent-merge/weights/ic-light-v2/iclight_sd15_fc.safetensors",
+      "present": true,
+      "size_bytes": 1719148312,
+      "valid": true,
+      "error": ""
+    }
+  },
+  "torch_cuda": {
+    "torch_imported": true,
+    "cuda_available": false,
+    "device_count": 0,
+    "gpu": null,
+    "error": ""
+  },
+  "nvidia_smi": {
+    "available": false,
+    "output": "NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.",
+    "error": ""
+  },
+  "weights_ready": true,
+  "cuda_ready": false,
+  "ready": false,
+  "require_cuda": true,
+  "errors": [
+    "CUDA runtime unavailable"
+  ]
+}

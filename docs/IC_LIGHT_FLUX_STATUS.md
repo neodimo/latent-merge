@@ -89,6 +89,18 @@ compatible weights and an officially supported inference recipe are verified.
 
 ## Latest Probe
 
+2026-06-20 night preflight:
+
+- Added `scripts/check_ic_light_runtime.py` to separate weight-family readiness
+  from CUDA availability before launching the expensive runner.
+- Current local weights under `weights/ic-light-v2` are SD1.5 IC-Light files
+  with compatible UNet `conv_in.weight` channels:
+  `iclight_sd15_fbc.safetensors` = 12 channels, `iclight_sd15_fc.safetensors`
+  = 8 channels.
+- This cron environment could not run a fresh relight: `torch.cuda.is_available`
+  was false and `nvidia-smi` could not communicate with the NVIDIA driver.
+  Evidence: `reports/ic-light-runtime-check-20260620.json`.
+
 Command shape:
 
 ```bash
