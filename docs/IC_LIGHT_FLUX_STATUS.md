@@ -89,6 +89,18 @@ compatible weights and an officially supported inference recipe are verified.
 
 ## Latest Probe
 
+2026-06-21 afternoon preflight:
+
+- Extended `scripts/check_ic_light_runtime.py` to record host CUDA visibility:
+  `CUDA_VISIBLE_DEVICES`, NVIDIA device nodes, `/proc/driver/nvidia/version`,
+  `libcuda`, and NVML library discovery.
+- Current blocker is host/device exposure, not IC-Light weight shape:
+  `libcuda.so.1` and `libnvidia-ml.so.1` resolve, but `/dev/nvidia*` device
+  nodes and `/proc/driver/nvidia/version` are absent in this cron process.
+  PyTorch still reports `torch.cuda.is_available=false` and `nvidia-smi` still
+  cannot communicate with the driver.
+- Evidence: `reports/ic-light-runtime-check-20260621-afternoon.json`.
+
 2026-06-20 night preflight:
 
 - Added `scripts/check_ic_light_runtime.py` to separate weight-family readiness

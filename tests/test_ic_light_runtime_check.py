@@ -69,6 +69,17 @@ class ICLightRuntimeCheckTest(unittest.TestCase):
         self.assertFalse(status["ready"])
         self.assertIn("expected 12 conv-in channels", status["models"]["fbc"]["error"])
 
+    def test_reports_host_cuda_diagnostics(self) -> None:
+        checker = _load_checker()
+        status = checker.build_status(Path("does-not-exist"), require_cuda=True)
+
+        self.assertIn("host_cuda", status)
+        self.assertIn("device_nodes", status["host_cuda"])
+        self.assertIn("proc_driver_version_present", status["host_cuda"])
+        self.assertIn("libcuda_found", status["host_cuda"])
+        self.assertIn("libnvidia_ml_found", status["host_cuda"])
+        self.assertIn("diagnosis", status["host_cuda"])
+
 
 if __name__ == "__main__":
     unittest.main()

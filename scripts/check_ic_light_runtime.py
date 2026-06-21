@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import argparse
+import ctypes.util
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -117,6 +119,39 @@ def _check_nvidia_smi() -> dict[str, Any]:
     return result
 
 
+def _check_host_cuda() -> dict[str, Any]:
+    device_nodes = sorted(str(path) for path in Path("/dev").glob("nvidia*"))
+    proc_driver = Path("/proc/driver/nvidia/version")
+    result: dict[str, Any] = {
+        "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES", ""),
+        "nvidia_visible_devices": os.environ.get("NVIDIA_VISIBLE_DEVICES", ""),
+        "nvidia_driver_capabilities": os.environ.get("NVIDIA_DRIVER_CAPABILITIES", ""),
+        "device_nodes": device_nodes,
+        "proc_driver_version_present": proc_driver.is_file(),
+        "proc_driver_version": "",
+        "libcuda_found": ctypes.util.find_library("cuda") or "",
+        "libnvidia_ml_found": ctypes.util.find_library("nvidia-ml") or "",
+        "diagnosis": "",
+    }
+
+    if proc_driver.is_file():
+        try:
+            result["proc_driver_version"] = proc_driver.read_text(
+                encoding="utf-8", errors="replace"
+            ).strip()
+        except Exception as error:
+            result["proc_driver_version"] = f"unreadable: {error}"
+
+    if not device_nodes:
+        result["diagnosis"] = "no /dev/nvidia* device nodes visible to this process"
+    elif not result["proc_driver_version_present"]:
+        result["diagnosis"] = "NVIDIA device nodes visible, but driver version is absent"
+    elif not result["libcuda_found"]:
+        result["diagnosis"] = "NVIDIA driver visible, but libcuda was not found"
+
+    return result
+
+
 def build_status(weights_dir: Path, require_cuda: bool = False) -> dict[str, Any]:
     models = {
         name: {
@@ -127,6 +162,7 @@ def build_status(weights_dir: Path, require_cuda: bool = False) -> dict[str, Any
     }
     cuda = _check_torch_cuda()
     smi = _check_nvidia_smi()
+    host_cuda = _check_host_cuda()
     weights_ready = all(model["valid"] for model in models.values())
     cuda_ready = bool(cuda["cuda_available"]) and bool(smi["available"])
 
@@ -145,6 +181,7 @@ def build_status(weights_dir: Path, require_cuda: bool = False) -> dict[str, Any
         "models": models,
         "torch_cuda": cuda,
         "nvidia_smi": smi,
+        "host_cuda": host_cuda,
         "weights_ready": weights_ready,
         "cuda_ready": cuda_ready,
         "ready": weights_ready and (cuda_ready or not require_cuda),
