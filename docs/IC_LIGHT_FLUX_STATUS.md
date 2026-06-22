@@ -89,6 +89,17 @@ compatible weights and an officially supported inference recipe are verified.
 
 ## Latest Probe
 
+2026-06-22 morning preflight:
+
+- Extended `scripts/check_ic_light_runtime.py` again to record PCI GPU
+  inventory from `lspci`, specifically display-class devices and any NVIDIA
+  PCI devices.
+- Result: IC-Light SD1.5 FBC/FC weights still validate, but the local runtime
+  still has no CUDA device. The PCI inventory shows only AMD Strix Halo display
+  hardware and no NVIDIA PCI device, so this run is not merely missing a Python
+  CUDA flag; the 3080 Ti is not visible to this process/environment.
+- Evidence: `reports/ic-light-runtime-check-20260622-morning.json`.
+
 2026-06-21 afternoon preflight:
 
 - Extended `scripts/check_ic_light_runtime.py` to record host CUDA visibility:

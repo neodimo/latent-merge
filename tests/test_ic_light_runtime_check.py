@@ -79,6 +79,10 @@ class ICLightRuntimeCheckTest(unittest.TestCase):
         self.assertIn("libcuda_found", status["host_cuda"])
         self.assertIn("libnvidia_ml_found", status["host_cuda"])
         self.assertIn("diagnosis", status["host_cuda"])
+        self.assertIn("pci_gpu_inventory", status)
+        self.assertIn("lspci_available", status["pci_gpu_inventory"])
+        self.assertIn("display_devices", status["pci_gpu_inventory"])
+        self.assertIn("nvidia_devices", status["pci_gpu_inventory"])
 
 
 if __name__ == "__main__":

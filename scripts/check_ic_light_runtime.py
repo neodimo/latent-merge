@@ -119,6 +119,47 @@ def _check_nvidia_smi() -> dict[str, Any]:
     return result
 
 
+def _check_pci_gpu_inventory() -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "lspci_available": False,
+        "display_devices": [],
+        "nvidia_devices": [],
+        "error": "",
+    }
+    try:
+        proc = subprocess.run(
+            ["lspci"],
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=10,
+        )
+    except FileNotFoundError:
+        result["error"] = "lspci not found"
+        return result
+    except Exception as error:
+        result["error"] = str(error)
+        return result
+
+    if proc.returncode != 0:
+        result["error"] = proc.stderr.strip()
+        return result
+
+    result["lspci_available"] = True
+    display_lines = []
+    nvidia_lines = []
+    for line in proc.stdout.splitlines():
+        lower = line.lower()
+        if any(kind in lower for kind in ("vga", "3d controller", "display controller")):
+            display_lines.append(line)
+        if "nvidia" in lower:
+            nvidia_lines.append(line)
+    result["display_devices"] = display_lines
+    result["nvidia_devices"] = nvidia_lines
+    return result
+
+
 def _check_host_cuda() -> dict[str, Any]:
     device_nodes = sorted(str(path) for path in Path("/dev").glob("nvidia*"))
     proc_driver = Path("/proc/driver/nvidia/version")
@@ -163,6 +204,7 @@ def build_status(weights_dir: Path, require_cuda: bool = False) -> dict[str, Any
     cuda = _check_torch_cuda()
     smi = _check_nvidia_smi()
     host_cuda = _check_host_cuda()
+    pci_gpu_inventory = _check_pci_gpu_inventory()
     weights_ready = all(model["valid"] for model in models.values())
     cuda_ready = bool(cuda["cuda_available"]) and bool(smi["available"])
 
@@ -182,6 +224,7 @@ def build_status(weights_dir: Path, require_cuda: bool = False) -> dict[str, Any
         "torch_cuda": cuda,
         "nvidia_smi": smi,
         "host_cuda": host_cuda,
+        "pci_gpu_inventory": pci_gpu_inventory,
         "weights_ready": weights_ready,
         "cuda_ready": cuda_ready,
         "ready": weights_ready and (cuda_ready or not require_cuda),
