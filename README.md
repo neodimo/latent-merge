@@ -35,9 +35,10 @@ python3 -m pip install --target .deps -r requirements.txt
 PYTHONPATH=.deps python3 scripts/smoke_pipeline.py --create-fixture
 ```
 
-## Phase 1 Scaffold
+## Phase 1 Baseline
 
-After creating the fixture:
+After creating the fixture, run the deterministic stub when you only need the
+file-flow sentinel:
 
 ```bash
 python3 cli/run_phase1.py --config configs/phase1_stub.json
@@ -49,7 +50,20 @@ With the local dependency target fallback:
 PYTHONPATH=".deps:." python3 cli/run_phase1.py --config configs/phase1_stub.json
 ```
 
-This writes the same trusted output family under `runs/phase1_scaffold/` and records config, input hashes, backend metadata, and output paths in `job.json`. The current backend is still a stub; the next Phase 1 step is replacing it with the first real relight/harmonize model while preserving the CLI and output contract.
+This writes the trusted output family under `runs/phase1_scaffold/` and records config, input hashes, backend metadata, and output paths in `job.json`.
+
+The current real Phase 1 baseline is PCT-Net foreground harmonization:
+
+```bash
+PYTHONPATH=".deps:." python3 cli/run_phase1.py \
+  --plate fixtures/compositingpro_sh009_minimal/plate_rgb.png \
+  --cg fixtures/compositingpro_sh009_minimal/cg_rgba.png \
+  --alpha fixtures/compositingpro_sh009_minimal/alpha.png \
+  --output-dir runs/pctnet_compositingpro_sh009/vit \
+  --config configs/phase1_pctnet.json
+```
+
+PCT-Net is a color harmonization baseline, not the final relight answer. The unresolved backend gate is still producing the first IC-Light/relight output in an environment where CUDA and the NVIDIA device are visible.
 
 ## Local UI
 
