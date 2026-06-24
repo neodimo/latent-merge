@@ -88,13 +88,19 @@ def validate_fixture(fixture_dir: Path) -> dict[str, Any]:
 
 
 def validate_root(fixtures_root: Path, min_count: int = 1) -> dict[str, Any]:
-    fixture_dirs = sorted(
-        path.parent
-        for path in fixtures_root.glob("*/fixture.json")
-        if json.loads(path.read_text(encoding="utf-8")).get("plate_provenance") == "photographic"
-    )
+    fixture_dirs: list[Path] = []
+    discovery_errors: list[str] = []
+    for manifest_path in sorted(fixtures_root.glob("*/fixture.json")):
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            discovery_errors.append(f"{manifest_path}: invalid fixture.json: {error}")
+            continue
+        if manifest.get("plate_provenance") == "photographic":
+            fixture_dirs.append(manifest_path.parent)
+
     results = [validate_fixture(path) for path in fixture_dirs]
-    errors = []
+    errors = list(discovery_errors)
     if len(results) < min_count:
         errors.append(f"photographic fixture count {len(results)} is below required minimum {min_count}")
     if any(not result["ok"] for result in results):

@@ -90,6 +90,17 @@ class ValidatePhotographicFixturesTest(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertEqual(result["photographic_fixture_count"], 0)
 
+    def test_malformed_manifest_fails_closed_without_crashing(self) -> None:
+        validator = _load_validator()
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = Path(tmp) / "broken"
+            fixture.mkdir()
+            (fixture / "fixture.json").write_text("{not json", encoding="utf-8")
+            result = validator.validate_root(Path(tmp), min_count=0)
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["photographic_fixture_count"], 0)
+        self.assertTrue(any("invalid fixture.json" in error for error in result["errors"]))
+
 
 if __name__ == "__main__":
     unittest.main()
