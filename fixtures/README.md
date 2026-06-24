@@ -8,3 +8,9 @@
 - `synthetic_sequence_001` — synthetic. Flicker plumbing only.
 
 Do not place a non-`photographic` fixture in any "validation"/PASS table without the SMOKE-ONLY label.
+
+Validate the locked intake contract and the current 5-case gate with:
+
+```bash
+PYTHONPATH=. python3 scripts/validate_photographic_fixtures.py --min-count 5
+```
