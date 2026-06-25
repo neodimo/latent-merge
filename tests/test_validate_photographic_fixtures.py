@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import shutil
 import sys
 import tempfile
 import unittest
@@ -80,7 +81,21 @@ class ValidatePhotographicFixturesTest(unittest.TestCase):
             result = validator.validate_root(Path(tmp), min_count=5)
         self.assertFalse(result["ok"])
         self.assertEqual(result["photographic_fixture_count"], 1)
+        self.assertEqual(result["unique_photographic_fixture_count"], 1)
         self.assertIn("below required minimum 5", result["errors"][0])
+
+    def test_duplicate_plate_does_not_satisfy_minimum_count(self) -> None:
+        validator = _load_validator()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            fixture = _write_fixture(root)
+            shutil.copytree(fixture, root / "copied_case")
+            result = validator.validate_root(root, min_count=2)
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["photographic_fixture_count"], 2)
+        self.assertEqual(result["unique_photographic_fixture_count"], 1)
+        self.assertTrue(any("duplicate photographic plate" in error for error in result["errors"]))
+        self.assertTrue(any("below required minimum 2" in error for error in result["errors"]))
 
     def test_ignores_non_photographic_fixture_for_count(self) -> None:
         validator = _load_validator()
@@ -89,6 +104,7 @@ class ValidatePhotographicFixturesTest(unittest.TestCase):
             result = validator.validate_root(Path(tmp), min_count=1)
         self.assertFalse(result["ok"])
         self.assertEqual(result["photographic_fixture_count"], 0)
+        self.assertEqual(result["unique_photographic_fixture_count"], 0)
 
     def test_malformed_manifest_fails_closed_without_crashing(self) -> None:
         validator = _load_validator()
@@ -99,6 +115,7 @@ class ValidatePhotographicFixturesTest(unittest.TestCase):
             result = validator.validate_root(Path(tmp), min_count=0)
         self.assertFalse(result["ok"])
         self.assertEqual(result["photographic_fixture_count"], 0)
+        self.assertEqual(result["unique_photographic_fixture_count"], 0)
         self.assertTrue(any("invalid fixture.json" in error for error in result["errors"]))
 
 

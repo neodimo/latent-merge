@@ -9,8 +9,11 @@
 
 Do not place a non-`photographic` fixture in any "validation"/PASS table without the SMOKE-ONLY label.
 
-Validate the locked intake contract and the current 5-case gate with:
+Validate the locked intake contract and the current 5-unique-plate gate with:
 
 ```bash
 PYTHONPATH=. python3 scripts/validate_photographic_fixtures.py --min-count 5
 ```
+
+Copied fixtures sharing the same `plate_rgb.png` do not count as separate
+photographic cases.

@@ -101,13 +101,29 @@ def validate_root(fixtures_root: Path, min_count: int = 1) -> dict[str, Any]:
 
     results = [validate_fixture(path) for path in fixture_dirs]
     errors = list(discovery_errors)
-    if len(results) < min_count:
-        errors.append(f"photographic fixture count {len(results)} is below required minimum {min_count}")
+    plate_hash_to_fixtures: dict[str, list[str]] = {}
+    for fixture_dir, result in zip(fixture_dirs, results):
+        if not result["ok"]:
+            continue
+        plate_hash = _sha256_prefix(fixture_dir / "plate_rgb.png", 64)
+        plate_hash_to_fixtures.setdefault(plate_hash, []).append(str(fixture_dir))
+    duplicate_plate_groups = [
+        fixtures for fixtures in plate_hash_to_fixtures.values() if len(fixtures) > 1
+    ]
+    unique_count = len(plate_hash_to_fixtures)
+    if duplicate_plate_groups:
+        for fixtures in duplicate_plate_groups:
+            errors.append(f"duplicate photographic plate across fixtures: {', '.join(fixtures)}")
+    if unique_count < min_count:
+        errors.append(
+            f"unique photographic fixture count {unique_count} is below required minimum {min_count}"
+        )
     if any(not result["ok"] for result in results):
         errors.append("one or more photographic fixtures failed validation")
     return {
         "ok": not errors,
         "photographic_fixture_count": len(results),
+        "unique_photographic_fixture_count": unique_count,
         "minimum_required": min_count,
         "fixtures": results,
         "errors": errors,
