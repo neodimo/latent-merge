@@ -1,0 +1,36 @@
+{
+  "fixture_id": "kloofendal_az265_monkey",
+  "plate_provenance": "photographic",
+  "source": "Poly Haven \u2014 kloofendal_43d_clear (CC0)",
+  "license": "CC0",
+  "tonemap": "panorama LDR/tonemapped as provided; HDRI used for relight",
+  "created_utc": "2026-06-27T23:07:29.055841+00:00",
+  "plate_size_wh": [
+    1920,
+    1080
+  ],
+  "cg_insert": "supplied:cg_rgba.png",
+  "cg_insert_is_quality_bearing": true,
+  "files": {
+    "plate_rgb.png": "3890b4a2037eeb4f",
+    "cg_rgba.png": "e3e5e91b5d2f006c",
+    "alpha.png": "42f84695ddf07556"
+  },
+  "plate_extraction": {
+    "plate_source_kind": "equirectangular_panorama_crop",
+    "source_url": "https://polyhaven.com/a/kloofendal_43d_clear",
+    "matched_hdri": "kloofendal_43d_clear_4k_tonemapped.png",
+    "matched_hdri_sha256_16": "e0fc8e10a12dcf9d",
+    "projection": "gnomonic_rectilinear",
+    "view": {
+      "yaw_deg": 0.0,
+      "pitch_deg": -5.0,
+      "hfov_deg": 75.0,
+      "size_wh": [
+        1920,
+        1080
+      ]
+    },
+    "plate_rgb_sha256_16": "3890b4a2037eeb4f"
+  }
+}

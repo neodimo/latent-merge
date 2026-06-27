@@ -1,0 +1,11 @@
+{
+  "hdr": "kloofendal_43d_clear_4k.hdr",
+  "plate": "plate_rgb.png",
+  "azimuth_deg": 265.0,
+  "pitch_deg": -5.0,
+  "hfov_deg": 75.0,
+  "alignment_mse": 0.5238345675536962,
+  "cam_height_m": 1.6,
+  "object_distance_m": 5.5,
+  "samples": 96
+}
