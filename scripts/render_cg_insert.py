@@ -79,6 +79,13 @@ def _load_gray(path: str) -> np.ndarray:
     return px[..., :3].mean(2)[::-1]  # Blender pixel buffer is bottom-up
 
 
+def _image_size(path: str) -> tuple[int, int]:
+    img = bpy.data.images.load(path)
+    w, h = img.size
+    bpy.data.images.remove(img)
+    return int(w), int(h)
+
+
 def _downsample(a: np.ndarray, w: int, h: int) -> np.ndarray:
     ys = np.linspace(0, a.shape[0] - 1, h).astype(int)
     xs = np.linspace(0, a.shape[1] - 1, w).astype(int)
@@ -170,7 +177,7 @@ def main() -> int:
     if args.hfov is not None:
         hfov = args.hfov
     os.makedirs(args.out_dir, exist_ok=True)
-    pw, ph = 1920, 1080
+    pw, ph = _image_size(args.plate)
 
     # 1. find the world azimuth that aligns the HDRI background to the plate
     bpy.ops.wm.read_factory_settings(use_empty=True)
