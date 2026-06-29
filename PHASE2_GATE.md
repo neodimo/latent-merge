@@ -86,14 +86,23 @@ or contact sheets spanning multiple case types. The synthetic sphere/oval fixtur
 is acceptable as a quick file-flow or Layer-1 regression sentinel, but it should
 not be the recurring headline artifact for visual-quality updates.
 
-## Current status (2026-06-07)
+## Current status (2026-06-29)
 
-- ✅ Layer 1 implemented and tested (checks have teeth: a tampered plate trips the trust violation).
-- ✅ Contact-sheet tooling implemented; renders inputs + result + delta per case.
-- ✅ Proxy sequence + flicker metric exist (`scripts/evaluate_sequence_flicker.py`).
-- ✅ Sequence review video tooling implemented; renders MP4s viewable in Discord.
-- ⬜ Layer 2 rubric + blind-scoring harness — Bert lane, in progress.
-- ⬜ Locked 10–20 case eval set — **blocked on DiMo intake** (see `NEXT_STEPS.md`).
+- ✅ Layer 1 rejection tooling exists and fails closed on malformed,
+  duplicate, or non-photographic intake.
+- ✅ Contact-sheet tooling, proxy sequence flicker metrics, and sequence
+  review video tooling exist for eligible cases.
+- ✅ Photographic fixture intake validation is implemented in
+  `scripts/validate_photographic_fixtures.py`.
+- ⬜ Intake tranche is still blocked at 1/5 unique photographic fixtures:
+  `fixtures/compositingpro_sh009_minimal` is the only accepted anchor case.
+- ⬜ Layer 2 blind scoring cannot honestly start until the intake tranche is
+  populated with real photographic plates.
+- ⬜ Final Phase 2 pass still requires the locked 10-20 case eval set plus at
+  least one short sequence.
 
-**Gate state: defined, Layer 1 ready, not yet passed.** Passing requires the
-locked eval set and a completed blind scoring session that meets the criteria above.
+**Gate state: defined, Layer 1 ready, not yet passed.** Today's concrete gate
+is DiMo's YES/NO ruling on whether a rectilinear crop of a CC0 equirectangular
+photo-panorama counts as a real photographic plate under L1. YES lets Gonzo
+produce the 5-case intake set; NO means DiMo needs to supply real footage or
+plates plus matched HDRI.
