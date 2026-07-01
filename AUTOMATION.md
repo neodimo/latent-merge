@@ -1,23 +1,37 @@
 # Automation Cadence
 
-This cadence is for Bert/Gonzo coordination while the project follows the aggressive Phase 1-4 timeline.
+This cadence is for Gonzo/Bert coordination while the project follows the
+aggressive Phase 1-4 timeline. `LOCKED.md`, `WORKFLOW.md`, and `NEXT_STEPS.md`
+remain the source of truth for current gates and ownership.
 
-## Daily Work Pulse
+## Latent-Merge Worker Pulse
 
-Weekdays at 7:00 AM Pacific, Bert should run a short project pulse:
+The active cron pulse is a project worker, not a status reporter. Each run must
+first identify what is genuinely new since the last Gonzo pulse, then finish one
+bounded action that improves the project state.
 
-- pull current repo state
-- check the active phase and next gate
-- run the smallest useful verification command
-- identify one concrete next task for Bert and one for Gonzo
-- post a layman's update in Discord with high-level specifics
+Run order:
 
-The update should answer:
+- inspect repo/GitHub state, `LOCKED.md`, `NEXT_STEPS.md`, and the newest project
+  memory entry;
+- name the single current bottleneck or uncertainty;
+- finish one scoped action in the active owner lane, such as a missing
+  validation, small bug fix, issue update, comparison artifact, or stale
+  bookkeeping cleanup;
+- verify the action and resolve every generated artifact as committed,
+  intentional scratch, or explicit cleanup;
+- post to `#latent-merge` only when the run completed useful work, found a new
+  blocker needing a named person, changed the forecast, or needs a decision.
 
-- What changed?
-- What does it mean in normal language?
-- What is blocked?
-- What can Omid run or review?
+While issue #3 is waiting on DiMo's CC0 panorama-crop L1 ruling, do not keep
+re-running the same photographic intake validator or CUDA preflight unless new
+input arrived. Useful work in that state is limited to real new evidence,
+cleanup, or making the next run less likely to repeat stale pulses.
+
+Morning runs should state today's concrete gate and the most valuable thing
+DiMo can run or review after the worker action is complete. Afternoon runs
+should close or re-scope stale commitments and leave the next run's target
+evidence-based.
 
 ## Phase Gate Releases
 
@@ -39,6 +53,11 @@ Release checkpoints:
 ## Communication Standard
 
 Keep updates plain but specific. Avoid model jargon without translating it.
+
+Every project-channel post should lead with what changed since the last pulse,
+then include the completed action, evidence/artifact/commit/PR, current
+implication, and one named next owner. If nothing changed and no useful action
+landed, stay silent.
 
 Example:
 
