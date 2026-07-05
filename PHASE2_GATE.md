@@ -86,7 +86,7 @@ or contact sheets spanning multiple case types. The synthetic sphere/oval fixtur
 is acceptable as a quick file-flow or Layer-1 regression sentinel, but it should
 not be the recurring headline artifact for visual-quality updates.
 
-## Current status (2026-06-29)
+## Current status (2026-07-05)
 
 - ✅ Layer 1 rejection tooling exists and fails closed on malformed,
   duplicate, or non-photographic intake.
@@ -94,6 +94,10 @@ not be the recurring headline artifact for visual-quality updates.
   review video tooling exist for eligible cases.
 - ✅ Photographic fixture intake validation is implemented in
   `scripts/validate_photographic_fixtures.py`.
+- ✅ The proposed CC0 panorama path has a proven end-to-end L1 toolchain:
+  `pano_to_plate.py` -> `render_cg_insert.py` -> `assemble_fixture.py` ->
+  `validate_photographic_fixtures.py`, with the matched-HDRI CG insert proof in
+  `reports/cg-insert-matched-hdri-20260627/`.
 - ⬜ Intake tranche is still blocked at 1/5 unique photographic fixtures:
   `fixtures/compositingpro_sh009_minimal` is the only accepted anchor case.
 - ⬜ Layer 2 blind scoring cannot honestly start until the intake tranche is
@@ -102,7 +106,7 @@ not be the recurring headline artifact for visual-quality updates.
   least one short sequence.
 
 **Gate state: defined, Layer 1 ready, not yet passed.** Today's concrete gate
-is DiMo's YES/NO ruling on whether a rectilinear crop of a CC0 equirectangular
-photo-panorama counts as a real photographic plate under L1. YES lets Gonzo
-produce the 5-case intake set; NO means DiMo needs to supply real footage or
-plates plus matched HDRI.
+is still DiMo's YES/NO ruling on whether a rectilinear crop of a CC0
+equirectangular photo-panorama counts as a real photographic plate under L1.
+YES lets Gonzo produce the 5-case intake set immediately with the proven chain;
+NO means DiMo needs to supply real footage or plates plus matched HDRI.
