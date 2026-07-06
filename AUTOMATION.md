@@ -1,8 +1,8 @@
 # Automation Cadence
 
-This cadence is for Gonzo/Bert coordination while the project follows the
-aggressive Phase 1-4 timeline. `LOCKED.md`, `WORKFLOW.md`, and `NEXT_STEPS.md`
-remain the source of truth for current gates and ownership.
+This cadence is for the latent-merge worker pulse after the 2026-06-17 reset.
+`LOCKED.md`, `WORKFLOW.md`, and `NEXT_STEPS.md` remain the source of truth for
+current gates and ownership.
 
 ## Latent-Merge Worker Pulse
 
@@ -33,22 +33,24 @@ DiMo can run or review after the worker action is complete. Afternoon runs
 should close or re-scope stale commitments and leave the next run's target
 evidence-based.
 
-## Phase Gate Releases
+## Release Gate
 
-Each phase completion should produce a lightweight release checkpoint. A release can be a GitHub release, tag, or clearly named branch artifact depending on readiness, but it must include:
+The old date-driven phase-release schedule is retired. Synthetic, Blender-smoke,
+and operational-readiness milestones do not trigger a packaged release.
+
+Publish a release checkpoint only after the first accepted photographic Layer-2
+gate: the locked real-plate fixture set exists, raw A-over-B vs backend evidence
+is recorded, the plate-untouched contract holds, and DiMo has a preference
+decision. This matches GitHub issue #6 and prevents packaging stale or
+non-quality evidence.
+
+That release should include:
 
 - one command that runs from a clean checkout
 - Windows and Linux notes for an RTX 3080 Ti path where practical
 - expected inputs and outputs
 - a short layman's summary of what the model/pipeline is doing
-- known limitations and failure cases
-
-Release checkpoints:
-
-- Phase 1: 2026-05-31 - reproducible real pipeline scaffold and selected first backend path
-- Phase 2: 2026-06-07 - 10-case failure inventory plus at least one short proxy sequence
-- Phase 3: 2026-06-14 - usable alpha surface, likely CLI/service before Nuke polish
-- Audit pack: 2026-06-19 - clean install/run instructions, regression checks, benchmarks, limitations
+- links to the exact fixtures/evidence and known limitations/failures
 
 ## Communication Standard
 
@@ -67,6 +69,9 @@ Phase 1 status: the pipe now takes plate + CG + alpha, writes an adjusted foregr
 
 ## Bert/Gonzo Lane Split
 
-- Bert: repo structure, GitHub hygiene, reproducible CLI, docs, release notes, CI/checks, external research, cron summaries.
-- Gonzo: local Nuke/Linux/Windows validation, GPU/runtime checks, media fixtures, local model runs, artist-facing failure notes.
+- Bert is paused on this project until Omid re-engages him.
+- Gonzo currently owns active worker pulses, GPU/runtime checks, media fixtures,
+  local model runs, visual QA, docs cleanup, and project bookkeeping.
+- Parked Bert lane: repo structure, GitHub hygiene, reproducible CLI, docs,
+  release notes, CI/checks, external research, and Layer-2 scoring harness.
 - Shared: model selection, gate decisions, and whether a result is worth moving forward.
