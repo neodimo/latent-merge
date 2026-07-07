@@ -1,6 +1,18 @@
 # Bert Handoff
 
-Updated: 2026-05-27
+Updated: 2026-07-07
+
+## Current Status
+
+This is a historical handoff, not the active project contract. Bert is paused on
+latent-merge until Omid re-engages him. Current workers should use
+`LOCKED.md`, `WORKFLOW.md`, `NEXT_STEPS.md`, `AUTOMATION.md`, and
+`PHASE2_GATE.md` for ownership, gates, and reporting.
+
+Do not treat the May runtime notes below as current. Later checks showed this
+cron environment cannot see NVIDIA hardware or CUDA, and the quality gate is
+blocked on DiMo's issue #3 ruling about CC0 panorama-derived photographic
+plates.
 
 ## Source
 
@@ -14,20 +26,29 @@ That path is on Gonzo's machine, not Bert's VPS, so the channel handoff is copie
 
 ## Current Direction
 
-- PCT-Net / AICT is the active conservative harmonization path.
-- IC-Light V2 / FLUX relight remains a separate comparison lane, not the first implementation target.
+- PCT-Net / AICT is the conservative harmonization baseline, not final proof.
+- IC-Light V2 / FLUX relight remains a comparison lane, but no real relight
+  output has been produced yet.
+- The active blocker is the locked photographic intake set: issue #3 needs
+  DiMo's YES/NO ruling on whether a rectilinear crop of a CC0 equirectangular
+  photo-panorama counts as a real photographic plate under L1.
 - Keep the trust contract:
   - adjusted foreground
   - debug passes
   - final comp over untouched plate
   - no opaque AI-painted final comp as the main result
 
-## Gonzo Runtime State
+## Historical Gonzo Runtime State
 
-- Gonzo has RTX 3080 Ti access on `card0` / `cuda:0`.
-- CUDA runtime works in Gonzo's `latent-merge/.venv`.
-- Gonzo is in low-credit mode until May 30, 2026 at night.
-- Bert should handle repo/docs/pipeline wiring and hand Gonzo only small GPU execution packets when needed.
+These notes are preserved only to explain old decisions:
+
+- Gonzo previously reported RTX 3080 Ti access on `card0` / `cuda:0`.
+- Gonzo previously reported CUDA runtime working in `latent-merge/.venv`.
+- Gonzo was in low-credit mode until May 30, 2026 at night.
+- Bert was expected to handle repo/docs/pipeline wiring and hand Gonzo only
+  small GPU execution packets when needed.
+
+Current project docs supersede all four points.
 
 ## Fixture
 
@@ -51,7 +72,8 @@ fixtures/compositingpro_sh009_minimal/cg_rgba.png
 fixtures/compositingpro_sh009_minimal/alpha.png
 ```
 
-Important: Gonzo said these PCT-Net/fixture files are currently uncommitted on his side. Do not overwrite that work.
+Historical caution: Gonzo said these PCT-Net/fixture files were uncommitted on
+his side in May. Check `git status` before touching generated fixtures or runs.
 
 ## PCT-Net Spike Result
 
