@@ -38,7 +38,7 @@ PYTHONPATH=".deps:." python3 scripts/phase2_rejection_checks.py \
 Writes `rejection_checks.json` with per-check value/threshold/pass and an
 `overall_pass` / `trust_contract_violation` summary.
 
-## Layer 2 — Blind A/B visual scoring (Bert lane)
+## Layer 2 — Blind A/B visual scoring (review lane)
 
 Only results that clear Layer 1 proceed. For each case, a reviewer sees
 **randomized** before/after pairs (raw A-over-B vs adjusted final comp) without
@@ -52,10 +52,12 @@ knowing which is which, and scores a 1–5 rubric per category:
 - overall preference
 
 Rules: comments required for any score of 1–2; record whether the adjusted
-result is **better, equal, or worse** than raw A-over-B. Rubric + scoring
-harness are Bert-owned; the still inputs come from
-`scripts/phase2_contact_sheet.py`, temporal cases from a Discord-viewable MP4
-rendered by `scripts/phase2_sequence_video.py`.
+result is **better, equal, or worse** than raw A-over-B. Bert originally owned
+the rubric + scoring harness, but that lane is parked until Omid re-engages
+him; current workers should use `WORKFLOW.md` and `AUTOMATION.md` for live
+ownership. The still inputs come from `scripts/phase2_contact_sheet.py`;
+temporal cases come from a Discord-viewable MP4 rendered by
+`scripts/phase2_sequence_video.py`.
 
 ## Gate pass criteria
 
