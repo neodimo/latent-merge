@@ -6,7 +6,8 @@ Gate date: 2026-06-07 EOD.
 
 Prove that the project can evaluate real harmonization results repeatably before adding more model breadth.
 
-Phase 2 is not a new-backend milestone. It is the evaluation and user-surface lock for the first practical workflow:
+Phase 2 is not a new-backend milestone. It is the evaluation and user-surface
+lock for the first practical workflow:
 
 ```text
 artist provides A-side CG + B-side plate + optional matte -> packaged UI run -> saved outputs + review sheet
@@ -16,17 +17,25 @@ artist provides A-side CG + B-side plate + optional matte -> packaged UI run -> 
 
 The locked Phase 2 user surface is the packaged local UI.
 
-Deliver and defend:
+The surface target remains:
 
 - GitHub release binaries for Linux and Windows.
 - The local browser UI launched by those binaries.
 - The same output family already used by the CLI: adjusted foreground, final comp, diagnostics, and job metadata.
 
-The CLI remains the reproducibility and automation harness, but it is not the Phase 2 user surface. Notebooks and Nuke/service integration are out of scope for this gate.
+The CLI remains the reproducibility and automation harness, but it is not the
+Phase 2 user surface. Notebooks and Nuke/service integration are out of scope
+for this gate.
+
+Release packaging is now governed by GitHub issue #6 and `AUTOMATION.md`: a
+new runnable checkpoint should wait until the first accepted photographic
+Layer-2 gate. Earlier packaged PCT-Net/UI binaries are historical operational
+evidence only; they do not satisfy the current quality or release gate.
 
 Reasoning:
 
-- The release pipeline already ships UI binaries, so Omid can test real plates without local Python setup.
+- The UI packaging path exists, so Omid can test real plates without local
+  Python setup once photographic evidence is accepted.
 - Phase 2 scoring needs fast visual comparison and artifact review, which matches the UI better than a notebook or service.
 - The CLI is still useful for smoke tests, baselines, and scripted case runs, but it is a developer surface.
 
@@ -40,9 +49,19 @@ Note: the technique sweep in `PHASE2_SCORING.md` uses cheap proxy metrics that *
 - ✅ At least 1 short proxy sequence tested for flicker. **`fixtures/synthetic_sequence_001` + `scripts/evaluate_sequence_flicker.py`; metrics in `PHASE2_SCORING.md`.**
 - ✅ Runtime, memory, and variance baselines committed. **`core/pipeline.py` writes the `runtime` block into `job.json`; RTX 3080 Ti baselines recorded in `PHASE2_SCORING.md`.**
 - ✅ Explicit known-fail list committed. **`PHASE2_KNOWN_FAILS.md`.**
-- ✅ Packaged UI behavior treated as the user-facing contract for this gate. **Locked surface above; shipped as v0.1.0-phase1-pctnet-v21 Linux/Windows binaries.**
+- ✅ Packaged UI behavior treated as the user-facing contract for this gate.
+  **Historical binaries exist for the Phase 1/PCT-Net path, but the next release
+  checkpoint waits for accepted photographic Layer-2 evidence per issue #6.**
 
-Gate status: **defined + Layer 1 ready, not yet passed.** Surface lock and evaluation evidence are wrapped; the gate is now formally defined in `PHASE2_GATE.md` with automated hard-rejection checks implemented (`scripts/phase2_rejection_checks.py`) and per-backend contact sheets (`scripts/phase2_contact_sheet.py`). Remaining to *pass*: a locked 10–20 case eval set (DiMo intake) and a completed blind A/B scoring session meeting the criteria. Operational readiness is done; quality is gated, not yet certified.
+Gate status: **defined + Layer 1 ready, not yet passed.** Surface lock and
+operational evidence are wrapped; the gate is now formally defined in
+`PHASE2_GATE.md` with automated hard-rejection checks implemented
+(`scripts/phase2_rejection_checks.py`) and per-backend contact sheets
+(`scripts/phase2_contact_sheet.py`). Remaining to *pass*: a locked 10–20 case
+eval set (DiMo intake) and a completed blind A/B scoring session meeting the
+criteria. Operational readiness is done; quality is gated, not yet certified,
+and the next release is deferred until that accepted photographic evidence
+exists.
 
 ## Scoring Shape
 
