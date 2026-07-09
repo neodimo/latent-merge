@@ -14,8 +14,9 @@ http://127.0.0.1:7865
 ```
 
 That URL is local to the machine running the app. If Gonzo runs the server on a
-remote box, DiMo cannot open Gonzo's `127.0.0.1`; use the packaged GitHub release
-asset and run it locally.
+remote box, DiMo cannot open Gonzo's `127.0.0.1`; run the app on DiMo's machine
+from a checkout instead. A new packaged release is intentionally deferred until
+the photographic Layer-2 gate is accepted.
 
 On Windows, use the same command from PowerShell with your Python launcher:
 
@@ -27,12 +28,21 @@ py ui/local_app.py
 
 ## GitHub Executables
 
-The `Build UI executables` GitHub Actions workflow packages the local UI as:
+The `Build UI executables` GitHub Actions workflow can package the local UI as:
 
 - `latent-merge-ui-linux`
 - `latent-merge-ui-windows`
 
-Run it from the GitHub Actions tab with `workflow_dispatch`, or let it run on relevant pushes and PRs. Download the artifact for your OS, start the executable from a writable project folder, then open the printed local URL. Outputs are written under `runs/ui_jobs/` beside the folder where the executable is launched.
+Current release rule: do not publish or treat a packaged UI executable as the
+active project checkpoint until issue #6 is satisfied by accepted photographic
+Layer-2 evidence. Existing or workflow-generated binaries are operational
+smoke artifacts only.
+
+For local operational testing, run the workflow from the GitHub Actions tab
+with `workflow_dispatch`, download the artifact for your OS, start the
+executable from a writable project folder, then open the printed local URL.
+Outputs are written under `runs/ui_jobs/` beside the folder where the executable
+is launched.
 
 ## Current Support
 
