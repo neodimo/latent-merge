@@ -45,15 +45,15 @@ Expected outputs:
 - V0 contract: locked in `SPEC_DRAFT.md`
 - Fixture: synthetic golden fixture generated locally
 - Input/output filenames: documented here
-- Model access path: still needs owner confirmation
+- Model access path: advanced after Phase 0; see `PHASE1.md`,
+  `PHASE2_GATE.md`, and `docs/IC_LIGHT_FLUX_STATUS.md` for current backend
+  state.
 - Smoke pipeline: real file flow, deterministic stub transform
 
 ## Bert Parallel Lane
 
-Bert can move independently on:
-
-- clone or initialize the actual GitHub `latent-merge` repo
-- create scaffold branch with `core/`, `cli/`, `nuke/`, `docs/`, `tests/fixtures/`
-- port this Phase 0 smoke harness into the repo as the first reproducible CLI
-- verify GitHub auth/permissions because Gonzo's local `gh` token is currently invalid
-- open issues for Phase 1: real ingest/output pipeline, model access check, golden fixture replacement, README reproduction path
+Historical note: this May handoff lane is complete or superseded. The GitHub
+repo exists, scaffold and smoke harness work landed, issue tracking is active,
+and Gonzo's current `gh` auth works. Bert is parked on this project until Omid
+re-engages him; use `WORKFLOW.md`, `AUTOMATION.md`, and `NEXT_STEPS.md` for
+current ownership and worker-pulse rules.
