@@ -2,7 +2,20 @@
 
 Opened: 2026-05-22
 Owner: Gonzo
-Status: draft for DiMo/Bert/Claude Bot audit
+Status: historical May planning draft, superseded by `LOCKED.md`,
+`WORKFLOW.md`, `NEXT_STEPS.md`, `PHASE2_GATE.md`, and `AUTOMATION.md`.
+
+## Current Use
+
+Use this file for original V0 intent, risk inventory, and early phase context
+only. Its date-driven gates, Bert/Gonzo lane split, release/audit schedule, and
+"Next 48 Hours" section are no longer active after the 2026-06-17 reset.
+
+Current gate: DiMo's issue #3 YES/NO ruling on whether a rectilinear crop of a
+CC0 equirectangular photo-panorama counts as a real photographic plate under
+L1. On YES, Gonzo builds the 5-case photographic intake with the proven
+pano-to-CG-insert chain. On NO, DiMo supplies real footage or plates plus
+matched HDRI.
 
 ## Owners
 

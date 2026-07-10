@@ -6,11 +6,11 @@ Origin: Discord `#project-planning`, 2026-05-20.
 ## Files
 
 - `PROJECT_MEMORY.md` - current project synthesis and decision state
-- `SPEC_DRAFT.md` - current aggressive v0 spec, gates, timeline, and risk list
+- `SPEC_DRAFT.md` - historical May v0 planning draft; use reset docs for active gates
 - `PHASE0.md` - executable Phase 0 smoke contract and exact file paths
 - `PHASE1.md` - Phase 1 scaffold contract and backend interface
 - `PHASE2.md` - Phase 2 evaluation gate and locked user surface
-- `NEXT_STEPS.md` - immediate bakeoff plan and success criteria
+- `NEXT_STEPS.md` - live board, current gate, and next owner
 - `REFERENCES.md` - candidate models, papers, and product baselines
 - `HARDWARE.md` - current local hardware notes and eGPU implications
 - `AUTOMATION.md` - worker-pulse loop, release gate, and current ownership rules
