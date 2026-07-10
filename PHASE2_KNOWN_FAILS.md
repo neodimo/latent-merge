@@ -1,8 +1,9 @@
-# Phase 2 Known-Fail List
+# Phase 2 Historical Known-Fail List
 
-Explicit, committed list of known failure modes and limitations as of the Phase 2 gate
-(2026-06-07). "Known-fail" here means: observed limitation we are accepting into the gate
-with eyes open, not a silent gap. Each entry names the evidence and the disposition.
+Explicit, committed list of known failure modes and limitations from the
+pre-reset Phase 2 sweeps (last consolidated 2026-06-07). "Known-fail" here
+means: observed limitation preserved with evidence, not a silent gap. The
+current Phase 2 pass gate is `PHASE2_GATE.md`.
 
 ## Backend / quality
 
@@ -28,8 +29,10 @@ with eyes open, not a silent gap. Each entry names the evidence and the disposit
 4. **Input-case variety is below the 10-case bar.**
    Only 2 still fixtures (`golden_synthetic_001`, `compositingpro_sh009_minimal`) + 1 proxy
    sequence exist. Technique breadth is met; input-case breadth is not.
-   Disposition: blocked on DiMo's representative CG-over-plate cases (`NEXT_STEPS.md`,
-   20–30 cases). Project-level intake, not a branch code task.
+   Disposition: blocked on issue #3. DiMo needs to rule on the CC0
+   panorama-crop L1 path or supply real plates/footage plus matched HDRI. The
+   immediate intake tranche is 5 validator-clean photographic cases; final
+   Phase 2 still requires the locked 10-20 case eval set in `PHASE2_GATE.md`.
 
 5. **Synthetic rankings do not transfer to real footage.**
    Synthetic CPU winner `local_spatial 4×4` ≠ real-fixture winner `rgb_affine`. Synthetic

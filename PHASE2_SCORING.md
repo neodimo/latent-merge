@@ -1,11 +1,13 @@
-# Phase 2 Scoring Sheet
+# Phase 2 Historical Scoring Sheet
 
-Durable, committed record of the Phase 2 harmonization evaluation.
+Durable, committed record of the pre-reset Phase 2 harmonization sweeps.
 
 Why this file exists: the full sweep artifacts live under `runs/overnight_harmonic_sweep/`
 and `runs/overnight_20260530/`, which are **local/ignored** and do not survive a clean
-checkout. This file is the committed source of truth for the Phase 2 evaluation gate.
-Rendered contact sheets and raw JSON remain in those local run dirs as supporting evidence.
+checkout. This file preserves those historical measurements, but it is not the
+current Phase 2 pass gate. The current gate lives in `PHASE2_GATE.md`: accepted
+photographic intake, Layer-1 hard rejection, then blind Layer-2 preference
+scoring against raw A-over-B.
 
 Last consolidated: 2026-06-07.
 
@@ -21,8 +23,10 @@ Input-case variety is the known gap: see "Residual gate dependency" below.
 
 Artifact note: the synthetic fixture is useful for smoke/regression checks, but
 visual-quality posts should not keep leading with it. Scoring evidence should
-show a spread of Blender reference cases and real plate/CG/alpha cases so the
-review reflects actual compositing behavior instead of the toy fixture.
+show a spread of accepted photographic plate/CG/alpha cases so the review
+reflects actual compositing behavior instead of the toy fixture. Blender-mediated
+cases are smoke/reference evidence only after the 2026-06-17 reset and
+cannot carry the quality gate.
 
 ## GPU technique sweep (Gonzo, RTX 3080 Ti `cuda:0`)
 
@@ -102,8 +106,13 @@ Recorded into `job.json` `runtime` block by `core/pipeline.py`. GPU: RTX 3080 Ti
 
 ## Residual gate dependency
 
-The acceptance bar "10 varied cases tested and recorded" is met on **technique** breadth
-(12 GPU + 9/10 CPU + real-fixture CPU + IC Flux) but **not** on **input-case** variety:
-only 2 still fixtures + 1 proxy sequence exist. Closing this needs DiMo's representative
-CG-over-plate cases (the 20–30 cases called for in `NEXT_STEPS.md`). That intake is a
-project-level dependency, not a code task on this branch.
+The old acceptance bar was met on **technique** breadth (12 GPU + 9/10 CPU +
+real-fixture CPU + IC Flux) but **not** on **input-case** variety: only 2 still
+fixtures + 1 proxy sequence exist.
+
+Current dependency: issue #3 needs DiMo's YES/NO ruling on whether a
+rectilinear crop of a CC0 equirectangular photo-panorama counts as a real
+photographic plate under L1. YES lets Gonzo produce the 5-case intake tranche
+with the proven pano-to-CG-insert chain; NO means DiMo needs to supply real
+plates/footage plus matched HDRI. Final Phase 2 still requires the locked
+10-20 case eval set and blind Layer-2 scoring from `PHASE2_GATE.md`.
