@@ -1,17 +1,36 @@
 # IC-Light / Flux Backend Status
 
-Last updated: 2026-06-10
+Last updated: 2026-07-13
+
+## Post-Reset Status
+
+After the 2026-06-17 reset, this document is backend diagnostics only. The
+Blender cases below are smoke/reference artifacts and do not count as Phase 2
+quality evidence. The live gate is `PHASE2_GATE.md`: accepted photographic
+intake first, then Layer-1 hard rejection and blind Layer-2 scoring against raw
+A-over-B.
+
+Current backend state:
+
+- PCT-Net remains the reproducible foreground-only color-harmonization baseline.
+- IC-Light / Flux relight is not unblocked until a process with visible NVIDIA
+  CUDA hardware produces the first real relight output.
+- The cron worker environment has repeatedly validated SD1.5 IC-Light weight
+  shapes, but cannot see `/dev/nvidia*`, `/proc/driver/nvidia/version`, or a
+  CUDA-capable PyTorch device.
+- Do not rerun the same preflight as a pulse unless device visibility changes;
+  the higher-leverage gate is still issue #3's photographic intake ruling.
 
 ## Decision
 
 Do not treat the current IC-Light / Flux scripts as passing harmonization
 backends.
 
-The Blender eval cases are the current visual reference set. In the horse,
+The Blender smoke cases were useful diagnostics before the reset. In the horse,
 duck, and cat cases, the SD1.5 IC-Light FC runner produced clipped,
-psychedelic, non-integrated foregrounds. The outputs are worse than raw
-A-over-B against the Blender `target.png` references, so these artifacts are
-diagnostics, not evidence of backend readiness.
+psychedelic, non-integrated foregrounds. The outputs were worse than raw
+A-over-B against the Blender `target.png` references, so these artifacts remain
+diagnostics, not evidence of backend readiness or quality-gate progress.
 
 ## What Failed
 
@@ -67,10 +86,11 @@ compatible weights and an officially supported inference recipe are verified.
   low-frequency luma unless `--transfer-ratio-max` is raised.
 - The `iclight_sd15_fc` path remains selectable with `--ic-model fc`, but it is
   diagnostic only for CG-over-plate work.
-- Do not promote IC-Light/Flux results into Phase 2 evidence unless they pass
-  Layer 1 and beat raw A-over-B on the Blender target references.
-- Use the Blender `target.png` references as the sanity check for synthetic
-  fixture development.
+- Do not promote IC-Light/Flux results into Phase 2 evidence unless they run on
+  accepted photographic fixtures, pass Layer 1, and win blind Layer-2 preference
+  over raw A-over-B.
+- Use the Blender `target.png` references only as a synthetic/smoke sanity check
+  while developing backend mechanics.
 - Treat the present IC-Light outputs as failed diagnostics.
 
 ## Research Notes
