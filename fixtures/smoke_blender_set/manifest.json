@@ -1,7 +1,7 @@
 {
   "plate_provenance": "blender_smoke",
   "_provenance_note": "MISLABELED as real_plate. Plate is Blender/EEVEE-mediated, not pristine photography. Does NOT satisfy LOCKED L1. Plumbing/smoke only. Rename to smoke_blender_set.",
-  "purpose": "Real-photo plate Blender fixtures for Phase 2 Layer-1/Layer-2 intake.",
+  "purpose": "Smoke-only Blender-mediated fixtures for plumbing and regression checks; not eligible for Phase 2 Layer-1/Layer-2 quality intake.",
   "blocked_requirement": "Use real-life photography as plate, add CG with HDRI lighting, shadow interaction, and segmentation-level matte occlusion when foreground objects overlap CG.",
   "sources": {
     "meeting_room_plate": {

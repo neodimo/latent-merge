@@ -82,11 +82,12 @@ trust safety are.
 ## Artifact reporting policy
 
 Scoring and status updates must show representative case variety, not just the
-`golden_synthetic_001` toy fixture. Use the Blender reference cases and real
-plate/CG/alpha fixtures as the primary visual evidence, with before/after stills
-or contact sheets spanning multiple case types. The synthetic sphere/oval fixture
-is acceptable as a quick file-flow or Layer-1 regression sentinel, but it should
-not be the recurring headline artifact for visual-quality updates.
+`golden_synthetic_001` toy fixture. Use accepted photographic plate/CG/alpha
+fixtures as the primary visual evidence, with before/after stills or contact
+sheets spanning multiple case types. Blender-mediated cases such as
+`smoke_blender_set` are acceptable as quick file-flow or Layer-1 regression
+sentinels only; they must not be used as recurring headline artifacts for
+visual-quality updates.
 
 ## Current status (2026-07-05)
 
