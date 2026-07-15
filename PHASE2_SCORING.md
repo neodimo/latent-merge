@@ -28,7 +28,11 @@ reflects actual compositing behavior instead of the toy fixture. Blender-mediate
 cases are smoke/reference evidence only after the 2026-06-17 reset and
 cannot carry the quality gate.
 
-## GPU technique sweep (Gonzo, RTX 3080 Ti `cuda:0`)
+## Historical GPU technique sweep (Gonzo, RTX 3080 Ti `cuda:0`)
+
+These rows preserve the 2026-06-07 local CUDA sweep. They are not evidence that
+the current cron-worker environment can see an NVIDIA device; check
+`HARDWARE.md` before scheduling new CUDA or IC-Light work.
 
 Metrics (lower = better): `fg_delta_mean` (identity drift), `mean_err_vs_plate`
 (integration closeness), `final_std` (composite uniformity in FG region).
@@ -74,7 +78,7 @@ merged into the GPU table. Source: `runs/overnight_20260530/HANDOFF.md` (synthet
 | 3 | histogram_match | 0.1340 | 0.1006 | 0.1563 |
 | 6 | polynomial_color | 0.1404 | 0.1896 | **0.1075** |
 
-## Sequence flicker (Gonzo, `cuda:0`)
+## Historical sequence flicker (Gonzo, `cuda:0`)
 
 Source: `runs/phase2_sequence_synthetic_001_pctnet_cuda0/sequence_metrics.json`.
 Tooling: `scripts/create_sequence_fixture.py`, `scripts/evaluate_sequence_flicker.py`.
@@ -86,10 +90,11 @@ Tooling: `scripts/create_sequence_fixture.py`, `scripts/evaluate_sequence_flicke
 - A CPU-safe stub reference path (`runs/phase2_sequence_synthetic_001_stub/`) produced the same metric schema.
 - Caveat: not optical-flow-aligned; this is a raw frame-to-frame stability read, not a temporal-coherence guarantee.
 
-## Runtime / memory baselines (Gonzo, `cuda:0`)
+## Historical runtime / memory baselines (Gonzo, `cuda:0`)
 
 Recorded into `job.json` `runtime` block by `core/pipeline.py`. GPU: RTX 3080 Ti,
-`nvidia-smi` 12288 MB total, torch 11910 MiB total.
+`nvidia-smi` 12288 MB total, torch 11910 MiB total during the historical local
+run.
 
 | Case | Duration | Peak alloc VRAM | Peak reserved VRAM | Process max RSS |
 |------|----------|-----------------|--------------------|-----------------|
