@@ -77,9 +77,12 @@ Each case should record:
 - Runtime and memory notes.
 - Known-fail reason, if any.
 
-## 2026-06-07 CUDA/Sequence Checkpoint
+## Historical 2026-06-07 CUDA/Sequence Checkpoint
 
 Status: partial evidence only. This does not satisfy the 10-case gate.
+This checkpoint preserves the old RTX 3080 Ti run measurements; it is not a
+claim that the current cron-worker environment can still see CUDA. For current
+hardware visibility, read `HARDWARE.md` before scheduling GPU or IC-Light work.
 
 Added artifacts:
 
@@ -90,7 +93,7 @@ Added artifacts:
 - `core/pipeline.py` now records per-run `runtime` telemetry in `job.json`, including duration, process RSS, CUDA visibility, GPU name, total VRAM, and torch peak allocated/reserved memory.
 - `scripts/overnight_sweep.py` now records process memory and `nvidia-smi` snapshots per backend.
 
-Local run evidence on `cuda:0`:
+Historical local run evidence on `cuda:0`:
 
 - GPU: NVIDIA GeForce RTX 3080 Ti, visible as `cuda:0`, `nvidia-smi` reported 12288 MB total; torch reported 11910 MiB total.
 - `runs/phase2_cuda0_pctnet_sweep/golden_synthetic_001/job.json`
