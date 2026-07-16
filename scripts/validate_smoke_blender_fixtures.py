@@ -1,4 +1,4 @@
-"""Validate the committed real-plate Blender fixtures without modifying them.
+"""Validate the committed smoke-only Blender fixtures without modifying them.
 
 Run with:
     blender --background --python scripts/validate_smoke_blender_fixtures.py
@@ -36,7 +36,7 @@ def validate_scene(entry: dict[str, str]) -> dict[str, object]:
     require(camera is not None, f"{scene_path.name}: missing active camera")
     require(
         len(camera.data.background_images) > 0,
-        f"{scene_path.name}: active camera has no real-photo background",
+        f"{scene_path.name}: active camera has no plate background image",
     )
 
     plate_path = (ROOT / entry["plate"]).resolve()
@@ -126,7 +126,7 @@ def main() -> None:
 
     results = [validate_scene(entry) for entry in scenes]
     print("LATENT_MERGE_FIXTURE_VALIDATION " + json.dumps(results, sort_keys=True))
-    print(f"PASS: validated {len(results)} real-plate Blender fixtures")
+    print(f"PASS: validated {len(results)} smoke-only Blender fixtures")
 
 
 if __name__ == "__main__":

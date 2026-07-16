@@ -350,7 +350,7 @@ def build_table_edge_scene() -> dict[str, str]:
 
 def write_manifest(scene_entries: list[dict[str, str]]) -> None:
     manifest = {
-        "purpose": "Real-photo plate Blender fixtures for Phase 2 Layer-1/Layer-2 intake.",
+        "purpose": "Smoke-only Blender-mediated fixtures for plumbing and regression checks; not eligible for Phase 2 Layer-1/Layer-2 quality intake.",
         "blocked_requirement": "Use real-life photography as plate, add CG with HDRI lighting, shadow interaction, and segmentation-level matte occlusion when foreground objects overlap CG.",
         "sources": {
             name: {
