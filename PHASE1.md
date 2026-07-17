@@ -1,6 +1,9 @@
 # Phase 1 Scaffold
 
-Gate date: 2026-05-31 EOD.
+Historical scaffold target: 2026-05-31 EOD. That date is no longer an active
+gate after the 2026-06-17 reset; current readiness is governed by `LOCKED.md`,
+`NEXT_STEPS.md`, issue #3's photographic fixture ruling, and the CUDA/relight
+runtime evidence in `HARDWARE.md`.
 
 ## Goal
 
