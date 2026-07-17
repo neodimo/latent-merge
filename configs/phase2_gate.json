@@ -1,5 +1,5 @@
 {
-  "_comment": "Phase 2 evaluation gate thresholds. Layer 1 = automated hard-rejection checks (this file). Layer 2 = blind A/B visual scoring (Bert's rubric/harness). See PHASE2_GATE.md.",
+  "_comment": "Phase 2 evaluation gate thresholds. Layer 1 = automated hard-rejection checks (this file). Layer 2 = blind A/B visual scoring over accepted photographic fixtures; see PHASE2_GATE.md for current ownership.",
   "plate_untouched": {
     "alpha_zero_eps": 0.004,
     "max_abs_delta": 0.012,
