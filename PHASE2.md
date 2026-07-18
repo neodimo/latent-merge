@@ -1,6 +1,10 @@
 # Phase 2 Evaluation Gate
 
-Gate date: 2026-06-07 EOD.
+Historical evaluation target: 2026-06-07 EOD. That date records the old
+pre-reset CUDA/sequence checkpoint; it is no longer an active pass gate. The
+current Phase 2 gate is the two-layer photographic evaluation defined in
+`PHASE2_GATE.md`, blocked on the issue #3 intake ruling and final DiMo
+preference review.
 
 ## Goal
 
