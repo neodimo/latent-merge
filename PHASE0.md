@@ -24,7 +24,11 @@ Current fixture path:
 - `fixtures/golden_synthetic_001/alpha.png`
 - `fixtures/golden_synthetic_001/fixture.json`
 
-This synthetic fixture is acceptable for Phase 0 file-flow proof. It should be replaced or augmented by a DiMo-approved production-style fixture as soon as one is available.
+This synthetic fixture remains the deterministic Phase 0 file-flow sentinel; it
+does not need to be replaced by a quality-bearing case. Photographic quality
+fixtures live in their own intake and must satisfy `LOCKED.md` and
+`PHASE2_GATE.md`. Do not fold them into this smoke fixture or present this
+fixture as quality evidence.
 
 ## Smoke Command
 
