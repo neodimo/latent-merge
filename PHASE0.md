@@ -1,6 +1,9 @@
 # Phase 0 Smoke Contract
 
-Gate date: 2026-05-24 EOD.
+Historical smoke target: 2026-05-24 EOD. That date records the original
+file-flow checkpoint; it is no longer an active project gate. Current phase
+readiness is governed by `LOCKED.md`, `NEXT_STEPS.md`, `PHASE2_GATE.md`, and
+the photographic fixture decision in GitHub issue #3.
 
 ## Goal
 
