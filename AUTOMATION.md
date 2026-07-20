@@ -64,8 +64,12 @@ landed, stay silent.
 Example:
 
 ```text
-Phase 1 status: the pipe now takes plate + CG + alpha, writes an adjusted foreground, and composites it back over the untouched plate. In normal terms, we have the plumbing that proves Nuke can stay in control of the final composite. The current color adjustment is still a stub, so the next real win is replacing that stub with IC-Light or another harmonization model.
+Since the last pulse, <specific state or measurement changed>. Completed <bounded action>; evidence: <artifact, commit, PR, or exact check>. This means <current implication, including any remaining uncertainty>. Next owner: <one person> for <one concrete action>.
 ```
+
+The example is structural rather than a reusable status claim. Workers must
+replace its delta, evidence, implication, and owner with facts from the current
+run.
 
 ## Bert/Gonzo Lane Split
 
