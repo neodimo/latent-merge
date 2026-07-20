@@ -2,7 +2,7 @@
   "fixture_id": "golden_synthetic_001",
   "plate_provenance": "synthetic",
   "created_utc": "2026-05-24T22:10:54.851997+00:00",
-  "purpose": "Phase 0 deterministic smoke fixture; replace or augment with DiMo-approved production-style fixture when available.",
+  "purpose": "Phase 0 deterministic file-flow and regression sentinel; excluded from photographic quality evaluation.",
   "dimensions": [
     768,
     432

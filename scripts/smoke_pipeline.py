@@ -100,8 +100,9 @@ def create_fixture(fixture_dir: Path) -> dict[str, str]:
 
     manifest = {
         "fixture_id": "golden_synthetic_001",
+        "plate_provenance": "synthetic",
         "created_utc": FIXTURE_CREATED_UTC,
-        "purpose": "Phase 0 deterministic smoke fixture; replace or augment with DiMo-approved production-style fixture when available.",
+        "purpose": "Phase 0 deterministic file-flow and regression sentinel; excluded from photographic quality evaluation.",
         "dimensions": [width, height],
         "files": {
             "plate_rgb": plate_path.name,
