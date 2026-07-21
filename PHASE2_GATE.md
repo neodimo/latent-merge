@@ -89,7 +89,7 @@ sheets spanning multiple case types. Blender-mediated cases such as
 sentinels only; they must not be used as recurring headline artifacts for
 visual-quality updates.
 
-## Current status (2026-07-05)
+## Current status (verified 2026-07-21)
 
 - ✅ Layer 1 rejection tooling exists and fails closed on malformed,
   duplicate, or non-photographic intake.
@@ -108,7 +108,7 @@ visual-quality updates.
 - ⬜ Final Phase 2 pass still requires the locked 10-20 case eval set plus at
   least one short sequence.
 
-**Gate state: defined, Layer 1 ready, not yet passed.** Today's concrete gate
+**Gate state: defined, Layer 1 ready, not yet passed.** The current concrete gate
 is still DiMo's YES/NO ruling on whether a rectilinear crop of a CC0
 equirectangular photo-panorama counts as a real photographic plate under L1.
 YES lets Gonzo produce the 5-case intake set immediately with the proven chain;
