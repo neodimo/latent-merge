@@ -36,7 +36,11 @@ the current cron-worker environment can see an NVIDIA device; check
 
 Metrics (lower = better): `fg_delta_mean` (identity drift), `mean_err_vs_plate`
 (integration closeness), `final_std` (composite uniformity in FG region).
-Source: `runs/overnight_harmonic_sweep/scores.json`, `phase2_advanced/scores.json`, `ic_flux/scores.json`.
+Source: `runs/overnight_harmonic_sweep/scores.json` and
+`phase2_advanced/scores.json`. The former `ic_flux_relight` row is excluded:
+the project has no successful IC-Light/FLUX inference record, and the later
+runtime audit established that the attempted backend returned HTTP 400 with
+0 MiB GPU use. See `PROJECT_MEMORY.md` and `docs/IC_LIGHT_FLUX_STATUS.md`.
 
 | # | Technique | fg_delta_mean | mean_err_vs_plate | final_std |
 |---|-----------|--------------|-------------------|-----------|
@@ -51,7 +55,6 @@ Source: `runs/overnight_harmonic_sweep/scores.json`, `phase2_advanced/scores.jso
 | 9 | mean_match_stub | 0.156 | 0.1488 | 0.132 |
 | 10 | ycrcb_transfer | 0.124 | 0.2379 | 0.106 |
 | 11 | pctnet_harmonize | 0.555 | 0.278 | 0.073 |
-| 12 | ic_flux_relight | 0.449 | 0.714 | 0.127 |
 
 ## CPU technique sweep (Bert)
 
@@ -105,15 +108,17 @@ run.
 
 - Best plate-integration (low `mean_err_vs_plate`): `style_transfer_light` / `palette_extract_transfer` (~0.047).
 - Most uniform composite (low `final_std`): `channel_rebalance` (0.058).
-- `pctnet_harmonize` makes the most aggressive changes (highest fg_delta 0.555) — strongest relight but most identity movement.
+- `pctnet_harmonize` makes the most aggressive measured changes (highest
+  fg_delta 0.555), but it is a color-harmonization baseline rather than a
+  successful relight run.
 - Synthetic CPU winner (`local_spatial 4×4`) does **not** transfer to real footage; real-fixture CPU winner is `rgb_affine`.
 - Open product decision: the CPU composite weights integration 60% / identity 40%, which may be backwards for hero CG assets.
 
 ## Residual gate dependency
 
-The old acceptance bar was met on **technique** breadth (12 GPU + 9/10 CPU +
-real-fixture CPU + IC Flux) but **not** on **input-case** variety: only 2 still
-fixtures + 1 proxy sequence exist.
+The old sweep covered 11 measured GPU techniques plus the CPU techniques, but
+it did **not** produce an IC-Light/FLUX result. It also lacked **input-case**
+variety: only 2 still fixtures + 1 proxy sequence exist.
 
 Current dependency: issue #3 needs DiMo's YES/NO ruling on whether a
 rectilinear crop of a CC0 equirectangular photo-panorama counts as a real
