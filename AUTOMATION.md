@@ -7,17 +7,19 @@ current gates and ownership.
 ## Latent-Merge Worker Pulse
 
 The active cron pulse is a project worker, not a status reporter. Each run must
-first identify what is genuinely new since the last Gonzo pulse, then finish one
-bounded action that improves the project state.
+first identify what is genuinely new since the last Gonzo pulse. Finish one
+bounded action only when new evidence or a real project-state improvement is
+available; an unchanged external gate is a valid silent no-op, not a reason to
+manufacture cleanup.
 
 Run order:
 
 - inspect repo/GitHub state, `LOCKED.md`, `NEXT_STEPS.md`, and the newest project
   memory entry;
 - name the single current bottleneck or uncertainty;
-- finish one scoped action in the active owner lane, such as a missing
-  validation, small bug fix, issue update, comparison artifact, or stale
-  bookkeeping cleanup;
+- if evidence supports it, finish one scoped action in the active owner lane,
+  such as a missing validation, small bug fix, issue update, comparison
+  artifact, or stale bookkeeping cleanup;
 - verify the action and resolve every generated artifact as committed,
   intentional scratch, or explicit cleanup;
 - post to `#latent-merge` only when the run completed useful work, found a new
@@ -26,7 +28,8 @@ Run order:
 While issue #3 is waiting on DiMo's CC0 panorama-crop L1 ruling, do not keep
 re-running the same photographic intake validator or CUDA preflight unless new
 input arrived. Useful work in that state is limited to real new evidence,
-cleanup, or making the next run less likely to repeat stale pulses.
+cleanup, or making the next run less likely to repeat stale pulses. Once those
+surfaces are exhausted, end silently and inspect issue #3 first on the next run.
 
 Morning runs should state today's concrete gate and the most valuable thing
 DiMo can run or review after the worker action is complete. Afternoon runs
