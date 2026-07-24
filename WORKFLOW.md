@@ -14,7 +14,12 @@ Rule: do not re-run or re-report the other agent's work. Need their output? Read
 ## Session protocol (every time)
 
 - Start: read `LOCKED.md` + `NEXT_STEPS.md` (the live board). Confirm this cycle's fixtures satisfy L1 before running anything.
-- End: update `NEXT_STEPS.md` (what moved, what's blocked, who's next), append a daily note (`memory/YYYY-MM-DD.md`), post ONE visual-forward status to #latent-merge.
+- End: preserve evidence in the appropriate durable place only when the run
+  produced a real delta (for example, update `NEXT_STEPS.md`, append a daily
+  note, or commit an artifact). Post at most one visual-forward status to
+  `#latent-merge`, and only when the run completed useful work, found a new
+  blocker needing a named owner, changed the forecast, or needs a decision.
+  Otherwise stay silent; an unchanged gate is not a status event.
 
 ## Fixture law (enforces L1)
 
