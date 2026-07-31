@@ -89,7 +89,7 @@ sheets spanning multiple case types. Blender-mediated cases such as
 sentinels only; they must not be used as recurring headline artifacts for
 visual-quality updates.
 
-## Current status (verified 2026-07-21)
+## Current status (verified 2026-07-31)
 
 - ✅ Layer 1 rejection tooling exists and fails closed on malformed,
   duplicate, or non-photographic intake.
