@@ -1,4 +1,4 @@
-# Next Steps — Live Board (updated 2026-07-21 AM)
+# Next Steps — Live Board (verified 2026-07-31 AM)
 
 Read `LOCKED.md` first. This board reflects REAL state, not aspiration.
 
@@ -56,4 +56,4 @@ Read `LOCKED.md` first. This board reflects REAL state, not aspiration.
 
 Plate sourcing: GitHub issue #3 is re-scoped to the locked photographic eval set. DiMo should either approve Gonzo sourcing CC0/free real photographic backplates + matched HDRIs, OR drop in real shots/footage for the actual use case. Either way the plate stays a pristine photograph.
 
-Current concrete gate (verified 2026-07-21 PM): DiMo's YES/NO ruling on whether a rectilinear crop of a CC0 equirectangular photo-panorama counts as a real photographic plate under L1. YES -> Gonzo produces and validates the 5-case intake set. NO -> DiMo supplies real footage/plates plus matched HDRI, and Gonzo stops proposing CC0 pano sourcing.
+Current concrete gate (verified 2026-07-31 AM): DiMo's YES/NO ruling on whether a rectilinear crop of a CC0 equirectangular photo-panorama counts as a real photographic plate under L1. YES -> Gonzo produces and validates the 5-case intake set. NO -> DiMo supplies real footage/plates plus matched HDRI, and Gonzo stops proposing CC0 pano sourcing.
