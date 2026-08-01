@@ -4,6 +4,24 @@ Newest entries go first. This is the durable cross-runtime completion ledger;
 project status and gate definitions remain in `NEXT_STEPS.md` and
 `PHASE2_GATE.md`.
 
+## 2026-08-01 08:00 PDT — Gonzo morning worker
+
+- **What was done:** Evidence: fetched `origin/main`, queried GitHub issues #3
+  and #6 and open PRs, and confirmed no external delta since the 2026-07-31
+  pulse. Replaced the duplicated pulse-by-pulse archive in `NEXT_STEPS.md` with
+  a concise live dependency/ownership board; historical completion evidence
+  remains here in the append-only ledger. Inference: the shorter board removes
+  stale chronology from the execution path without changing the gate.
+- **Artifacts:** `NEXT_STEPS.md` and this `TASKLOG.md` entry; committed project
+  documentation. No generated or scratch artifact.
+- **State:** Done. Issue #3 remains the intake decision and issue #6 remains
+  downstream of accepted photographic Layer-2 evidence; no technical check was
+  rerun because source and inputs are unchanged.
+- **Next owner + concrete artifact:** DiMo owns the YES/NO ruling in GitHub
+  issue #3. After YES, Gonzo uses
+  `reports/cg-insert-matched-hdri-20260627/README.md` to build the five-case
+  tranche; after NO, DiMo supplies plates/footage plus matched HDRI.
+
 ## 2026-07-31 16:00 PDT — Gonzo afternoon worker
 
 - **What was done:** Evidence: fetched `origin/main`, queried GitHub issues #3
