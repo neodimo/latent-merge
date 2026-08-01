@@ -4,6 +4,26 @@ Newest entries go first. This is the durable cross-runtime completion ledger;
 project status and gate definitions remain in `NEXT_STEPS.md` and
 `PHASE2_GATE.md`.
 
+## 2026-08-01 16:00 PDT — Gonzo afternoon worker
+
+- **What was done:** Evidence: fetched `origin/main`, inspected issues #3 and
+  #6 and open PRs, and found no technical or decision delta since morning.
+  Re-scoped stale issue #3 from an open-ended sourcing handoff to two explicit
+  YES/NO checkboxes, with the proven YES-path command chain and the NO-path
+  input obligation embedded in the issue body. Inference: the intake gate now
+  has one unambiguous response surface and the next worker pulse can trigger on
+  a checked decision rather than repeat unchanged validation.
+- **Artifacts:** GitHub issue #3 body and this committed task-log entry. No
+  generated or scratch artifact remains. The first issue edit was damaged by
+  shell interpolation; verification caught it immediately and the body was
+  restored from a literal file, then re-read through the GitHub API.
+- **State:** Done. Gate remains 1/5 and no technical check was rerun because
+  source and inputs are unchanged.
+- **Next owner + concrete artifact:** DiMo owns checking YES or NO in GitHub
+  issue #3. The next Gonzo run should inspect those checkboxes first; on YES,
+  use `reports/cg-insert-matched-hdri-20260627/README.md`; on NO, wait for the
+  supplied plates/footage and matched HDRI.
+
 ## 2026-08-01 08:00 PDT — Gonzo morning worker
 
 - **What was done:** Evidence: fetched `origin/main`, queried GitHub issues #3

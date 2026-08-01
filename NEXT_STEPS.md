@@ -1,4 +1,4 @@
-# Next Steps — Live Board (verified 2026-08-01 AM)
+# Next Steps — Live Board (verified 2026-08-01 PM)
 
 Read `LOCKED.md` first. `TASKLOG.md` holds the pulse-by-pulse history.
 
@@ -34,10 +34,11 @@ Read `LOCKED.md` first. `TASKLOG.md` holds the pulse-by-pulse history.
 
 ## Current evidence and worker rule
 
-Issue #3 is unchanged since 2026-06-30, issue #6 since 2026-06-23, and no PR is
-active as of 2026-08-01. Do not rerun unchanged intake or CUDA checks. Act on a
-new ruling/input, newly visible CUDA hardware, or newly verified project drift;
-otherwise stay silent.
+Issue #3's body was narrowed on 2026-08-01 to explicit YES/NO decision
+checkboxes; no ruling has been made. Issue #6 is unchanged since 2026-06-23,
+and no PR is active. Do not rerun unchanged intake or CUDA checks. Act on a
+checked ruling, new input, newly visible CUDA hardware, or newly verified
+project drift; otherwise stay silent.
 
 ## Today's concrete gate
 
