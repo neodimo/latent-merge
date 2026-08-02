@@ -4,6 +4,24 @@ Newest entries go first. This is the durable cross-runtime completion ledger;
 project status and gate definitions remain in `NEXT_STEPS.md` and
 `PHASE2_GATE.md`.
 
+## 2026-08-02 08:00 PDT — Gonzo morning worker
+
+- **What was done:** Evidence: fetched `origin/main`, inspected issues #3 and
+  #6, open PRs, and Actions state; no source or decision delta exists since
+  yesterday. Corrected issue #3's stale `phase-1` classification to `phase-2`
+  and added `blocked`, while retaining `dimo` and `fixture`. Inference: the
+  repository's issue surface now exposes the actual current gate and owner
+  without requiring readers to reconstruct it from comments.
+- **Artifacts:** GitHub issue #3 labels and this committed task-log entry. No
+  generated or scratch artifact remains; dirty untracked project files were
+  not touched.
+- **State:** Done. Gate remains 1/5; no technical validation was rerun because
+  source and fixture inputs are unchanged.
+- **Next owner + concrete artifact:** DiMo owns checking YES or NO in GitHub
+  issue #3. The most valuable review today is that single ruling. On YES,
+  Gonzo uses `reports/cg-insert-matched-hdri-20260627/README.md` to build the
+  five-case tranche; on NO, DiMo supplies plates/footage and matched HDRI.
+
 ## 2026-08-01 16:00 PDT — Gonzo afternoon worker
 
 - **What was done:** Evidence: fetched `origin/main`, inspected issues #3 and
