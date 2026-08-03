@@ -4,6 +4,24 @@ Newest entries go first. This is the durable cross-runtime completion ledger;
 project status and gate definitions remain in `NEXT_STEPS.md` and
 `PHASE2_GATE.md`.
 
+## 2026-08-03 08:00 PDT — Gonzo morning worker
+
+- **What was done:** Evidence: fetched `origin/main` and inspected issue #3,
+  issue #6, PRs, and Actions; no source, input, ruling, or CI delta exists
+  since yesterday afternoon. Retitled issue #3 from the broad fixture-build
+  wording to `Decision required: accept CC0 photo-panorama plates for eval
+  set`, exposing the actual binary unblocker in GitHub's issue list.
+  Inference: the assigned decision now requires no issue-body archaeology.
+- **Artifacts:** GitHub issue #3 title, `NEXT_STEPS.md`, and this `TASKLOG.md`
+  entry; project documentation committed and pushed. No generated or scratch
+  artifact remains; dirty untracked project files were not touched.
+- **State:** Done. The gate remains 1/5 pending a YES/NO ruling; unchanged
+  technical checks were intentionally not rerun.
+- **Next owner + concrete artifact:** DiMo owns checking YES or NO in GitHub
+  issue #3. Today's concrete gate and most valuable review are that single
+  ruling; YES activates the proven matched-HDRI fixture chain, while NO makes
+  DiMo the source for plates/footage plus matched HDRI.
+
 ## 2026-08-02 16:00 PDT — Gonzo afternoon worker
 
 - **What was done:** Evidence: fetched `origin/main` and inspected issues #3

@@ -1,4 +1,4 @@
-# Next Steps — Live Board (verified 2026-08-02 PM)
+# Next Steps — Live Board (verified 2026-08-03 AM)
 
 Read `LOCKED.md` first. `TASKLOG.md` holds the pulse-by-pulse history.
 
@@ -35,9 +35,10 @@ Read `LOCKED.md` first. `TASKLOG.md` holds the pulse-by-pulse history.
 ## Current evidence and worker rule
 
 Issue #3's body was narrowed on 2026-08-01 to explicit YES/NO decision
-checkboxes; no ruling has been made. Its labels now correctly identify it as a
-blocked Phase 2 fixture task, and GitHub formally assigns it to DiMo. Issue #6
-is unchanged since 2026-06-23, and no PR is active. Do not rerun unchanged intake or CUDA checks.
+checkboxes; no ruling has been made. Its title now names that decision directly,
+its labels identify it as a blocked Phase 2 fixture task, and GitHub formally
+assigns it to DiMo. Issue #6 is unchanged since 2026-06-23, and no PR is active.
+Do not rerun unchanged intake or CUDA checks.
 Act on a checked ruling, new input, newly visible CUDA hardware, or newly
 verified project drift; otherwise stay silent.
 
