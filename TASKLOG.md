@@ -4,6 +4,24 @@ Newest entries go first. This is the durable cross-runtime completion ledger;
 project status and gate definitions remain in `NEXT_STEPS.md` and
 `PHASE2_GATE.md`.
 
+## 2026-08-03 16:00 PDT — Gonzo afternoon worker
+
+- **What was done:** Evidence: fetched `origin/main` and inspected issue #3,
+  issue #6, PRs, and Actions; no intake ruling, source, input, PR, or CI delta
+  exists since morning. Re-scoped the stale release commitment by adding the
+  `blocked` label to issue #6, matching its documented dependency on accepted
+  photographic evidence from issue #3. Inference: the GitHub issue list no
+  longer presents downstream packaging as runnable work.
+- **Artifacts:** GitHub issue #6 labels, `NEXT_STEPS.md`, and this `TASKLOG.md`
+  entry; project documentation committed and pushed. No generated or scratch
+  artifact remains; dirty untracked project files were not touched.
+- **State:** Done. Gate remains 1/5 pending the YES/NO ruling in issue #3;
+  unchanged technical checks were intentionally not rerun.
+- **Next owner + concrete artifact:** DiMo owns checking YES or NO in GitHub
+  issue #3. The next Gonzo run should act on that ruling, new photographic
+  inputs, visible CUDA hardware, or verified project drift; issue #6 stays
+  blocked until photographic Layer-2 acceptance exists.
+
 ## 2026-08-03 08:00 PDT — Gonzo morning worker
 
 - **What was done:** Evidence: fetched `origin/main` and inspected issue #3,
