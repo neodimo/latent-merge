@@ -1,4 +1,4 @@
-# Next Steps — Live Board (verified 2026-08-04 AM)
+# Next Steps — Live Board (verified 2026-08-04 PM)
 
 Read `LOCKED.md` first. `TASKLOG.md` holds the pulse-by-pulse history.
 
@@ -39,8 +39,8 @@ checkboxes; no ruling has been made. Its title now names that decision directly,
 its labels identify it as a blocked Phase 2 fixture task, and GitHub formally
 assigns it to DiMo. The issue now embeds the committed matched-HDRI contact
 sheet so the ruling can be made from the issue surface itself. Downstream
-release issue #6 is explicitly labeled
-`blocked` until accepted photographic Layer-2 evidence exists. No PR is active.
+release issue #6 is explicitly labeled `blocked` and has no active owner until
+accepted photographic Layer-2 evidence exists. No PR is active.
 Do not rerun unchanged intake or CUDA checks.
 Act on a checked ruling, new input, newly visible CUDA hardware, or newly
 verified project drift; otherwise stay silent.
