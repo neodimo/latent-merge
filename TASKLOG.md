@@ -4,6 +4,27 @@ Newest entries go first. This is the durable cross-runtime completion ledger;
 project status and gate definitions remain in `NEXT_STEPS.md` and
 `PHASE2_GATE.md`.
 
+## 2026-08-04 08:00 PDT — Gonzo morning worker
+
+- **What was done:** Evidence: fetched `origin/main` and inspected issue #3,
+  issue #6, PRs, and the committed matched-HDRI proof; no ruling, source,
+  input, PR, or CI delta exists since yesterday. Embedded the existing
+  committed four-panel contact sheet directly in issue #3 and converted its
+  reproduction pointer to a clickable repository link. Inference: DiMo can now
+  make the binary intake ruling from the assigned issue without locating local
+  or untracked report files.
+- **Artifacts:** GitHub issue #3 body,
+  `reports/cg-insert-matched-hdri-20260627/cg_insert_contact_sheet.png`,
+  `NEXT_STEPS.md`, and this `TASKLOG.md` entry. The visual was already committed;
+  documentation is committed and pushed. Dirty untracked project files were
+  not touched; the temporary issue-body file is explicit disposable scratch.
+- **State:** Done. Gate remains 1/5 pending the YES/NO ruling; unchanged
+  technical checks were intentionally not rerun.
+- **Next owner + concrete artifact:** DiMo owns checking YES or NO in GitHub
+  issue #3 after reviewing its embedded contact sheet. Today's concrete gate
+  and most valuable review are that ruling; YES activates the five-case build,
+  while NO requires DiMo-supplied plates/footage plus matched HDRI.
+
 ## 2026-08-03 16:00 PDT — Gonzo afternoon worker
 
 - **What was done:** Evidence: fetched `origin/main` and inspected issue #3,
