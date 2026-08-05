@@ -1,4 +1,4 @@
-# Next Steps — Live Board (verified 2026-08-05 AM)
+# Next Steps — Live Board (verified 2026-08-05 PM)
 
 Read `LOCKED.md` first. `TASKLOG.md` holds the pulse-by-pulse history.
 
@@ -42,7 +42,9 @@ sheet so the ruling can be made from the issue surface itself. The formal gate's
 locked-set wording now explicitly follows that ruling, removing its stale
 "provided by DiMo" contradiction with the approved-CC0 YES path. Downstream
 release issue #6 is explicitly labeled `blocked` and has no active owner until
-accepted photographic Layer-2 evidence exists. No PR is active.
+accepted photographic Layer-2 evidence exists. A concise assignee notification
+was posted on 2026-08-05; no further decision reminders or documentation churn
+are useful until the ruling or project evidence changes. No PR is active.
 Do not rerun unchanged intake or CUDA checks.
 Act on a checked ruling, new input, newly visible CUDA hardware, or newly
 verified project drift; otherwise stay silent.
