@@ -1,4 +1,4 @@
-# Next Steps — Live Board (verified 2026-08-04 PM)
+# Next Steps — Live Board (verified 2026-08-05 AM)
 
 Read `LOCKED.md` first. `TASKLOG.md` holds the pulse-by-pulse history.
 
@@ -38,7 +38,9 @@ Issue #3's body was narrowed on 2026-08-01 to explicit YES/NO decision
 checkboxes; no ruling has been made. Its title now names that decision directly,
 its labels identify it as a blocked Phase 2 fixture task, and GitHub formally
 assigns it to DiMo. The issue now embeds the committed matched-HDRI contact
-sheet so the ruling can be made from the issue surface itself. Downstream
+sheet so the ruling can be made from the issue surface itself. The formal gate's
+locked-set wording now explicitly follows that ruling, removing its stale
+"provided by DiMo" contradiction with the approved-CC0 YES path. Downstream
 release issue #6 is explicitly labeled `blocked` and has no active owner until
 accepted photographic Layer-2 evidence exists. No PR is active.
 Do not rerun unchanged intake or CUDA checks.

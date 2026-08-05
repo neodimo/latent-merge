@@ -74,7 +74,10 @@ trust safety are.
 
 ## Locked evaluation set
 
-- 10–20 representative CG-over-plate cases, frozen (fixtures + matte), provided by DiMo.
+- 10–20 representative CG-over-plate cases, frozen (fixtures + matte). Plate
+  sourcing follows the ruling in GitHub issue #3: approved CC0 photographic
+  panorama crops with their same-capture HDRI, or DiMo-provided photographic
+  plates/footage plus matched HDRI.
 - At least one short proxy sequence for flicker.
 - Standardized contact sheets generated per backend for the blind session.
 - Standardized sequence review videos generated for temporal/flicker review.
@@ -89,7 +92,7 @@ sheets spanning multiple case types. Blender-mediated cases such as
 sentinels only; they must not be used as recurring headline artifacts for
 visual-quality updates.
 
-## Current status (verified 2026-07-31)
+## Current status (verified 2026-08-05)
 
 - ✅ Layer 1 rejection tooling exists and fails closed on malformed,
   duplicate, or non-photographic intake.

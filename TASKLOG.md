@@ -4,6 +4,26 @@ Newest entries go first. This is the durable cross-runtime completion ledger;
 project status and gate definitions remain in `NEXT_STEPS.md` and
 `PHASE2_GATE.md`.
 
+## 2026-08-05 08:00 PDT — Gonzo morning worker
+
+- **What was done:** Evidence: fetched `origin/main` and inspected issue #3,
+  issue #6, open PRs, and Actions; no ruling, input, PR, CI, or hardware delta
+  exists since yesterday. Found and removed a formal-gate contradiction: the
+  locked-set definition still required all fixtures to be "provided by DiMo"
+  while issue #3's YES path permits approved CC0 photographic panorama crops.
+  `PHASE2_GATE.md` now makes sourcing explicitly conditional on issue #3's
+  ruling. Inference: a YES decision can now activate the intake build without
+  conflicting with the formal gate definition.
+- **Artifacts:** `PHASE2_GATE.md`, `NEXT_STEPS.md`, and this `TASKLOG.md` entry;
+  documentation committed and pushed. No generated or scratch artifact
+  remains; dirty untracked project files were not touched.
+- **State:** Done. Gate remains 1/5 pending the YES/NO ruling; unchanged
+  technical checks were intentionally not rerun.
+- **Next owner + concrete artifact:** DiMo owns checking YES or NO in assigned
+  GitHub issue #3. Today's concrete gate and most valuable review are that
+  ruling; YES activates the documented CC0 matched-HDRI path, while NO requires
+  DiMo-supplied photographic plates/footage plus matched HDRI.
+
 ## 2026-08-04 16:00 PDT — Gonzo afternoon worker
 
 - **What was done:** Evidence: fetched `origin/main` and inspected issue #3,
