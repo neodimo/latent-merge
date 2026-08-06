@@ -1,4 +1,4 @@
-# Next Steps — Live Board (verified 2026-08-05 PM)
+# Next Steps — Live Board (verified 2026-08-06 PM)
 
 Read `LOCKED.md` first. `TASKLOG.md` holds the pulse-by-pulse history.
 
@@ -49,8 +49,11 @@ Do not rerun unchanged intake or CUDA checks.
 Act on a checked ruling, new input, newly visible CUDA hardware, or newly
 verified project drift; otherwise stay silent.
 
-## Today's concrete gate
+## Activation gate
 
-DiMo owns the YES/NO ruling in issue #3. The most valuable review today is that
-single decision. YES starts the 5-case intake build; NO switches sourcing to
-DiMo-provided plates/footage and matched HDRI.
+DiMo owns the YES/NO ruling in issue #3. The most valuable review remains that
+single decision. The next Gonzo run has no date-driven commitment: it activates
+only when issue #3 is checked, new photographic inputs arrive, CUDA becomes
+visible, or verified project drift creates a bounded action. YES starts the
+5-case intake build; NO switches sourcing to DiMo-provided plates/footage and
+matched HDRI.

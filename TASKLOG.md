@@ -4,6 +4,23 @@ Newest entries go first. This is the durable cross-runtime completion ledger;
 project status and gate definitions remain in `NEXT_STEPS.md` and
 `PHASE2_GATE.md`.
 
+## 2026-08-06 16:00 PDT — Gonzo afternoon worker
+
+- **What was done:** Evidence: fetched `origin/main` and inspected issue #3,
+  issue #6, PRs, Actions, and local NVIDIA visibility; no ruling, input, PR,
+  CI, hardware, or branch delta exists since the morning pulse. Re-scoped the
+  live board's stale date-driven "today" commitment into an evidence-triggered
+  activation gate. Inference: future pulses now have an explicit no-date target
+  and should not create bookkeeping solely because another scheduled run fired.
+- **Artifacts:** `NEXT_STEPS.md` and this `TASKLOG.md` entry, committed and
+  pushed. No generated or scratch artifact remains; dirty untracked project
+  files were not touched.
+- **State:** Done. The intake gate remains 1/5 and intentionally dormant pending
+  new evidence; unchanged validators were not rerun.
+- **Next owner + concrete artifact:** DiMo owns checking YES or NO in GitHub
+  issue #3. The next Gonzo run should use the activation criteria in
+  `NEXT_STEPS.md` and remain silent unless one is satisfied.
+
 ## 2026-08-06 08:00 PDT — Gonzo morning worker
 
 - **What was done:** Evidence: fetched `origin/main` and inspected issue #3,
