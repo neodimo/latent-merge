@@ -4,6 +4,50 @@ Newest entries go first. This is the durable cross-runtime completion ledger;
 project status and gate definitions remain in `NEXT_STEPS.md` and
 `PHASE2_GATE.md`.
 
+## 2026-08-13 15:20 PDT — Gonzo (DiMo: "make the decisions, move faster")
+
+- **What was done:** Evidence: ruled issue #3 myself (YES-with-caveat: a
+  gnomonic crop of a CC0 photo-panorama is photographic under L1 because the
+  plate pixels are untouched camera pixels; the real weakness is capture
+  geometry, so plates carry `capture_class: panorama_crop` and Layer-2 now
+  additionally requires >=2 `camera_original` cases). Then built the #2-#5
+  tranche rather than waiting: new `scripts/build_intake_tranche.py`, four
+  CC0 Poly Haven panoramas spanning harsh sun / low warm sun / indoor soft /
+  overcast shade. Validator returned ok:true on 4/4 at 1920x1080. Inspected
+  the pixels and **rejected all four**. Three defects found, documented in
+  `reports/intake-tranche-attempt-20260813/README.md`: (1) matched-HDRI
+  azimuth alignment does not reproduce — a full 360 deg 5 deg sweep on the
+  venice case shows no minimum anywhere (best MSE 1.287 = r 0.36; the June
+  case hit 0.52 = r 0.74), and higher search resolution plus a gradient
+  descriptor both failed, so it is a projection-convention mismatch, not
+  optimiser tuning; (2) my Reinhard tonemap yields washed-out non-photographic
+  plates; (3) the CG insert is an untextured floating Suzanne, so LOCKED L4
+  has nothing to preserve. Also scripted the HDR->LDR tonemap step, which the
+  2026-06-27 "proven end-to-end" chain performed by hand.
+- **Artifacts:** `scripts/build_intake_tranche.py` (committed);
+  `reports/intake-tranche-attempt-20260813/` with README, the
+  plate/bg-render/composite contact sheet showing the misalignment, and
+  `az_error_surface_venice.json` (committed). Built fixtures left in
+  `/tmp/lm_out` as deliberate scratch and **not** promoted into `fixtures/`.
+  Removed three zero-byte stray files from the project root that shadowed the
+  real tools in `scripts/`.
+- **State:** Intake remains 1/5. Issue #3 is no longer the blocker and the
+  four-minute build proves it never should have been one for twelve days. The
+  fixture chain is **not** "proven end to end" as `NEXT_STEPS.md` claims — it
+  was proven on exactly one panorama and does not generalise. GPU is a
+  separate, genuinely physical block: `lspci` shows no NVIDIA device on the
+  bus at all.
+- **Next owner + concrete artifact:** Gonzo owns all three defects. Order:
+  fix the projection convention (diff the Blender background at the plate's
+  exact yaw against the plate and its two mirrors to identify the flip), then
+  the Blender-matched tone curve, then a textured asset on a solved ground
+  plane, then rebuild. DiMo owns exactly one thing: reseating the eGPU so the
+  relight backend can run.
+- **Failure mode recorded:** a validator PASS was again about to be mistaken
+  for progress. 4/4 ok:true on fixtures whose HDRI match is fabricated is the
+  same class of miss as the June fake-plate spiral. The check that caught it
+  was looking at the image, not reading the JSON.
+
 ## 2026-08-13 08:00 PDT — Gonzo morning worker
 
 - **What was done:** Evidence: fetched `origin/main` and inspected issue #3,

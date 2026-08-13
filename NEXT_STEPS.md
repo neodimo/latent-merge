@@ -1,59 +1,51 @@
-# Next Steps — Live Board (verified 2026-08-06 PM)
+# Next Steps — Live Board (verified 2026-08-13 PM)
 
-Read `LOCKED.md` first. `TASKLOG.md` holds the pulse-by-pulse history.
+Read `LOCKED.md` first. `TASKLOG.md` holds the history.
 
-**Status:** Bert is paused; Gonzo owns active project work.
+**Status:** Bert paused; Gonzo owns active work and owns every judgement about
+imagery. DiMo is escalated to only for hardware, licences, money, public
+releases, or reversing a LOCKED constraint.
 
 ## Reality check
 
-- The intake has one accepted photographic case: `compositingpro_sh009_minimal`.
-  Synthetic and Blender-mediated fixtures are regression sentinels, not quality
-  evidence.
-- IC-Light/FLUX relight has never completed inference. Existing visual results
-  are PCT-Net color harmonization only. This worker runtime cannot see NVIDIA
-  hardware; use `HARDWARE.md` before scheduling GPU work.
-- The matched-panorama toolchain is complete and proven end to end:
-  `pano_to_plate.py` -> `render_cg_insert.py` -> `assemble_fixture.py` ->
-  `validate_photographic_fixtures.py`. Reproduction evidence is in
-  `reports/cg-insert-matched-hdri-20260627/`.
+- Intake is 1/5. `compositingpro_sh009_minimal` is the only accepted case.
+  Synthetic and Blender-mediated fixtures are regression sentinels, never
+  quality evidence.
+- Issue #3 is resolved by Gonzo, not pending: a gnomonic crop of a CC0
+  photo-panorama **counts as photographic** under L1 (the plate pixels are
+  untouched camera pixels). Its real weakness is capture geometry — a fixed
+  nodal point gives no perspective falloff, DOF or motion blur — so such
+  plates carry `capture_class: panorama_crop` and the Layer-2 gate
+  additionally requires **>= 2 `camera_original` cases**.
+- **The matched-panorama toolchain is NOT proven end to end.** It was proven
+  on exactly one panorama (2026-06-27, `kloofendal_43d_clear`, alignment MSE
+  0.52) and does not generalise: a 2026-08-13 tranche of four new panoramas
+  found no azimuth minimum on any of them. Details and evidence:
+  `reports/intake-tranche-attempt-20260813/`.
+- IC-Light/FLUX relight has still never completed inference. Every visual
+  result to date is PCT-Net colour harmonization only.
+- GPU: `lspci` shows **no NVIDIA device on the bus** — the eGPU is off USB4,
+  not merely driverless. DiMo is reseating it.
 
-## Current cycle
+## Current cycle — all Gonzo, in order
 
-1. **DiMo:** answer GitHub issue #3: does a rectilinear crop of a CC0
-   equirectangular photo-panorama count as a real photographic plate under L1?
-2. **Gonzo, after YES:** produce and validate the 5-case photographic intake
-   tranche with the proven matched-HDRI chain.
-3. **DiMo, after NO:** supply real footage/plates plus matched HDRI; Gonzo then
-   assembles and validates the intake tranche.
-4. **Gonzo, after intake:** run Layer 1 and produce raw A-over-B vs PCT-Net vs
-   relight comparison evidence. A real relight backend also requires a runtime
-   with visible CUDA hardware.
-5. **Review lane:** run blind Layer-2 preference scoring only after accepted
-   photographic cases clear Layer 1. Release packaging remains gated by issue
-   #6.
+1. **Fix the projection convention.** `pano_to_plate.py`'s gnomonic crop and
+   Blender's equirect lookup disagree; no azimuth reproduces the plate.
+   Diagnostic: render the background at the plate's exact yaw and diff against
+   the plate plus its horizontal and vertical mirrors to identify the flip.
+2. **Replace the tonemap** with a curve matched to Blender's view transform.
+   The current Reinhard settings yield washed-out, non-photographic plates and
+   add tone as a confound to step 1.
+3. **Replace the CG subject.** An untextured Suzanne leaves LOCKED L4 nothing
+   to preserve; use a textured asset on a solved ground plane.
+4. **Rebuild the tranche** (`scripts/build_intake_tranche.py`, ~4 min) and
+   judge it on pixels, not on validator output.
+5. **Then the actual thesis:** one relight backend running end to end on a
+   real plate, once CUDA is visible. This is the project. Fixtures are
+   scaffolding.
 
-## Current evidence and worker rule
+## Standing rules
 
-Issue #3's body was narrowed on 2026-08-01 to explicit YES/NO decision
-checkboxes; no ruling has been made. Its title now names that decision directly,
-its labels identify it as a blocked Phase 2 fixture task, and GitHub formally
-assigns it to DiMo. The issue now embeds the committed matched-HDRI contact
-sheet so the ruling can be made from the issue surface itself. The formal gate's
-locked-set wording now explicitly follows that ruling, removing its stale
-"provided by DiMo" contradiction with the approved-CC0 YES path. Downstream
-release issue #6 is explicitly labeled `blocked` and has no active owner until
-accepted photographic Layer-2 evidence exists. A concise assignee notification
-was posted on 2026-08-05; no further decision reminders or documentation churn
-are useful until the ruling or project evidence changes. No PR is active.
-Do not rerun unchanged intake or CUDA checks.
-Act on a checked ruling, new input, newly visible CUDA hardware, or newly
-verified project drift; otherwise stay silent.
-
-## Activation gate
-
-DiMo owns the YES/NO ruling in issue #3. The most valuable review remains that
-single decision. The next Gonzo run has no date-driven commitment: it activates
-only when issue #3 is checked, new photographic inputs arrive, CUDA becomes
-visible, or verified project drift creates a bounded action. YES starts the
-5-case intake build; NO switches sourcing to DiMo-provided plates/footage and
-matched HDRI.
+A validator PASS is plumbing and is never reported as quality. No-op runs
+leave no commit, no TASKLOG entry and no post. Look at the image before
+believing the JSON.
