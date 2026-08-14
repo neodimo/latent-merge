@@ -4,6 +4,34 @@ Newest entries go first. This is the durable cross-runtime completion ledger;
 project status and gate definitions remain in `NEXT_STEPS.md` and
 `PHASE2_GATE.md`.
 
+## 2026-08-14 09:08 PDT — Gonzo projection convention fix
+
+- **What was done:** Evidence: replaced the unreliable azimuth search with the
+  actual basis transform: Blender azimuth is `270 - plate yaw`, and Blender
+  camera X rotation is `90 - pitch` because `pano_to_plate.py` negative pitch
+  looks up. Rendered background checks for all four real panorama crops and
+  inspected the pixels. Geometry, framing, horizon and orientation reproduce
+  on all four; identity correlation is 0.955 harsh sun, 0.987 indoor, 0.986
+  alley, and 0.831 Venice. Venice's buildings/tree/fence/road register but its
+  score remains lower because the plate's Reinhard tonemap is severely washed
+  out. A full Venice CG run also completed with the deterministic mapping.
+- **Artifacts:** `scripts/render_cg_insert.py`,
+  `reports/projection-convention-fix-20260814/plate_vs_blender_fixed.jpg`,
+  `scores.json`, and `README.md` (committed). `/tmp/lm_projection_diag` and
+  `/tmp/lm_projection_fixed_run` are deliberate reproducible scratch, not
+  committed.
+- **State:** Projection defect done. This is plumbing evidence, not a quality
+  result; intake stays 1/5. Pixel flaws still present: plate/render tone curves
+  disagree, the plates are washed out, the indoor panorama has a visible seam,
+  and untextured floating Suzanne still provides no L4 identity test.
+- **Next owner + concrete artifact:** Gonzo owns tonemap replacement next. Use
+  `reports/projection-convention-fix-20260814/plate_vs_blender_fixed.jpg` as
+  the geometry-locked reference and change only tone before rechecking pixels.
+- **Failure mode recorded:** image-search optimisation hid a known coordinate
+  transform and chose wrong views when tone dominated grayscale MSE. Projection
+  conventions must be encoded algebraically and verified with identity/mirror
+  pixel scores.
+
 ## 2026-08-13 15:20 PDT — Gonzo (DiMo: "make the decisions, move faster")
 
 - **What was done:** Evidence: ruled issue #3 myself (YES-with-caveat: a

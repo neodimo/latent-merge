@@ -9,11 +9,10 @@ renders a CG object lit by that HDRI as world lighting, with a contact shadow,
 on a transparent film, at the plate resolution. The output `cg_rgba.png` drops
 straight into `assemble_fixture.py --cg`.
 
-Camera <-> plate alignment is not asserted: the world (HDRI) azimuth that makes
-the Blender background reproduce the plate is found by a coarse->fine search that
-minimises image error against the real plate, then verified by a full-res
-background render the caller can diff. This sidesteps any equirect-convention
-mismatch between this renderer and `pano_to_plate.py`.
+Camera <-> plate alignment is deterministic and inspectable. pano_to_plate's
+yaw maps to Blender azimuth as ``270 - yaw`` and its pitch sign is opposite
+Blender's camera X rotation. A full-resolution background check plus normalised
+pixel scores are written so the convention is verified against the real plate.
 
 Run with Blender (not the project venv):
 
@@ -59,6 +58,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--samples", type=int, default=128)
     p.add_argument("--cam-height", type=float, default=1.6)
     p.add_argument("--object-distance", type=float, default=5.5)
+    p.add_argument("--diagnose-projection", action="store_true",
+                   help="render mapped manifest yaw, score mirror variants, then exit")
     return p.parse_args(_argv_after_dashes())
 
 
@@ -69,6 +70,12 @@ def _view_from_manifest(path: str | None) -> tuple[float, float]:
         pitch = float(view.get("pitch_deg", pitch))
         hfov = float(view.get("hfov_deg", hfov))
     return pitch, hfov
+
+
+def _yaw_from_manifest(path: str | None) -> float:
+    if path and os.path.exists(path):
+        return float(json.load(open(path)).get("view", {}).get("yaw_deg", 0.0))
+    return 0.0
 
 
 def _load_gray(path: str) -> np.ndarray:
@@ -96,6 +103,33 @@ def _norm(a: np.ndarray) -> np.ndarray:
     return (a - a.mean()) / (a.std() + 1e-6)
 
 
+def _projection_scores(plate: np.ndarray, rendered: np.ndarray) -> dict[str, dict[str, float]]:
+    """Score orientation variants after removing tone/contrast as confounds."""
+    variants = {
+        "identity": plate,
+        "mirror_horizontal": plate[:, ::-1],
+        "mirror_vertical": plate[::-1],
+        "mirror_both": plate[::-1, ::-1],
+    }
+    rendered_n = _norm(rendered)
+    scores = {}
+    for name, candidate in variants.items():
+        candidate_n = _norm(candidate)
+        mse = float(np.mean((candidate_n - rendered_n) ** 2))
+        scores[name] = {"mse": mse, "correlation": 1.0 - mse / 2.0}
+    return scores
+
+
+def _plate_yaw_to_blender_azimuth(yaw_deg: float) -> float:
+    """Map pano_to_plate's +Z-forward/right-handed yaw to Blender's world.
+
+    Blender's level camera at azimuth 0 looks along +Y, while its environment
+    texture's longitude increases in the opposite direction to pano_to_plate.
+    The resulting basis change is azimuth = 270 - yaw.
+    """
+    return (270.0 - yaw_deg) % 360.0
+
+
 def setup_world(hdr: str) -> None:
     scn = bpy.context.scene
     scn.world = bpy.data.worlds.new("W")
@@ -118,8 +152,9 @@ def setup_camera(az: float, pitch: float, hfov: float, loc) -> "bpy.types.Object
     cam = bpy.data.objects.new("Cam", cd)
     bpy.context.scene.collection.objects.link(cam)
     cam.location = Vector(loc)
-    # rot_x=90 aims camera -Z at the horizon; pitch tilts; az spins about world up
-    cam.rotation_euler = (math.radians(90.0 + pitch), 0.0, math.radians(az))
+    # rot_x=90 aims camera -Z at the horizon. pano_to_plate defines negative
+    # pitch as looking up, hence Blender's X rotation uses 90 - pitch.
+    cam.rotation_euler = (math.radians(90.0 - pitch), 0.0, math.radians(az))
     bpy.context.scene.camera = cam
     return cam
 
@@ -146,32 +181,10 @@ def render(path: str, w: int, h: int, samples: int, transparent: bool, pct: int 
     scn.render.resolution_percentage = 100
 
 
-def find_azimuth(plate: str, w: int, h: int, pitch: float, hfov: float, cam_height: float) -> tuple[float, float]:
-    """Coarse (20 deg) then fine (5 deg) search for the world azimuth whose
-    background best matches the plate. Returns (azimuth_deg, normalised MSE)."""
-    sr_w, sr_h = 160, 90
-    plate_s = _norm(_downsample(_load_gray(plate), sr_w, sr_h))
-    cam = bpy.context.scene.objects["Cam"]
-    search_pct = int(sr_w / w * 100) + 1
-
-    def score(az: float) -> float:
-        cam.rotation_euler = (math.radians(90 + pitch), 0, math.radians(az % 360))
-        tmp = "/tmp/_az_search.png"
-        render(tmp, w, h, 1, False, pct=search_pct)
-        g = _norm(_downsample(_load_gray(tmp), sr_w, sr_h))
-        return float(np.mean((g - plate_s) ** 2))
-
-    best = min(((az, score(az)) for az in range(0, 360, 20)), key=lambda t: t[1])
-    for az in range(best[0] - 20, best[0] + 21, 5):
-        s = score(az)
-        if s < best[1]:
-            best = (az % 360, s)
-    return float(best[0]), best[1]
-
-
 def main() -> int:
     args = parse_args()
     pitch, hfov = _view_from_manifest(args.extraction_manifest)
+    manifest_yaw = _yaw_from_manifest(args.extraction_manifest)
     if args.pitch is not None:
         pitch = args.pitch
     if args.hfov is not None:
@@ -183,12 +196,41 @@ def main() -> int:
     bpy.ops.wm.read_factory_settings(use_empty=True)
     setup_world(args.hdr)
     setup_camera(0.0, pitch, hfov, (0, 0, args.cam_height))
-    az, align_mse = find_azimuth(args.plate, pw, ph, pitch, hfov, args.cam_height)
-    print(f"BEST_AZ {az} mse {align_mse:.4f}")
+
+    if args.diagnose_projection:
+        mapped_azimuth = _plate_yaw_to_blender_azimuth(manifest_yaw)
+        diagnostic_path = os.path.join(args.out_dir, "bg_mapped_yaw.png")
+        bpy.context.scene.objects["Cam"].rotation_euler = (
+            math.radians(90 - pitch), 0, math.radians(mapped_azimuth)
+        )
+        render(diagnostic_path, pw, ph, 16, False)
+        plate_s = _downsample(_load_gray(args.plate), 320, 180)
+        render_s = _downsample(_load_gray(diagnostic_path), 320, 180)
+        result = {
+            "manifest_yaw_deg": manifest_yaw,
+            "blender_azimuth_deg": mapped_azimuth,
+            "pitch_deg": pitch,
+            "hfov_deg": hfov,
+            "scores": _projection_scores(plate_s, render_s),
+        }
+        json.dump(result, open(os.path.join(args.out_dir, "projection_diagnostic.json"), "w"), indent=2)
+        print(json.dumps(result, indent=2))
+        return 0
+
+    # The projection convention is deterministic. Searching was both slower
+    # and unreliable when plate/render tone curves differed strongly.
+    az = _plate_yaw_to_blender_azimuth(manifest_yaw)
+    print(f"MAPPED_AZ {az} from plate yaw {manifest_yaw}")
 
     # 2. full-res background render at the chosen azimuth (alignment evidence)
-    bpy.context.scene.objects["Cam"].rotation_euler = (math.radians(90 + pitch), 0, math.radians(az))
-    render(os.path.join(args.out_dir, "bg_check.png"), pw, ph, 16, False)
+    bpy.context.scene.objects["Cam"].rotation_euler = (math.radians(90 - pitch), 0, math.radians(az))
+    bg_check_path = os.path.join(args.out_dir, "bg_check.png")
+    render(bg_check_path, pw, ph, 16, False)
+    projection_scores = _projection_scores(
+        _downsample(_load_gray(args.plate), 320, 180),
+        _downsample(_load_gray(bg_check_path), 320, 180),
+    )
+    align_mse = projection_scores["identity"]["mse"]
 
     # 3. CG object lit by the HDRI, contact shadow, transparent film
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -219,6 +261,7 @@ def main() -> int:
         "pitch_deg": pitch,
         "hfov_deg": hfov,
         "alignment_mse": align_mse,
+        "projection_scores": projection_scores,
         "cam_height_m": args.cam_height,
         "object_distance_m": args.object_distance,
         "samples": args.samples,

@@ -1,0 +1,98 @@
+[
+  {
+    "manifest_yaw_deg": 200.0,
+    "blender_azimuth_deg": 70.0,
+    "pitch_deg": -4.0,
+    "hfov_deg": 70.0,
+    "scores": {
+      "identity": {
+        "mse": 0.33841132631924903,
+        "correlation": 0.8307943368403755
+      },
+      "mirror_horizontal": {
+        "mse": 2.248697380040825,
+        "correlation": -0.12434869002041249
+      },
+      "mirror_vertical": {
+        "mse": 1.1230130994764609,
+        "correlation": 0.43849345026176956
+      },
+      "mirror_both": {
+        "mse": 1.699238189107946,
+        "correlation": 0.150380905446027
+      }
+    }
+  },
+  {
+    "manifest_yaw_deg": 30.0,
+    "blender_azimuth_deg": 240.0,
+    "pitch_deg": -6.0,
+    "hfov_deg": 72.0,
+    "scores": {
+      "identity": {
+        "mse": 0.09094177849810813,
+        "correlation": 0.9545291107509459
+      },
+      "mirror_horizontal": {
+        "mse": 0.1991330440458116,
+        "correlation": 0.9004334779770942
+      },
+      "mirror_vertical": {
+        "mse": 2.626753074898867,
+        "correlation": -0.3133765374494335
+      },
+      "mirror_both": {
+        "mse": 2.6423153081946773,
+        "correlation": -0.32115765409733865
+      }
+    }
+  },
+  {
+    "manifest_yaw_deg": 90.0,
+    "blender_azimuth_deg": 180.0,
+    "pitch_deg": -8.0,
+    "hfov_deg": 75.0,
+    "scores": {
+      "identity": {
+        "mse": 0.025441801033789464,
+        "correlation": 0.9872790994831052
+      },
+      "mirror_horizontal": {
+        "mse": 2.0706278576737227,
+        "correlation": -0.03531392883686135
+      },
+      "mirror_vertical": {
+        "mse": 2.1314525602101138,
+        "correlation": -0.06572628010505688
+      },
+      "mirror_both": {
+        "mse": 2.823209705616584,
+        "correlation": -0.41160485280829207
+      }
+    }
+  },
+  {
+    "manifest_yaw_deg": 0.0,
+    "blender_azimuth_deg": 270.0,
+    "pitch_deg": -6.0,
+    "hfov_deg": 72.0,
+    "scores": {
+      "identity": {
+        "mse": 0.0289007979650382,
+        "correlation": 0.9855496010174809
+      },
+      "mirror_horizontal": {
+        "mse": 1.8718838206544186,
+        "correlation": 0.0640580896727907
+      },
+      "mirror_vertical": {
+        "mse": 1.6144850664922095,
+        "correlation": 0.19275746675389527
+      },
+      "mirror_both": {
+        "mse": 1.9214372770161379,
+        "correlation": 0.039281361491931066
+      }
+    }
+  }
+]

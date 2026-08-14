@@ -29,11 +29,13 @@ releases, or reversing a LOCKED constraint.
 
 ## Current cycle — all Gonzo, in order
 
-1. **Fix the projection convention.** `pano_to_plate.py`'s gnomonic crop and
-   Blender's equirect lookup disagree; no azimuth reproduces the plate.
-   Diagnostic: render the background at the plate's exact yaw and diff against
-   the plate plus its horizontal and vertical mirrors to identify the flip.
-2. **Replace the tonemap** with a curve matched to Blender's view transform.
+1. **Projection convention fixed (2026-08-14).** The deterministic mapping is
+   Blender azimuth `270 - plate yaw` with camera X rotation `90 - pitch`.
+   Four-case pixel evidence is in
+   `reports/projection-convention-fix-20260814/`; structural correlation is
+   0.831–0.987 and the identity orientation wins on every case.
+2. **Replace the tonemap (current).** Use a curve matched to Blender's view
+   transform.
    The current Reinhard settings yield washed-out, non-photographic plates and
    add tone as a confound to step 1.
 3. **Replace the CG subject.** An untextured Suzanne leaves LOCKED L4 nothing
