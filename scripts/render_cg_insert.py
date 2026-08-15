@@ -281,6 +281,29 @@ def _chrome(name: str) -> "bpy.types.Material":
     return mat
 
 
+def add_light_proxy(albedo: float = 0.08, name: str = "ground_light_proxy") -> "bpy.types.Object":
+    """Add camera-invisible, ray-visible ground geometry for light transport."""
+    proxy = add_ground(shadow_catcher=False)
+    proxy.name = name
+    proxy.data.materials.append(_matte(f"{name}_matte", albedo))
+    proxy.visible_camera = False
+    proxy.visible_shadow = False
+    proxy.visible_diffuse = True
+    proxy.visible_glossy = True
+    return proxy
+
+
+def assert_light_proxy_contract(proxy: "bpy.types.Object") -> None:
+    expected = {
+        "visible_camera": False, "visible_shadow": False,
+        "visible_diffuse": True, "visible_glossy": True,
+    }
+    wrong = {key: getattr(proxy, key) for key, value in expected.items()
+             if getattr(proxy, key) != value}
+    if wrong:
+        raise RuntimeError(f"{proxy.name}: invalid light-proxy visibility {wrong}; expected {expected}")
+
+
 def build_asset(kind: str, height: float) -> "bpy.types.Object":
     """The mesh to insert.
 

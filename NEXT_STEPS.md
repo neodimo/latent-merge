@@ -34,15 +34,17 @@ releases, or reversing a LOCKED constraint.
    Four-case pixel evidence is in
    `reports/projection-convention-fix-20260814/`; structural correlation is
    0.831–0.987 and the identity orientation wins on every case.
-2. **Replace the tonemap (current).** Use a curve matched to Blender's view
-   transform.
-   The current Reinhard settings yield washed-out, non-photographic plates and
-   add tone as a confound to step 1.
-3. **Replace the CG subject.** An untextured Suzanne leaves LOCKED L4 nothing
+2. **Tone fixed; ground light transport isolated (2026-08-15).** Plate and CG
+   now share Blender AgX. A hidden matte proxy fixes the object's light field,
+   but the naive proxy + catcher composite creates a huge polygonal dark veil
+   on the plate. Pixel evidence: `reports/ground-proxy-production-20260815/`.
+3. **Implement the proxy with an object-on/off difference pass (current).** The
+   proxy must exist in both halves; the naive coincident catcher path is rejected.
+4. **Replace the CG subject.** An untextured Suzanne leaves LOCKED L4 nothing
    to preserve; use a textured asset on a solved ground plane.
-4. **Rebuild the tranche** (`scripts/build_intake_tranche.py`, ~4 min) and
+5. **Rebuild the tranche** (`scripts/build_intake_tranche.py`, ~4 min) and
    judge it on pixels, not on validator output.
-5. **Then the actual thesis:** one relight backend running end to end on a
+6. **Then the actual thesis:** one relight backend running end to end on a
    real plate, once CUDA is visible. This is the project. Fixtures are
    scaffolding.
 

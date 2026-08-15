@@ -1,5 +1,22 @@
 # Latent Merge Task Log
 
+## 2026-08-15 09:00 PDT — Gonzo autonomous worker
+
+- **What was done:** Exercised decision authority and removed the spurious need
+  for DiMo approval of the ground-proxy contract. Added one shared hidden-proxy
+  constructor plus an asserted ray-visibility contract, and made the regression
+  gate distinguish the shipping split path from the retained catcher-only
+  known-fail. Rendered the instrument and an actual 1920x1080 photographic-plate
+  composite, then inspected the pixels.
+- **Verdict:** The split proxy fixes light arriving through the floor (bottom
+  luminance 0.3020 -> 0.1957), but naive coexistence with the catcher creates a
+  huge polygonal dark veil over the road and left wall. Rejected for production;
+  it is not quality evidence. The proper object-on/off difference pass is now
+  the current bounded implementation task.
+- **Artifacts:** `reports/ground-proxy-production-20260815/README.md`, regression
+  JSON, rejected composite, and render metadata. Generated intermediates were
+  deliberately removed. Code and docs committed together.
+
 Newest entries go first. This is the durable cross-runtime completion ledger;
 project status and gate definitions remain in `NEXT_STEPS.md` and
 `PHASE2_GATE.md`.

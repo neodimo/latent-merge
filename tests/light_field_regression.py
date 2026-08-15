@@ -30,7 +30,9 @@ This currently FAILS with `is_shadow_catcher`, which is the open bug recorded in
 light without occluding the background, so the environment's lower hemisphere
 lights the object straight through the ground it stands on.
 
-Exit code 0 = invariant holds for every ground mode. Exit 1 = violated.
+Exit code 0 = production holds and the legacy violation remains a named
+known-fail. Exit 1 = production violates the invariant or the baseline stops
+reproducing the historical bug.
 """
 from __future__ import annotations
 
@@ -101,13 +103,8 @@ def measure(rci, args, mode: str) -> dict:
         # bouncing the catcher will not do. Shadow visibility is off on the
         # proxy so the cast shadow is not counted twice.
         rci.add_ground(shadow_catcher=True)
-        proxy = rci.add_ground(shadow_catcher=False)
-        proxy.name = "light_proxy"
-        proxy.data.materials.append(rci._matte("road_proxy", args.ground_albedo))
-        proxy.visible_camera = False
-        proxy.visible_shadow = False
-        proxy.visible_diffuse = True
-        proxy.visible_glossy = True
+        proxy = rci.add_light_proxy(args.ground_albedo, "light_proxy")
+        rci.assert_light_proxy_contract(proxy)
     elif mode != "no_ground":
         raise SystemExit(f"unknown ground mode {mode!r}")
 
@@ -164,20 +161,25 @@ def main() -> int:
                        "the surface the object is standing on",
             })
 
+    production_violations = [v for v in violations if v["mode"] in ("matte_ground", "split")]
+    expected_known_fail = next((v for v in violations if v["mode"] == "shadow_catcher"), None)
+    passed = not production_violations and expected_known_fail is not None
     report = {
         "hdr": os.path.basename(args.hdr),
         "samples": args.samples,
         "invariant": "bottom_luminance(with_ground) <= bottom_luminance(no_ground)",
         "results": results,
         "violations": violations,
-        "passed": not violations,
+        "expected_known_fail": expected_known_fail,
+        "production_violations": production_violations,
+        "passed": passed,
     }
     json.dump(report, open(os.path.join(args.out_dir, "light_field_regression.json"), "w"), indent=2)
     print("LIGHT_FIELD " + json.dumps(report))
-    if violations:
-        print(f"FAIL: {len(violations)} ground mode(s) add light from below")
+    if not passed:
+        print("FAIL: production proxy violated the invariant or legacy known-fail disappeared")
         return 1
-    print("PASS: every ground mode only removes light from below")
+    print("PASS: production proxy removes light from below; legacy catcher failure retained")
     return 0
 
 
