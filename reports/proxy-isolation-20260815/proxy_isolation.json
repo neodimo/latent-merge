@@ -1,0 +1,138 @@
+{
+  "hdr": "urban_alley_01_4k.hdr",
+  "plate": "plate_rgb.png",
+  "yaw_deg": 0.0,
+  "pitch_deg": -6.0,
+  "hfov_deg": 72.0,
+  "samples": 256,
+  "seed": 0,
+  "resolution": [
+    1920,
+    1080
+  ],
+  "denoising": false,
+  "modes": {
+    "bg": {
+      "mode": "bg",
+      "azimuth_deg": 270.0,
+      "render": "bg.exr"
+    },
+    "catcher_only": {
+      "mode": "catcher_only",
+      "azimuth_deg": 270.0,
+      "render": "catcher_only.exr"
+    },
+    "proxy_only": {
+      "mode": "proxy_only",
+      "azimuth_deg": 270.0,
+      "proxy_visibility": {
+        "visible_camera": false,
+        "visible_shadow": false,
+        "visible_diffuse": true,
+        "visible_glossy": true
+      },
+      "render": "proxy_only.exr"
+    },
+    "proxy_off": {
+      "mode": "proxy_off",
+      "azimuth_deg": 270.0,
+      "proxy_visibility": {
+        "visible_camera": false,
+        "visible_shadow": false,
+        "visible_diffuse": true,
+        "visible_glossy": true
+      },
+      "render": "proxy_off.exr"
+    },
+    "proxy_on": {
+      "mode": "proxy_on",
+      "azimuth_deg": 270.0,
+      "proxy_visibility": {
+        "visible_camera": false,
+        "visible_shadow": false,
+        "visible_diffuse": true,
+        "visible_glossy": true
+      },
+      "placement": {
+        "contact_point_world": [
+          8.0403,
+          0.9101,
+          0.0
+        ],
+        "bbox_min_z": 0.0,
+        "bbox_height_m": 1.1,
+        "camera_distance_m": 8.248
+      },
+      "render": "proxy_on.exr"
+    },
+    "footprint": {
+      "mode": "footprint",
+      "azimuth_deg": 270.0,
+      "render": "footprint.exr"
+    }
+  },
+  "footprint_coverage": 0.3519,
+  "object_coverage": 0.0081,
+  "plate_only_coverage": 0.9919,
+  "stats": {
+    "noise_floor_p99": 0.0,
+    "hot_threshold": 0.001,
+    "interaction_in_footprint": {
+      "pixels": 712706,
+      "mean_abs": 0.001248,
+      "p99_abs": 0.033314,
+      "max_abs": 0.05
+    },
+    "interaction_outside_footprint": {
+      "pixels": 1344000,
+      "mean_abs": 0.0,
+      "p99_abs": 0.0,
+      "max_abs": 0.0
+    },
+    "veil_production_in_footprint": {
+      "pixels": 712706,
+      "mean_abs": 0.016687,
+      "p99_abs": 0.074163,
+      "max_abs": 3.432667
+    },
+    "veil_production_outside_footprint": {
+      "pixels": 1344000,
+      "mean_abs": 2e-06,
+      "p99_abs": 0.0,
+      "max_abs": 0.074542
+    },
+    "veil_catcher_only_in_footprint": {
+      "pixels": 712706,
+      "mean_abs": 3.5e-05,
+      "p99_abs": 0.000254,
+      "max_abs": 0.09082
+    },
+    "veil_catcher_only_outside_footprint": {
+      "pixels": 1344000,
+      "mean_abs": 1e-06,
+      "p99_abs": 0.0,
+      "max_abs": 0.02468
+    },
+    "veil_proxy_only_in_footprint": {
+      "pixels": 712706,
+      "mean_abs": 0.0,
+      "p99_abs": 0.0,
+      "max_abs": 0.0
+    },
+    "veil_proxy_only_outside_footprint": {
+      "pixels": 1344000,
+      "mean_abs": 0.0,
+      "p99_abs": 0.0,
+      "max_abs": 0.0
+    }
+  },
+  "ratio_cancellation": {
+    "pixels": 600816,
+    "additive_veil_mean_abs": 0.017448,
+    "ratio_deviation_from_one_mean": 0.0001607,
+    "ratio_deviation_from_one_p99": 0.001558,
+    "suppression_factor": 108.6,
+    "note": "the veil is common to both halves, so a ratio composite removes it by construction; this is the measurement of that, not a claim about it"
+  },
+  "verdict": "component interaction in the plate merge: neither the shadow catcher nor the hidden proxy veils the plate alone, but together they do. The catcher is measuring occlusion against geometry the pipeline treats as a transport-only helper, so the proxy's shading of the catcher is being written into the plate as if it were a shadow"
+}

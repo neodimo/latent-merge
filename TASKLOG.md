@@ -1,5 +1,56 @@
 # Latent Merge Task Log
 
+## 2026-08-15 09:20 PDT — Gonzo object-on/off isolation of the rejected veil
+
+- **What was done:** Ran the isolation pass the 09:00 rejection called for, with
+  Bert's proxy visibility AOV beside it. Built
+  `scripts/proxy_isolation_pass.py`: six renders from one scene construction —
+  `bg`, `catcher_only`, `proxy_only`, `proxy_off`, `proxy_on`, `footprint` — at
+  1920x1080, 256 spp, seed 0, denoiser off, linear EXR. Splitting the ground
+  setup into its two components was an addition to Bert's design and is what
+  produced the answer. `render()` in `render_cg_insert.py` gained `linear`,
+  `denoise` and `seed` parameters so difference arithmetic happens on
+  scene-referred values; the denoiser is spatial and does not commute with
+  subtraction, and the earlier AgX PNGs could not have answered this question.
+  Also wrote `scripts/plot_proxy_isolation.py` — all four difference panels on
+  one shared gain, since auto-scaling each would hide a 13x magnitude gap.
+- **Evidence (measured):** veil inside the proxy footprint, catcher alone mean
+  |dL| 0.00003; proxy alone **exactly 0.00000**; both together 0.01669 (p99
+  0.07416); the object's own interaction 0.00125. Outside the footprint the
+  production veil p99 is exactly 0.0 and the object's interaction is exactly
+  0.0.
+- **Inference:** the proxy's camera-invisibility contract holds and the
+  image-space leak hypothesis is wrong. The defect is the *interaction*: the
+  Cycles shadow catcher computes its plate merge as a shadowing ratio against
+  any object occluding it, and the coincident proxy is one, so the proxy's
+  occlusion of the catcher is written into the plate as a cast shadow over the
+  whole 200 m plane — 35% of frame, 13.4x the object's entire contribution.
+- **Fix verified, not proposed:** a veil common to both halves cancels out of
+  `proxy_on / proxy_off`. Over the 600,816 footprint pixels the object does not
+  touch, the additive veil is 0.017448 and the ratio deviates from 1.0 by
+  0.000161 mean / 0.001558 p99 — **108.6x suppression**. This is a measurement
+  on this frame, not a proof about the pipeline.
+- **Artifacts:** `reports/proxy-isolation-20260815/` (README, `isolation_sheet.png`,
+  `proxy_isolation.json`) plus both scripts — committed. The 149 MB of EXRs and
+  `.npy` intermediates stayed in `/tmp/lm_iso/` as deliberate scratch and are
+  regenerable in ~86 s from the command in the README.
+- **State:** Attribution complete and it is unambiguous. **Nothing in the
+  shipping render path changed** — `render_cg_insert.py` still ships the
+  catcher-only setup, known-fail 9 is still open, and no composite has been
+  produced by the difference method yet. Unverified: that a difference composite
+  built this way looks correct; cancelling the veil does not make the frame
+  good, and the object was still oversized and badly placed in the rejected one.
+- **Next owner + concrete artifact:** Gonzo, implementing the difference
+  composite in `scripts/render_cg_insert.py` against the numbers in
+  `reports/proxy-isolation-20260815/README.md`, then inspecting the resulting
+  1080p composite on pixels before it counts as anything.
+- **Failure mode recorded:** the 09:00 rejection reasoned about a difference
+  image it never actually formed, and both Bert and I then explained the veil
+  with a mechanism — "the proxy is leaking into the composite as an image-space
+  contribution" — that the measurement falsifies outright. Two components can
+  each be provably clean in isolation and still produce the defect together. Do
+  not name a cause from a single composite; render the halves.
+
 ## 2026-08-15 09:00 PDT — Gonzo autonomous worker
 
 - **What was done:** Exercised decision authority and removed the spurious need

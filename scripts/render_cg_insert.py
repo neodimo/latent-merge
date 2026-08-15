@@ -456,7 +456,21 @@ def apply_view_settings() -> dict:
     }
 
 
-def render(path: str, w: int, h: int, samples: int, transparent: bool, pct: int = 100) -> None:
+def render(path: str, w: int, h: int, samples: int, transparent: bool, pct: int = 100,
+           linear: bool = False, denoise: bool = True, seed: int | None = None) -> None:
+    """Render the current scene.
+
+    `linear=True` writes scene-referred float EXR instead of a view-transformed
+    PNG. Any arithmetic between two renders — a difference or a ratio — has to
+    happen on those linear values; doing it on AgX-encoded PNGs measures the
+    tone curve, not the light.
+
+    `denoise=False` and a pinned `seed` exist for the same reason. The denoiser
+    is spatial and non-linear, so it does not commute with subtraction: it will
+    invent or erase structure in an A-B image. A shared seed keeps the sampling
+    correlated between two near-identical scenes so their common noise largely
+    cancels instead of adding.
+    """
     scn = bpy.context.scene
     apply_view_settings()
     scn.render.engine = "CYCLES"
@@ -466,14 +480,25 @@ def render(path: str, w: int, h: int, samples: int, transparent: bool, pct: int 
         pass
     scn.cycles.samples = samples
     try:
-        scn.cycles.use_denoising = True
+        scn.cycles.use_denoising = denoise
     except Exception:
         pass
+    if seed is not None:
+        try:
+            scn.cycles.seed = seed
+            scn.cycles.use_animated_seed = False
+        except Exception:
+            pass
     scn.render.resolution_x, scn.render.resolution_y = w, h
     scn.render.resolution_percentage = pct
     scn.render.film_transparent = transparent
-    scn.render.image_settings.file_format = "PNG"
-    scn.render.image_settings.color_mode = "RGBA" if transparent else "RGB"
+    if linear:
+        scn.render.image_settings.file_format = "OPEN_EXR"
+        scn.render.image_settings.color_depth = "32"
+        scn.render.image_settings.color_mode = "RGBA"
+    else:
+        scn.render.image_settings.file_format = "PNG"
+        scn.render.image_settings.color_mode = "RGBA" if transparent else "RGB"
     scn.render.filepath = path
     bpy.ops.render.render(write_still=True)
     scn.render.resolution_percentage = 100
