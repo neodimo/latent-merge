@@ -1,0 +1,28 @@
+{
+  "baseline_sigma_px": 1.596,
+  "trials": [
+    {
+      "applied_sigma": 0.8,
+      "measured_sigma": 1.718,
+      "predicted_sigma": 1.785,
+      "recovered_sigma": 0.637,
+      "relative_error": 0.204
+    },
+    {
+      "applied_sigma": 1.5,
+      "measured_sigma": 2.085,
+      "predicted_sigma": 2.19,
+      "recovered_sigma": 1.342,
+      "relative_error": 0.105
+    },
+    {
+      "applied_sigma": 2.5,
+      "measured_sigma": 2.636,
+      "predicted_sigma": 2.966,
+      "recovered_sigma": 2.098,
+      "relative_error": 0.161
+    }
+  ],
+  "passed": true,
+  "criterion": "recovered blur within 25% of applied, for every trial"
+}

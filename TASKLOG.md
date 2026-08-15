@@ -1,5 +1,53 @@
 # Latent Merge Task Log
 
+## 2026-08-15 10:35 PDT — Gonzo sharpness/grain made measurable; found a bug of mine
+
+- **What was done:** Took Bert's slice — keep catcher-only shipping, keep
+  difference experimental, and make the sharpness/grain mismatch measurable so
+  rebasing known-fail 9 means "better final composite" rather than "veil
+  cancelled". `scripts/measure_sharpness_grain.py` reports edge blur width from
+  an error-function fit to edge profiles, and grain as high-frequency std in
+  flat regions, both as plate-vs-CG pairs with the implied correction.
+- **Evidence (measured):** acutance CG **0.98 px** vs plate **1.60 px**, ratio
+  1.62x, implied gaussian sigma **1.26 px**. Grain CG **0.00097** vs plate
+  **0.00259**, ratio 2.67x, implied grain sigma **0.0024**.
+- **Bug found and fixed (mine, from the 09:45 entry):** `composite_difference.py`
+  rendered every pass denoiser-off. Correct for `ground_only`/`ground_object`,
+  since the denoiser is spatial and does not commute with division. Wrong for
+  `object_only`, which is composited directly and appears in no ratio — it only
+  injected path-trace noise into the final image. First measurement caught it:
+  the insert was at 0.00523 against the plate's 0.00259, **2x noisier than the
+  photograph it sits in**, the opposite sign to what I had claimed by eye in the
+  09:45 report. Denoising that pass dropped it 5.4x to 0.00097.
+- **The instrument was wrong twice before it was trusted:** (1) 10-90% rise
+  distance reported an 11 px edge on a silhouette antialiased over ~1 px, because
+  a sphere's limb shading fills any window wide enough to hold the transition;
+  (2) the textbook second moment of the line spread function **failed the
+  self-test**, recovering a known 0.8 px blur as 0.53 px — with a dozen samples,
+  tail noise weighted by distance squared drags the width toward the window size,
+  and it made plate and CG both read ~2.4 px, which looks exactly like "no
+  mismatch". (3) An erf fit passes, recovering 0.8/1.5/2.5 as 0.64/1.34/2.10.
+  Systematic 15-20% under-read, so ratios are sound and the implied correction is
+  a lower bound.
+- **Artifacts:** `reports/sharpness-grain-20260815/` (README, figure,
+  `sharpness_grain.json`, `self_test.json`), `scripts/measure_sharpness_grain.py`
+  — committed. Scratch in `/tmp/lm_sg2/` and `/tmp/lm_diff2/`.
+- **State:** Both mismatches now have numbers and corrections. **Nothing is
+  corrected** — no blur or grain is applied anywhere, and nothing is wired into
+  the shipping path. Grain is a single scalar std and does not capture colour
+  correlation or spatial frequency signature, so matching it is necessary and not
+  sufficient. One frame, one HDRI, one placement.
+- **Next owner + concrete artifact:** DiMo or Gonzo — apply the two measured
+  corrections in the composite path and re-measure to confirm the ratios close,
+  using `scripts/measure_sharpness_grain.py` and the numbers in
+  `reports/sharpness-grain-20260815/README.md`. Only after that does rebasing
+  known-fail 9 onto the difference mode mean a better final composite.
+- **Failure mode recorded:** an unvalidated measurement is not a measurement.
+  Version 2 of this instrument would have reported "plate 2.40 px, CG 2.41 px, no
+  mismatch" and closed a real defect as fine. Write the self-test that recovers
+  known ground truth *before* quoting any number the instrument produces. Related:
+  the eye judgement it replaced had the grain mismatch backwards.
+
 ## 2026-08-15 10:05 PDT — Gonzo veil acceptance test; first design was vacuous
 
 - **What was done:** Turned the cancellation result into the scoped gate Bert

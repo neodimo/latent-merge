@@ -1,0 +1,37 @@
+{
+  "plate": "plate_rgb.png",
+  "composite": "composite.png",
+  "acutance": {
+    "metric": "error-function fit to the edge profile; sigma in px along the gradient normal",
+    "cg_edges": 502,
+    "plate_edges": 2491,
+    "cg_sigma_px_median": 0.984,
+    "plate_sigma_px_median": 1.596,
+    "cg_sigma_px_p25_p75": [
+      0.495,
+      1.84
+    ],
+    "plate_sigma_px_p25_p75": [
+      1.351,
+      1.84
+    ],
+    "ratio_plate_over_cg": 1.622,
+    "implied_gaussian_sigma_px": 1.256
+  },
+  "grain": {
+    "metric": "std of (image - gaussian blur sigma 2) in the flattest 40% of each region",
+    "plate": {
+      "pixels": 285374,
+      "std": 0.002588,
+      "mean_abs": 0.001903
+    },
+    "cg": {
+      "pixels": 2165,
+      "std": 0.00097,
+      "mean_abs": 0.000936
+    },
+    "ratio_plate_over_cg": 2.67,
+    "implied_grain_sigma": 0.002399
+  },
+  "note": "measurement only; nothing is corrected here"
+}

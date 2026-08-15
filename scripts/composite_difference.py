@@ -172,9 +172,15 @@ def main() -> int:
     for mode in ("ground_only", "ground_object", "object_only"):
         infos[mode] = build(rci, args, mode)
         path = os.path.join(args.out_dir, f"{mode}.exr")
+        # The ratio pair must stay denoiser-off: the denoiser is spatial and does
+        # not commute with division, so it would invent structure in the ratio.
+        # `object_only` is composited directly and is in no ratio, so leaving it
+        # noisy only injects path-trace noise into the final image. Measured
+        # 2026-08-15: with it off, the insert carried 2x the plate's own grain,
+        # i.e. the composite was noisier than the photograph it sits in.
         rci.render(path, args.width, args.height, args.samples,
                    transparent=(mode == "object_only"),
-                   linear=True, denoise=False, seed=args.seed)
+                   linear=True, denoise=(mode == "object_only"), seed=args.seed)
         frames[mode] = _read(path)
         print(f"RENDERED {mode}")
 
