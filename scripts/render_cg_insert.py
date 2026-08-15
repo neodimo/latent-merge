@@ -178,6 +178,27 @@ def ground_hit_from_pixel(cam, u: float, v: float, hfov: float, aspect: float,
     return cam.location + d_world * t
 
 
+def orient_across_view(obj, hit: "Vector") -> float:
+    """Rotate a multi-part asset about Z so its local +X runs across the view.
+
+    The reference pair offsets the chrome sphere along local +X. Whether that
+    axis points across the frame or straight away from the camera is pure luck
+    of the plate's azimuth, and in the 2026-08-15 composites it pointed away, so
+    the matte sphere occluded most of the chrome one and the pair stopped being
+    a usable instrument. Both spheres have to be readable or there is no
+    reference to compare the plate against.
+
+    Returns the applied Z rotation in degrees.
+    """
+    cam = bpy.context.scene.camera
+    view = hit - cam.location
+    # +X across the view = perpendicular to the ground-projected view direction.
+    yaw = math.atan2(view.y, view.x) + math.pi / 2.0
+    obj.rotation_euler = (obj.rotation_euler.x, obj.rotation_euler.y, yaw)
+    bpy.context.view_layer.update()
+    return round(math.degrees(yaw) % 360.0, 3)
+
+
 def rest_on_ground(obj, hit: "Vector", target_height: float | None = None,
                    ground_z: float = 0.0) -> dict:
     """Scale to a real-world height, then seat the object's footprint on the plane.

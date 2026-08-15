@@ -1,5 +1,52 @@
 # Latent Merge Task Log
 
+## 2026-08-15 09:45 PDT — Gonzo difference composite; the veil is gone
+
+- **What was done:** Implemented the fix the isolation pass measured.
+  `scripts/composite_difference.py` drops the Cycles shadow catcher entirely and
+  derives the object's ground interaction from `ground_with_object /
+  ground_alone`, multiplying the plate by that ratio and compositing the object
+  over it. Three renders from one scene construction, 1920x1080, 512 spp, seed
+  0, denoiser off, linear EXR. The object is rendered separately against the
+  camera-hidden ray-visible proxy so it is lit by the surface it stands on
+  without that surface entering its alpha.
+- **Evidence (measured):** plate modified drops from **35% of frame to 0.45%**,
+  off-object plate delta 7.4e-05 mean, ratio mean off object 0.9995. The
+  interaction is local: within 250 px of the object 5.5% of pixels are touched
+  with a minimum ratio of 0.039 (a real, tight contact shadow); beyond 600 px
+  there are **109 touched pixels in the whole frame**, which is ratio noise, not
+  structure. Inspected at 2.4x zoom against the plate: both spheres sit on the
+  road and the surrounding plate is untouched.
+- **Also fixed:** `orient_across_view()` in `render_cg_insert.py`. The reference
+  pair offsets the chrome sphere along local +X and whether that ran across
+  frame or away from camera was luck of the plate azimuth; in both 08-15
+  composites it ran away and the matte sphere occluded the chrome one, so the
+  instrument was unusable. Now rotated perpendicular to the ground-projected
+  view direction before seating.
+- **Artifacts:** `reports/difference-composite-20260815/` (README,
+  `difference_sheet.jpg`, `composite.jpg`, `composite_meta.json`) plus
+  `scripts/composite_difference.py` — committed. EXR intermediates left in
+  `/tmp/lm_diff/` as deliberate scratch, regenerable in ~14 s.
+- **State:** The veil defect is closed and the composite is inspectable.
+  **Unverified / not done:** the spheres are razor sharp against a visibly
+  defocused plate region with no lens-blur or grain match — the largest
+  remaining tell by eye, and untouched by this pass. The plate is decoded with
+  the sRGB EOTF although it is already tonemapped, so the linear values the
+  ratio multiplies are an approximation. One frame, one HDRI, one placement.
+  **Nothing is wired into the shipping path** — `render_cg_insert.py` still
+  ships catcher-only, `tests/light_field_regression.py` still measures the
+  catcher-based modes, known-fail 9 unchanged.
+- **Next owner + concrete artifact:** DiMo on whether the next move is wiring
+  this into `render_cg_insert.py --ground-mode difference` (and rebasing
+  known-fail 9 onto it) or chasing the sharpness/grain mismatch first; the
+  flaws are listed under "Honest remaining flaws" in
+  `reports/difference-composite-20260815/README.md`.
+- **Failure mode recorded:** none new. Avoided one — the first difference
+  composite looked shadow-free at full-frame scale and I nearly reported it as
+  such; measuring the ratio inside the touched region found a real minimum of
+  0.039. A contact shadow that is 0.5% of frame is invisible in a downscaled
+  read and is not absent.
+
 ## 2026-08-15 09:20 PDT — Gonzo object-on/off isolation of the rejected veil
 
 - **What was done:** Ran the isolation pass the 09:00 rejection called for, with

@@ -1,0 +1,59 @@
+{
+  "hdr": "urban_alley_01_4k.hdr",
+  "plate": "plate_rgb.png",
+  "method": "difference ratio; no shadow catcher",
+  "yaw_deg": 0.0,
+  "pitch_deg": -6.0,
+  "hfov_deg": 72.0,
+  "resolution": [
+    1920,
+    1080
+  ],
+  "samples": 512,
+  "seed": 0,
+  "denoising": false,
+  "ratio_max": 4.0,
+  "modes": {
+    "ground_only": {
+      "mode": "ground_only",
+      "azimuth_deg": 270.0
+    },
+    "ground_object": {
+      "mode": "ground_object",
+      "azimuth_deg": 270.0,
+      "pair_yaw_deg": 93.245,
+      "placement": {
+        "contact_point_world": [
+          8.7207,
+          0.4944,
+          0.0
+        ],
+        "bbox_min_z": 0.0,
+        "bbox_height_m": 0.45,
+        "camera_distance_m": 8.88
+      }
+    },
+    "object_only": {
+      "mode": "object_only",
+      "azimuth_deg": 270.0,
+      "pair_yaw_deg": 93.245,
+      "placement": {
+        "contact_point_world": [
+          8.7207,
+          0.4944,
+          0.0
+        ],
+        "bbox_min_z": 0.0,
+        "bbox_height_m": 0.45,
+        "camera_distance_m": 8.88
+      }
+    }
+  },
+  "plate_pixels": 2065259,
+  "ratio_mean_off_object": 0.999479,
+  "ratio_p01_off_object": 0.996294,
+  "plate_modified_fraction": 0.004526,
+  "plate_delta_mean_abs_off_object": 7.4e-05,
+  "object_coverage": 0.003813,
+  "plate_decode": "sRGB EOTF; approximation, the plate is already tonemapped"
+}
