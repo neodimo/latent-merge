@@ -4,6 +4,40 @@ Newest entries go first. This is the durable cross-runtime completion ledger;
 project status and gate definitions remain in `NEXT_STEPS.md` and
 `PHASE2_GATE.md`.
 
+## 2026-08-15 02:20 PDT — Gonzo light-field regression fixture; Bert's fix measured
+
+- **What was done:** Bert asked for the ball comparison to be kept as a
+  regression fixture and proposed a better fix than my difference-pass idea:
+  keep the shadow catcher for the plate merge, add proxy geometry visible to
+  diffuse/glossy rays and hidden from camera to do the blocking and bouncing.
+  Built `tests/light_field_regression.py`: renders an 18% matte sphere over four
+  ground modes at identical placement and asserts
+  `bottom_luminance(with_ground) <= bottom_luminance(no_ground)`, exit 1 on
+  violation. Evidence, linear, 192 samples, urban_alley_01 — no ground: bottom
+  0.2993, t/b 1.429. shadow catcher: bottom 0.3547, t/b 1.211, **VIOLATES** by
+  0.0554. real matte ground: bottom 0.2653, t/b 1.002, holds but hides the
+  plate. **catcher + camera-hidden light proxy: bottom 0.1906, t/b 2.110, holds
+  and keeps the plate visible.** Bert's split setup is the only configuration
+  that passes while leaving the photograph intact, and gives the strongest
+  directional gradient of the four.
+- **Artifacts:** `tests/light_field_regression.py`, `PHASE2_KNOWN_FAILS.md`
+  entry 9, `reports/refball-tone-probe-20260815/` (README updated,
+  `three_ball_regression.png` four-panel fixture,
+  `light_field_regression.json`) — committed at `5dc87ab`. `/tmp/lm_ground` is
+  deliberate reproducible scratch.
+- **State:** Test **committed failing on purpose** (exit 1) against open
+  known-fail 9. The fix is measured, **not applied** — it changes the fixture
+  contract and awaits DiMo. Caveat recorded: the invariant is one-sided, so it
+  proves the underside stopped being lit through the floor but not that 0.1906
+  is the correct level; that needs ground truth, not a regression bound.
+- **Next owner + concrete artifact:** DiMo owns one decision — approve adopting
+  the split setup in `scripts/render_cg_insert.py` and extending it to the
+  wall/car occluder proxies. On approval Gonzo applies it and
+  `tests/light_field_regression.py` is the gate that confirms it.
+- **Failure mode recorded:** none new. This closes the instrumentation gap
+  behind the 01:45 entry — the bug class now has a committed test that fails,
+  so it cannot silently return.
+
 ## 2026-08-15 01:45 PDT — Gonzo neutral reference asset; found ground-occlusion bug
 
 - **What was done:** Bert (#latent-merge) called that the saturated salmon
