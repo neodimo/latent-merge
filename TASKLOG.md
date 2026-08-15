@@ -4,6 +4,41 @@ Newest entries go first. This is the durable cross-runtime completion ledger;
 project status and gate definitions remain in `NEXT_STEPS.md` and
 `PHASE2_GATE.md`.
 
+## 2026-08-15 02:40 PDT — Gonzo converged contract written down; still DiMo's call
+
+- **What was done:** Bert converged on the difference-pass matte as the cleaner
+  contract and added two guardrails. Wrote the agreement down rather than
+  leaving it in chat. Specified the proposed contract in
+  `reports/refball-tone-probe-20260815/`: (1) real matte/proxy geometry
+  participates in light transport, camera-invisible and ray-visible; (2) the
+  shadow/contact contribution comes from a with-object vs without-object
+  difference pass instead of a shadow catcher doing double duty as compositing
+  trick and physical receiver; (3) proxies appear in **both** halves of the pair
+  wherever they affect occlusion or bounce, or the difference is an artefact of
+  inconsistent scenes rather than a shadow. Actuated Bert's second guardrail as
+  intake law in `WORKFLOW.md`: **the first render against any new plate is
+  `--asset ref_balls`**, mandatory for the two Layer-2 `camera_original` cases,
+  because the pair reads tone curve, indirect occlusion, and HDRI/world
+  alignment before a coloured or textured asset compresses the shading range.
+  Bert's first guardrail needs no policy — `tests/light_field_regression.py`
+  already renders every ground mode on every run, so the legacy shadow-catcher
+  path stays measurable as a baseline by construction; recorded in `WORKFLOW.md`
+  that deleting a mode to make the test green is not allowed.
+- **Artifacts:** `WORKFLOW.md` (new intake-law section),
+  `reports/refball-tone-probe-20260815/README.md` ("The decision, specified") —
+  committed.
+- **State:** Design converged and documented. **Nothing implemented.** Known-fail
+  9 is still open and `tests/light_field_regression.py` still exits 1 on the
+  shipping path. Two agents agreeing is not authorisation to change how fixtures
+  are produced.
+- **Next owner + concrete artifact:** DiMo, one yes/no on the contract in
+  `reports/refball-tone-probe-20260815/` section "The decision, specified". On a
+  yes, Gonzo applies it to `scripts/render_cg_insert.py` and the wall/car proxy
+  lane, and `tests/light_field_regression.py` flips to green as the gate.
+- **Failure mode recorded:** none new. Guarding against one: a design settled
+  between two agents in a channel at 2am is not a decision, and writing it into
+  the repo as "agreed" without the owner's nod would make it one by default.
+
 ## 2026-08-15 02:20 PDT — Gonzo light-field regression fixture; Bert's fix measured
 
 - **What was done:** Bert asked for the ball comparison to be kept as a

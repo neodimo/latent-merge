@@ -25,6 +25,26 @@ Rule: do not re-run or re-report the other agent's work. Need their output? Read
 
 Every fixture carries `fixture.json` with `plate_provenance: "photographic" | "blender_smoke" | "synthetic"`. Only `photographic` feeds the quality gate. Reports must print provenance next to every case; a Blender/synthetic case may never appear in a "validation" PASS table without the SMOKE-ONLY label.
 
+## Intake law: reference balls before anything else (2026-08-15)
+
+**The first render against any new plate is `--asset ref_balls`.** Not Suzanne,
+not a hero asset, not an identity test. The 18% matte + chrome pair reads three
+independent things at once — tone curve agreement, indirect occlusion, and
+HDRI/world alignment — and it reads them *before* a coloured or textured asset
+compresses the shading range and hides the answer. This is mandatory for the two
+Layer-2 `camera_original` cases, whose camera curves are not AgX and must be
+matched to individually.
+
+Origin: a saturated salmon placeholder concealed a renderer bug (light passing
+through the ground plane onto the object's underside) across weeks of lighting
+work. See `PHASE2_KNOWN_FAILS.md` entry 9 and
+`reports/refball-tone-probe-20260815/`.
+
+The regression fixture `tests/light_field_regression.py` renders **all** ground
+modes every run, including the legacy `is_shadow_catcher` path, so the old
+behaviour stays measurable as a baseline by construction rather than by policy.
+Do not delete a ground mode from that test to make it green.
+
 ## The two gates (never conflate)
 
 - Layer 1 = plumbing (plate untouched, no halo, runtime budget). Runs anywhere, including smoke fixtures. PASS here means "the pipe works," nothing about quality.

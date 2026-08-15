@@ -115,6 +115,33 @@ Not started. Awaiting a nod from DiMo since it changes the fixture contract.
 Logged as an open known-fail in `PHASE2_KNOWN_FAILS.md`; the test is committed
 failing on purpose, and it is the gate that will confirm the fix.
 
+### The decision, specified
+
+Bert and I converged on this contract (2026-08-15). Writing it out so DiMo is
+approving something precise rather than a direction:
+
+1. **Real matte/proxy geometry participates in light transport.** Ground, and
+   later walls and the parked car, are camera-invisible and ray-visible. They
+   block and bounce in the CG world while staying absent from the final plate.
+2. **The shadow/contact contribution comes from a difference pass** — the proxy
+   set rendered with and without the object — instead of asking a shadow catcher
+   to be simultaneously a compositing trick and a physical receiver.
+3. **The proxies are included in both halves of that pair** wherever they affect
+   occlusion or bounce, or the difference is not a shadow, it is an artefact of
+   inconsistent scenes.
+
+Bert's two guardrails on the call:
+
+- **Keep the shadow-catcher path measurable as a baseline until the diff-pass
+  numbers are stable.** Already structural rather than a policy:
+  `tests/light_field_regression.py` renders every ground mode on every run, so
+  the legacy path stays in the table by construction. Noted in `WORKFLOW.md`
+  that removing a mode to make the test green is not allowed.
+- **`ref_balls` is the first render against every new plate**, especially the two
+  Layer-2 `camera_original` cases, because it reads tone curve, indirect
+  occlusion, and HDRI/world alignment before any asset can confuse it. Actuated
+  as intake law in `WORKFLOW.md`, not left as a chat agreement.
+
 ## Failure mode recorded
 
 A saturated placeholder material was allowed to stand in for a real asset
