@@ -82,6 +82,34 @@ by construction, and the isolation data confirms it on this frame. It does not
 follow that the resulting composite is correct — that needs its own inspection,
 and the object was still oversized and poorly placed in the rejected frame.
 
+## Standing rule
+
+Bert's wording, kept verbatim because it is the transferable part:
+
+> Do not diagnose catcher/proxy defects from a single composite. Render
+> component halves and the hidden-proxy footprint AOV; interaction defects can
+> emerge only from the paired operator.
+
+## Acceptance test
+
+`tests/veil_regression.py` turns this from a one-off measurement into a scoped
+gate, per Bert's framing: identical ground field in both halves, residual
+measured on footprint only, outside a geometric exclusion zone around the
+object, against an absolute budget.
+
+    metric              |ratio - 1|, the setup's multiplier on untouched plate
+    budget              2e-3 mean, 2e-2 p99
+    production          1.4e-04 mean, 2.9e-03 p99   -> passes, 14.1x headroom
+    legacy catcher+proxy  1.9e-01 mean, 3.1e-01 p99 -> exceeds budget by ~94x
+
+The legacy arm is required to keep failing. If the rejected setup ever stops
+exceeding the budget, the test exits 1 on the grounds that it has stopped
+demonstrating it can detect the defect. Both failure paths and the pass path
+have been exercised and return the expected exit codes.
+
+It asserts only that untouched plate stays untouched. It does not claim the
+composite is approved.
+
 ## Caveats
 
 - One frame, one HDRI, one placement. The cancellation number is a property of

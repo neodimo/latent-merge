@@ -1,5 +1,44 @@
 # Latent Merge Task Log
 
+## 2026-08-15 10:05 PDT — Gonzo veil acceptance test; first design was vacuous
+
+- **What was done:** Turned the cancellation result into the scoped gate Bert
+  asked for. `tests/veil_regression.py` measures one quantity of both ground
+  setups — `|ratio - 1|`, the fraction by which the setup changes plate outside
+  a geometric exclusion zone around the object — on footprint pixels only,
+  against an absolute budget of 2e-3 mean / 2e-2 p99.
+- **Evidence (measured, 960x540/128spp, seed 0 throughout, denoiser off):**
+  production 1.4e-04 mean / 2.9e-03 p99, passing with **14.1x headroom**; the
+  rejected legacy catcher+proxy setup 1.9e-01 mean / 3.1e-01 p99, exceeding the
+  budget by ~94x. Separation between the two arms is ~1300x, so neither sits
+  near the threshold.
+- **Failure mode recorded (my own, caught before it shipped):** the first
+  version derived the threshold from a null pair — `ground_only` rendered twice
+  under *different seeds*. That is wrong and the test passed vacuously because
+  of it. The real pair shares a seed, so its sampling noise is correlated and
+  largely cancels; a different-seed null is decorrelated and carries full noise.
+  The null measured **265x larger** residual than the pair it was meant to
+  bound, making the budget meaningless. There is no same-seed null available
+  either, because two same-seed renders of an identical scene are byte-identical.
+  Replaced with absolute thresholds plus a **legacy arm that must keep failing**
+  — if the rejected setup stops exceeding the budget, the test exits 1 on the
+  grounds that it no longer demonstrates it can detect anything. The reasoning
+  is written into the test's docstring so it is not retried.
+- **Verified:** all three paths exercised and return the expected exit codes —
+  default 0, tiny budget 1 (production violation), huge budget 1 (legacy arm
+  stopped reproducing). A test whose failure path is never run is half a test.
+- **Artifacts:** `tests/veil_regression.py`, plus an "Acceptance test" and a
+  "Standing rule" section in `reports/proxy-isolation-20260815/README.md`
+  carrying Bert's wording verbatim — committed.
+- **State:** Gate is live and has teeth. It asserts only that untouched plate
+  stays untouched; it does not claim the composite is approved, and the
+  sharpness/grain mismatch from the 09:45 entry is still open and untouched.
+  Still nothing wired into the shipping render path.
+- **Next owner + concrete artifact:** DiMo, on the open question from 09:45 —
+  wire `--ground-mode difference` into `render_cg_insert.py` and rebase
+  known-fail 9, or chase the sharpness/grain mismatch first. Flaw list is under
+  "Honest remaining flaws" in `reports/difference-composite-20260815/README.md`.
+
 ## 2026-08-15 09:45 PDT — Gonzo difference composite; the veil is gone
 
 - **What was done:** Implemented the fix the isolation pass measured.
