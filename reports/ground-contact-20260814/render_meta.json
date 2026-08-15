@@ -1,0 +1,48 @@
+{
+  "hdr": "urban_alley_01_4k.hdr",
+  "plate": "plate_rgb.png",
+  "azimuth_deg": 270.0,
+  "pitch_deg": -6.0,
+  "hfov_deg": 72.0,
+  "alignment_mse": 0.0289007979650382,
+  "projection_scores": {
+    "identity": {
+      "mse": 0.0289007979650382,
+      "correlation": 0.9855496010174809
+    },
+    "mirror_horizontal": {
+      "mse": 1.8718838206544186,
+      "correlation": 0.0640580896727907
+    },
+    "mirror_vertical": {
+      "mse": 1.6144850664922095,
+      "correlation": 0.19275746675389527
+    },
+    "mirror_both": {
+      "mse": 1.9214372770161379,
+      "correlation": 0.039281361491931066
+    }
+  },
+  "cam_height_m": 1.6,
+  "place_uv": [
+    0.42,
+    0.88
+  ],
+  "object_height_m": 1.1,
+  "placement": {
+    "contact_point_world": [
+      8.0403,
+      0.9101,
+      0.0
+    ],
+    "bbox_min_z": 0.0,
+    "bbox_height_m": 1.1,
+    "camera_distance_m": 8.248
+  },
+  "alpha_prune": {
+    "pruned_pixels": 72,
+    "kept_alpha_pixels": 63869,
+    "stray_alpha_max": 0.0
+  },
+  "samples": 256
+}

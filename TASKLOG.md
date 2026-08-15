@@ -4,6 +4,40 @@ Newest entries go first. This is the durable cross-runtime completion ledger;
 project status and gate definitions remain in `NEXT_STEPS.md` and
 `PHASE2_GATE.md`.
 
+## 2026-08-14 18:05 PDT — Gonzo ground contact + shadow containment
+
+- **What was done:** DiMo's directive in #latent-merge: the CG must sit on the
+  surface visible in the plate and its shadows must live in that world.
+  Evidence: rewrote insertion in `scripts/render_cg_insert.py`. Contact point
+  is now a plate pixel (`--place-uv`) unprojected onto the solved ground plane;
+  a pixel at or above the horizon is a hard error. `rest_on_ground` scales to a
+  metre height and snaps the world bbox floor to the plane (`bbox_min_z` 0.0 on
+  this run, recorded in `render_meta.json`). `--verify-ground` renders the plane
+  as an emissive 1 m grid over the plate so the plane is checked by eye, not
+  assumed. `prune_stray_alpha` keeps only alpha connected to the object, so
+  shadow-catcher speckle cannot touch plate pixels elsewhere: 72 stray pruned,
+  63 869 kept, composite modifies 3.08% of the plate. Background alignment
+  unaffected (identity correlation 0.986 vs 0.064/0.193/0.039 mirrors).
+- **Artifacts:** `scripts/render_cg_insert.py` and
+  `reports/ground-contact-20260814/` (README, contact sheet, grid overlay,
+  composite, render_meta.json) — committed. `/tmp/lm_ground` is deliberate
+  reproducible scratch, not committed.
+- **State:** Partial. Grounding and shadow containment done and looked at.
+  Still wrong and stated in the report: the world is one infinite flat plane
+  (grid runs through the parked car and up the shopfronts, nothing occludes,
+  shadows cannot climb a wall), no curb model, the asset is still an untextured
+  Suzanne balancing on her chin so LOCKED L4 has nothing to test, and the
+  object's shading does not belong to the scene yet. Intake stays 1/5.
+- **Next owner + concrete artifact:** Gonzo. Proxy scene geometry (ground +
+  wall planes + coarse occluder for the parked car) from the same camera solve,
+  verified with `--verify-ground`; then a textured asset and a tranche rebuild
+  via `scripts/build_intake_tranche.py`.
+- **Failure mode recorded:** placement was expressed in camera-relative metres,
+  a space nobody can check against the photograph, which let "floating Suzanne"
+  survive several sessions. Insertion parameters must live in the space where
+  the error is visible (image pixels), and every geometric assumption needs a
+  render laid over the plate.
+
 ## 2026-08-14 09:08 PDT — Gonzo projection convention fix
 
 - **What was done:** Evidence: replaced the unreliable azimuth search with the

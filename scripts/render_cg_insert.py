@@ -57,7 +57,15 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--hfov", type=float, default=None, help="override hfov_deg")
     p.add_argument("--samples", type=int, default=128)
     p.add_argument("--cam-height", type=float, default=1.6)
-    p.add_argument("--object-distance", type=float, default=5.5)
+    p.add_argument("--place-uv", type=float, nargs=2, default=[0.5, 0.80],
+                   metavar=("U", "V"),
+                   help="normalised plate pixel (u from left, v from top) where the object "
+                        "TOUCHES the ground. Must be below the horizon.")
+    p.add_argument("--object-height", type=float, default=None,
+                   help="object height in metres; default 0.55 * cam-height")
+    p.add_argument("--verify-ground", action="store_true",
+                   help="also write ground_grid.png / ground_check.png overlaying the solved "
+                        "ground plane on the plate")
     p.add_argument("--diagnose-projection", action="store_true",
                    help="render mapped manifest yaw, score mirror variants, then exit")
     return p.parse_args(_argv_after_dashes())
@@ -128,6 +136,155 @@ def _plate_yaw_to_blender_azimuth(yaw_deg: float) -> float:
     The resulting basis change is azimuth = 270 - yaw.
     """
     return (270.0 - yaw_deg) % 360.0
+
+
+def ground_hit_from_pixel(cam, u: float, v: float, hfov: float, aspect: float,
+                          ground_z: float = 0.0) -> "Vector":
+    """Unproject a plate pixel and intersect the solved ground plane.
+
+    The insertion point has to be a place the viewer can actually see in the
+    plate, so it is specified in image space and pushed out into the world,
+    rather than guessed as a distance along the camera's forward axis. A pixel
+    on or above the horizon has no ground behind it and is a hard error, not a
+    silently clamped placement.
+    """
+    half_w = math.tan(math.radians(hfov) / 2.0)
+    half_h = half_w * aspect
+    d_cam = Vector(((u - 0.5) * 2.0 * half_w, (0.5 - v) * 2.0 * half_h, -1.0))
+    d_world = (cam.matrix_world.to_3x3() @ d_cam).normalized()
+    if d_world.z > -1e-4:
+        raise SystemExit(
+            f"place-uv ({u}, {v}) points at or above the horizon: that pixel shows sky or "
+            f"distant background, not ground. Pick a pixel on the visible surface."
+        )
+    t = (ground_z - cam.location.z) / d_world.z
+    return cam.location + d_world * t
+
+
+def rest_on_ground(obj, hit: "Vector", target_height: float | None = None,
+                   ground_z: float = 0.0) -> dict:
+    """Scale to a real-world height, then seat the object's footprint on the plane.
+
+    Contact is derived from the object's own world bounding box, so the object
+    touches the ground for any mesh at any rotation instead of relying on a
+    hand-tuned Z that only ever suits one asset.
+    """
+    def world_bbox():
+        pts = [obj.matrix_world @ Vector(c) for c in obj.bound_box]
+        lo = Vector((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts)))
+        hi = Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts)))
+        return lo, hi
+
+    bpy.context.view_layer.update()
+    lo, hi = world_bbox()
+    if target_height:
+        scale = target_height / max(hi.z - lo.z, 1e-6)
+        obj.scale = tuple(s * scale for s in obj.scale)
+        bpy.context.view_layer.update()
+        lo, hi = world_bbox()
+    obj.location += Vector((
+        hit.x - (lo.x + hi.x) / 2.0,
+        hit.y - (lo.y + hi.y) / 2.0,
+        ground_z - lo.z,
+    ))
+    bpy.context.view_layer.update()
+    lo, hi = world_bbox()
+    return {
+        "contact_point_world": [round(hit.x, 4), round(hit.y, 4), round(hit.z, 4)],
+        "bbox_min_z": round(lo.z, 6),
+        "bbox_height_m": round(hi.z - lo.z, 4),
+        "camera_distance_m": round((hit - bpy.context.scene.camera.location).length, 3),
+    }
+
+
+def add_ground(shadow_catcher: bool = True, grid: bool = False) -> "bpy.types.Object":
+    """The plate's ground plane. Either an invisible shadow receiver or, for the
+    verification pass, a visible 1 m grid used to check the plane against the
+    surface the photograph actually shows."""
+    bpy.ops.mesh.primitive_plane_add(size=200, location=(0, 0, 0))
+    plane = bpy.context.active_object
+    if shadow_catcher:
+        plane.is_shadow_catcher = True
+        return plane
+    if grid:
+        mat = bpy.data.materials.new("grid")
+        mat.use_nodes = True
+        nt = mat.node_tree
+        nt.nodes.clear()
+        coord = nt.nodes.new("ShaderNodeTexCoord")
+        checker = nt.nodes.new("ShaderNodeTexChecker")
+        checker.inputs["Scale"].default_value = 1.0
+        checker.inputs["Color1"].default_value = (0.9, 0.15, 0.15, 1)
+        checker.inputs["Color2"].default_value = (0.05, 0.55, 0.95, 1)
+        emit = nt.nodes.new("ShaderNodeEmission")
+        out = nt.nodes.new("ShaderNodeOutputMaterial")
+        nt.links.new(coord.outputs["Object"], checker.inputs["Vector"])
+        nt.links.new(checker.outputs["Color"], emit.inputs["Color"])
+        nt.links.new(emit.outputs["Emission"], out.inputs["Surface"])
+        plane.data.materials.append(mat)
+    return plane
+
+
+def blend_over(base_path: str, overlay_path: str, out_path: str, alpha: float = 0.45) -> None:
+    """Write an overlay contact sheet: the grid render composited on the plate."""
+    base = bpy.data.images.load(base_path)
+    over = bpy.data.images.load(overlay_path)
+    w, h = base.size
+    b = np.array(base.pixels[:]).reshape(-1, base.channels)[:, :3]
+    o = np.array(over.pixels[:]).reshape(-1, over.channels)
+    a = (o[:, 3:4] if over.channels == 4 else np.ones((o.shape[0], 1))) * alpha
+    rgb = b * (1 - a) + o[:, :3] * a
+    img = bpy.data.images.new("overlay", w, h, alpha=False)
+    img.pixels = np.concatenate([rgb, np.ones((rgb.shape[0], 1))], 1).ravel().tolist()
+    img.filepath_raw = out_path
+    img.file_format = "PNG"
+    img.save()
+    for i in (base, over, img):
+        bpy.data.images.remove(i)
+
+
+def prune_stray_alpha(path: str, seed_level: float = 0.5, keep_level: float = 0.015,
+                      max_iters: int = 400) -> dict:
+    """Keep only the alpha that is connected to the object, and zero the rest.
+
+    A shadow catcher sprays low-amplitude sampling speckle over the whole plane,
+    and every one of those pixels would modify plate pixels outside the
+    interaction region, which the trust contract forbids. Connectivity is used
+    rather than a radius so a genuinely long cast shadow survives intact while
+    isolated noise does not.
+    """
+    img = bpy.data.images.load(path)
+    w, h = img.size
+    px = np.array(img.pixels[:]).reshape(h, w, 4)
+    a = px[..., 3]
+    region = a > keep_level
+    seed = a > seed_level
+    if not seed.any():
+        bpy.data.images.remove(img)
+        return {"pruned_pixels": 0, "note": "no opaque seed found"}
+    for _ in range(max_iters):
+        grown = seed.copy()
+        for shifted in (
+            np.roll(seed, 1, 0), np.roll(seed, -1, 0),
+            np.roll(seed, 1, 1), np.roll(seed, -1, 1),
+        ):
+            grown |= shifted
+        grown &= region
+        if grown.sum() == seed.sum():
+            break
+        seed = grown
+    stray = region & ~seed
+    px[..., 3] = np.where(seed | (a > seed_level), a, 0.0)
+    img.pixels = px.ravel().tolist()
+    img.filepath_raw = path
+    img.file_format = "PNG"
+    img.save()
+    bpy.data.images.remove(img)
+    return {
+        "pruned_pixels": int(stray.sum()),
+        "kept_alpha_pixels": int(seed.sum()),
+        "stray_alpha_max": round(float(a[stray].max()) if stray.any() else 0.0, 4),
+    }
 
 
 def setup_world(hdr: str) -> None:
@@ -232,27 +389,45 @@ def main() -> int:
     )
     align_mse = projection_scores["identity"]["mse"]
 
-    # 3. CG object lit by the HDRI, contact shadow, transparent film
+    # 3. solve where the chosen plate pixel meets the ground plane
+    u, v = args.place_uv
+    aspect = ph / pw
+    obj_height = args.object_height or 0.55 * args.cam_height
+
+    # 3a. verification pass: is the solved plane on the surface the plate shows?
+    if args.verify_ground:
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+        setup_world(args.hdr)
+        cam = setup_camera(az, pitch, hfov, (0, 0, args.cam_height))
+        bpy.context.view_layer.update()
+        add_ground(shadow_catcher=False, grid=True)
+        grid_path = os.path.join(args.out_dir, "ground_grid.png")
+        render(grid_path, pw, ph, 8, True)
+        blend_over(args.plate, grid_path, os.path.join(args.out_dir, "ground_check.png"))
+
+    # 3b. CG object lit by the HDRI, seated on the ground, shadow into the plate
     bpy.ops.wm.read_factory_settings(use_empty=True)
     setup_world(args.hdr)
     cam = setup_camera(az, pitch, hfov, (0, 0, args.cam_height))
     bpy.context.view_layer.update()
-    fwd = (cam.matrix_world.to_3x3() @ Vector((0, 0, -1))).normalized()
-    fwd_xy = Vector((fwd.x, fwd.y, 0)).normalized()
-    hit = Vector((0, 0, args.cam_height)) + fwd_xy * args.object_distance
+    hit = ground_hit_from_pixel(cam, u, v, hfov, aspect)
 
-    bpy.ops.mesh.primitive_plane_add(size=80, location=(0, 0, 0))
-    bpy.context.active_object.is_shadow_catcher = True
-    bpy.ops.mesh.primitive_monkey_add(size=1.6, location=(hit.x, hit.y, 0.95))
+    add_ground(shadow_catcher=True)
+    bpy.ops.mesh.primitive_monkey_add(size=1.0, location=(hit.x, hit.y, 0.0))
     obj = bpy.context.active_object
     bpy.ops.object.shade_smooth()
+    placement = rest_on_ground(obj, hit, target_height=obj_height)
+    print("PLACEMENT " + json.dumps(placement))
     mat = bpy.data.materials.new("cg")
     mat.use_nodes = True
     bsdf = mat.node_tree.nodes.get("Principled BSDF")
     bsdf.inputs["Base Color"].default_value = (0.85, 0.12, 0.10, 1)
     bsdf.inputs["Roughness"].default_value = 0.30
     obj.data.materials.append(mat)
-    render(os.path.join(args.out_dir, "cg_rgba.png"), pw, ph, args.samples, True)
+    cg_path = os.path.join(args.out_dir, "cg_rgba.png")
+    render(cg_path, pw, ph, args.samples, True)
+    prune = prune_stray_alpha(cg_path)
+    print("ALPHA_PRUNE " + json.dumps(prune))
 
     meta = {
         "hdr": os.path.basename(args.hdr),
@@ -263,7 +438,10 @@ def main() -> int:
         "alignment_mse": align_mse,
         "projection_scores": projection_scores,
         "cam_height_m": args.cam_height,
-        "object_distance_m": args.object_distance,
+        "place_uv": [u, v],
+        "object_height_m": obj_height,
+        "placement": placement,
+        "alpha_prune": prune,
         "samples": args.samples,
     }
     json.dump(meta, open(os.path.join(args.out_dir, "render_meta.json"), "w"), indent=2)
