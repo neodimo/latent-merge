@@ -1,0 +1,13 @@
+{
+  "view_transform": "AgX",
+  "look": "None",
+  "exposure": 0.0,
+  "gamma": 1.0,
+  "display_device": "sRGB",
+  "source": "urban_alley_01_4k.hdr",
+  "size": [
+    4096,
+    2048
+  ],
+  "output": "urban_alley_01_agx.png"
+}

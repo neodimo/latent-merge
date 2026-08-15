@@ -52,7 +52,8 @@ def sh(cmd: list[str], **kw) -> None:
     subprocess.run(cmd, check=True, **kw)
 
 
-TONEMAP = "reinhard(gamma=2.2,intensity=0.0,light_adapt=0.9,color_adapt=0.0)"
+VIEW_TRANSFORM = "AgX"
+TONEMAP = f"blender-ocio({VIEW_TRANSFORM},look=None,exposure=0.0,gamma=1.0)"
 
 
 def tonemap_hdr(hdr_path: Path, out_png: Path) -> Path:
@@ -62,20 +63,20 @@ def tonemap_hdr(hdr_path: Path, out_png: Path) -> Path:
     accepts an LDR image it never produced. Scripting it makes the tranche
     reproducible and makes the tonemap operator an auditable fixture field
     rather than an undocumented one-off.
-    """
-    import cv2
-    import numpy as np
 
+    The operator is now Blender's own view transform rather than OpenCV's
+    Reinhard, so the plate leaves the pipeline through the identical curve the
+    CG render does. Reinhard produced the washed-out, low-contrast plates that
+    read as non-photographic (p1..p99 of 43..193 against AgX's 14..233) and,
+    worse, guaranteed a tone mismatch no relight stage could ever close.
+    """
     if out_png.is_file():
         return out_png
-    hdr = cv2.imread(str(hdr_path), cv2.IMREAD_ANYDEPTH | cv2.IMREAD_ANYCOLOR)
-    if hdr is None:
-        raise RuntimeError(f"cv2 could not read HDR: {hdr_path}")
-    op = cv2.createTonemapReinhard(gamma=2.2, intensity=0.0,
-                                   light_adapt=0.9, color_adapt=0.0)
-    ldr = np.clip(op.process(hdr.astype(np.float32)) * 255.0, 0, 255).astype(np.uint8)
     out_png.parent.mkdir(parents=True, exist_ok=True)
-    cv2.imwrite(str(out_png), ldr)
+    sh([BLENDER, "-b", "-P", str(ROOT / "scripts" / "tonemap_pano.py"), "--",
+        "--hdr", str(hdr_path), "--out", str(out_png),
+        "--view-transform", VIEW_TRANSFORM,
+        "--meta", str(out_png.with_suffix(".tonemap.json"))])
     return out_png
 
 
@@ -106,7 +107,8 @@ def build_case(slug, fid, yaw, pitch, hfov, regime, out_root: Path, work: Path) 
         "--hdr", str(hdr),
         "--plate", str(plate_dir / "plate_rgb.png"),
         "--extraction-manifest", str(plate_dir / "plate_extraction.json"),
-        "--out-dir", str(cg_dir)])
+        "--out-dir", str(cg_dir),
+        "--view-transform", VIEW_TRANSFORM, "--verify-ground"])
 
     sh([str(VENV_PY), str(ROOT / "scripts" / "assemble_fixture.py"),
         "--plate", str(plate_dir / "plate_rgb.png"),

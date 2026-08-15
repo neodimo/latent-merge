@@ -66,6 +66,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--verify-ground", action="store_true",
                    help="also write ground_grid.png / ground_check.png overlaying the solved "
                         "ground plane on the plate")
+    p.add_argument("--view-transform", default="AgX",
+                   help="OCIO view transform; MUST match the one the plate was tonemapped "
+                        "with (scripts/tonemap_pano.py), default AgX")
+    p.add_argument("--look", default="None")
+    p.add_argument("--exposure", type=float, default=0.0)
+    p.add_argument("--gamma", type=float, default=1.0)
     p.add_argument("--diagnose-projection", action="store_true",
                    help="render mapped manifest yaw, score mirror variants, then exit")
     return p.parse_args(_argv_after_dashes())
@@ -125,6 +131,12 @@ def _projection_scores(plate: np.ndarray, rendered: np.ndarray) -> dict[str, dic
         candidate_n = _norm(candidate)
         mse = float(np.mean((candidate_n - rendered_n) ** 2))
         scores[name] = {"mse": mse, "correlation": 1.0 - mse / 2.0}
+    # The normalised scores deliberately remove tone so geometry can be judged
+    # on its own. Tone agreement therefore needs its own un-normalised check:
+    # once plate and render share a view transform, these should be small.
+    scores["identity"]["raw_mse"] = float(np.mean((plate - rendered) ** 2))
+    scores["identity"]["raw_mean_delta"] = float(plate.mean() - rendered.mean())
+    scores["identity"]["raw_std_ratio"] = float(plate.std() / (rendered.std() + 1e-9))
     return scores
 
 
@@ -316,8 +328,38 @@ def setup_camera(az: float, pitch: float, hfov: float, loc) -> "bpy.types.Object
     return cam
 
 
+# Pinned at startup from the CLI and re-applied before every write, because
+# each scene reset restores factory colour management. The plate and the render
+# must leave the pipeline through one view transform or they are not comparable.
+VIEW: dict = {"view_transform": "AgX", "look": "None", "exposure": 0.0, "gamma": 1.0}
+
+
+def apply_view_settings() -> dict:
+    scn = bpy.context.scene
+    scn.display_settings.display_device = "sRGB"
+    vs = scn.view_settings
+    try:
+        vs.view_transform = VIEW["view_transform"]
+    except TypeError as exc:
+        raise SystemExit(
+            f"view transform {VIEW['view_transform']!r} not in this OCIO config: {exc}"
+        )
+    try:
+        vs.look = VIEW["look"]
+    except TypeError:
+        vs.look = "None"
+    vs.exposure = VIEW["exposure"]
+    vs.gamma = VIEW["gamma"]
+    return {
+        "view_transform": vs.view_transform, "look": vs.look,
+        "exposure": vs.exposure, "gamma": vs.gamma,
+        "display_device": scn.display_settings.display_device,
+    }
+
+
 def render(path: str, w: int, h: int, samples: int, transparent: bool, pct: int = 100) -> None:
     scn = bpy.context.scene
+    apply_view_settings()
     scn.render.engine = "CYCLES"
     try:
         scn.cycles.device = "CPU"
@@ -340,6 +382,8 @@ def render(path: str, w: int, h: int, samples: int, transparent: bool, pct: int 
 
 def main() -> int:
     args = parse_args()
+    VIEW.update(view_transform=args.view_transform, look=args.look,
+                exposure=args.exposure, gamma=args.gamma)
     pitch, hfov = _view_from_manifest(args.extraction_manifest)
     manifest_yaw = _yaw_from_manifest(args.extraction_manifest)
     if args.pitch is not None:
@@ -442,6 +486,7 @@ def main() -> int:
         "object_height_m": obj_height,
         "placement": placement,
         "alpha_prune": prune,
+        "color_management": apply_view_settings(),
         "samples": args.samples,
     }
     json.dump(meta, open(os.path.join(args.out_dir, "render_meta.json"), "w"), indent=2)

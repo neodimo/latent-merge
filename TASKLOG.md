@@ -4,6 +4,46 @@ Newest entries go first. This is the durable cross-runtime completion ledger;
 project status and gate definitions remain in `NEXT_STEPS.md` and
 `PHASE2_GATE.md`.
 
+## 2026-08-15 01:10 PDT — Gonzo tonemap: one view transform end to end
+
+- **What was done:** DiMo: "make sure the images are tonemapped correctly."
+  Evidence: the plate was tonemapped by OpenCV Reinhard while the CG was
+  rendered through Blender's default AgX, which `render_cg_insert.py` never set
+  and silently inherited — a source-level tone mismatch no relight stage could
+  close. New `scripts/tonemap_pano.py` tonemaps the panorama through Blender's
+  own OCIO view transform (`Image.save_render`, HDR read as Linear Rec.709), so
+  plate and render share one operator by construction. `render_cg_insert.py`
+  now pins colour management (`--view-transform/--look/--exposure/--gamma`,
+  default AgX) and re-applies it in `render()` before every write, since scene
+  resets restore factory settings; an unavailable transform is a hard error.
+  `build_intake_tranche.py` drives both ends from one `VIEW_TRANSFORM` constant
+  and the fixture field is now `blender-ocio(AgX,...)`. Added an un-normalised
+  raw term to the projection scores so tone can no longer hide behind contrast
+  normalisation. Measured plate vs background render, linear, raw pixels:
+  raw MSE 0.007669 -> 0.000050 (153x), mean delta +0.0239 -> -0.0010, std ratio
+  0.562 -> 0.993, normalised identity correlation 0.9855 -> 0.9995. Plate
+  p1..p99 43..193 -> 14..233. Ground contact re-verified unchanged
+  (`bbox_min_z` 0.0, 72 stray alpha pruned, 63 869 kept).
+- **Artifacts:** `scripts/tonemap_pano.py`, `scripts/render_cg_insert.py`,
+  `scripts/build_intake_tranche.py`, `reports/tonemap-match-20260815/`
+  (README, plate A/B, composite A/B, sheet, render_meta.json, tonemap_meta.json)
+  — committed. `/tmp/lm_ground` is deliberate reproducible scratch.
+- **State:** Partial. Tone path correct and measured. Not fixed and stated in
+  the report: the CG object never changed (it was always AgX; the plate was the
+  wrong one), so it still does not belong to the scene tonally — that is the
+  relight stage. This matches a tonemapped panorama to a render, not a camera
+  to a render, so it does not carry over to the >=2 `camera_original` cases
+  Layer-2 requires. Flat-plane world, missing curb, and untextured Suzanne all
+  still open. Intake stays 1/5 pending a tranche rebuild.
+- **Next owner + concrete artifact:** Gonzo. Rebuild the four-case tranche via
+  `scripts/build_intake_tranche.py` on the corrected chain, then proxy occluder
+  geometry, then a textured asset.
+- **Failure mode recorded:** the render script inherited a default view
+  transform while the plate path set an explicit different one. An inherited
+  default on one side of a comparison is an unstated assumption. Both sides of a
+  pixel comparison must name their transform, and the metric needs an
+  un-normalised term or a tone mismatch hides behind contrast normalisation.
+
 ## 2026-08-14 18:05 PDT — Gonzo ground contact + shadow containment
 
 - **What was done:** DiMo's directive in #latent-merge: the CG must sit on the
