@@ -172,6 +172,34 @@ Bert's two guardrails on the call:
   occlusion, and HDRI/world alignment before any asset can confuse it. Actuated
   as intake law in `WORKFLOW.md`, not left as a chat agreement.
 
+### Recommendation and acceptance criteria
+
+Both agents recommend adopting the split setup. Bert, 2026-08-15: *"yes, DiMo
+should adopt the split setup. Keep the failing shadow-catcher case as the named
+known-fail/baseline, then make `catcher + hidden light proxy` the production
+fixture path once the implementation lands."*
+
+If DiMo says yes, the implementation is not done until all of these hold:
+
+1. `tests/light_field_regression.py` exits 0, with the shadow-catcher mode still
+   present in the table as the named baseline for known-fail 9.
+2. **The matte-ground mode stays in the sheet.** It is the control that proves
+   the proxy suppressed the underside by occluding light rather than by
+   replacing the plate — a proxy that passes only because nothing photographic is
+   left in frame has not fixed anything.
+3. **The proxy visibility contract is asserted, not assumed.** Every light proxy
+   is camera-hidden and ray-visible (`visible_camera` false; `visible_diffuse`
+   and `visible_glossy` true), checked by a test rather than set by hand at each
+   call site. Bert: *"otherwise this exact bug comes back in a fancier hat."*
+   The original bug was precisely an object whose ray visibility did not match
+   what the pipeline assumed of it.
+4. **The same contract applies to the wall and car proxies from day one**, not
+   retrofitted after they ship. They must block and bounce in the CG world while
+   staying absent from the final plate, and appear in both halves of the
+   difference pair wherever they affect occlusion or bounce.
+5. The `ref_balls` intake law in `WORKFLOW.md` is exercised on the rebuilt
+   tranche, so the first artefact of the new chain is an instrument pass.
+
 ## Failure mode recorded
 
 A saturated placeholder material was allowed to stand in for a real asset

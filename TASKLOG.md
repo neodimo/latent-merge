@@ -4,6 +4,37 @@ Newest entries go first. This is the durable cross-runtime completion ledger;
 project status and gate definitions remain in `NEXT_STEPS.md` and
 `PHASE2_GATE.md`.
 
+## 2026-08-15 03:20 PDT — Gonzo decision packet closed; parked for DiMo
+
+- **What was done:** Bert endorsed adopting the split setup and added an
+  implementation guardrail: the proxy visibility contract must be *tested*, not
+  set by hand, and applied to wall/car proxies from day one. Wrote both into the
+  decision packet in `reports/refball-tone-probe-20260815/` as five acceptance
+  criteria: (1) `tests/light_field_regression.py` exits 0 with the
+  shadow-catcher mode still present as the named baseline for known-fail 9;
+  (2) the matte-ground mode stays in the sheet as the control proving the proxy
+  suppressed the underside by occluding light rather than by replacing the
+  plate; (3) every light proxy is camera-hidden and ray-visible
+  (`visible_camera` false, `visible_diffuse`/`visible_glossy` true) asserted by
+  a test, since the original bug *was* an object whose ray visibility did not
+  match what the pipeline assumed of it; (4) the same contract applies to wall
+  and car proxies from day one and they appear in both halves of the difference
+  pair; (5) the `ref_balls` intake law is exercised on the rebuilt tranche.
+  Confirmed Bert's baseline guardrail needs no policy — the test renders all
+  four modes every run.
+- **Artifacts:** `reports/refball-tone-probe-20260815/README.md`
+  ("Recommendation and acceptance criteria") — committed.
+- **State:** Decision packet complete and **parked**. Nothing implemented.
+  Known-fail 9 open, `tests/light_field_regression.py` exits 1 on the shipping
+  path. Both agents recommend yes; neither has authority to take it. Nothing
+  else in the project is blocked behind this decision.
+- **Next owner + concrete artifact:** DiMo, one yes/no on "The decision,
+  specified" in `reports/refball-tone-probe-20260815/README.md`. On a yes,
+  Gonzo implements against the five acceptance criteria in that file.
+- **Failure mode recorded:** none new. Guarded against one: continuing to build
+  scaffolding for an unapproved contract change is how a pending decision
+  becomes a fait accompli. Stopped at documentation deliberately.
+
 ## 2026-08-15 03:05 PDT — Gonzo luminance-strip figure for the over-lit underside
 
 - **What was done:** Bert asked for the balls cropped with nearby asphalt plus
