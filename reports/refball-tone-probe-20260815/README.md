@@ -115,6 +115,36 @@ Not started. Awaiting a nod from DiMo since it changes the fixture contract.
 Logged as an open known-fail in `PHASE2_KNOWN_FAILS.md`; the test is committed
 failing on purpose, and it is the gate that will confirm the fix.
 
+### Luminance strips: the defect without the full-frame read
+
+Bert asked for the balls cropped with nearby asphalt plus luminance strips down
+the gray sphere, so the over-lit underside is legible without reading the whole
+frame. `scripts/plot_ball_luminance.py` does that: mean luminance per scanline
+inside the sphere's own mask, crown to contact point, all ground modes on one
+axis, with the plate's nearby asphalt as a reference line.
+
+`ball_luminance_strips.png`. Contact = mean of the last 8 scanlines;
+asphalt = 0.0628.
+
+| mode | crown | contact | contact / asphalt |
+| --- | --- | --- | --- |
+| no ground | 0.1574 | 0.0431 | 0.69 |
+| `is_shadow_catcher` | 0.1561 | **0.0464** | 0.74 |
+| catcher + hidden proxy | 0.1513 | **0.0059** | 0.09 |
+
+The shaded wedge is the light the shadow-catcher ground *added* to the sphere.
+It is zero at the crown — 0.1561 vs 0.1574, correct, a floor should not change
+the top of an object — then opens through the entire lower two-thirds before
+pinching shut at the tangent point where geometric occlusion dominates
+regardless. That wedge is the bug, drawn.
+
+The proposed split setup falls away steeply instead, which is the shape a
+sphere resting on an opaque road should have.
+
+Same caveat as the invariant: 0.0059 being 11x darker than the asphalt is
+plausible at a tangent point, but this figure shows the *shape* is now right, not
+that the level is calibrated. Ground truth is still owed.
+
 ### The decision, specified
 
 Bert and I converged on this contract (2026-08-15). Writing it out so DiMo is

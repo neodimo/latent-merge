@@ -4,6 +4,33 @@ Newest entries go first. This is the durable cross-runtime completion ledger;
 project status and gate definitions remain in `NEXT_STEPS.md` and
 `PHASE2_GATE.md`.
 
+## 2026-08-15 03:05 PDT — Gonzo luminance-strip figure for the over-lit underside
+
+- **What was done:** Bert asked for the balls cropped with nearby asphalt plus
+  luminance strips down the gray sphere, so the defect is legible without a
+  full-frame read. Built `scripts/plot_ball_luminance.py`: mean luminance per
+  scanline inside the sphere's own mask (alpha > 240, so the cast shadow and
+  antialiased rim cannot drag it), crown to contact, all ground modes on one
+  axis, plate asphalt drawn as a reference line, and the region between the
+  no-ground and shadow-catcher curves shaded as "light the ground ADDED". First
+  version had colliding end-labels and an unreadable asphalt marker; replaced
+  with a legend block and moved the marker. Evidence, asphalt 0.0628 — no
+  ground crown 0.1574 contact 0.0431; shadow catcher crown 0.1561 contact
+  0.0464; split crown 0.1513 contact 0.0059. The wedge is zero at the crown
+  (0.1561 vs 0.1574, correct — a floor must not change an object's top), opens
+  through the lower two-thirds, then pinches shut at the tangent point where
+  geometric occlusion dominates anyway.
+- **Artifacts:** `scripts/plot_ball_luminance.py`,
+  `reports/refball-tone-probe-20260815/ball_luminance_strips.png` and README
+  section — committed.
+- **State:** Reporting instrument only. No renderer change. Known-fail 9 still
+  open, `tests/light_field_regression.py` still exits 1 on the shipping path.
+  Caveat recorded: the figure shows the split setup's *shape* is right, not that
+  its level is calibrated; ground truth is still owed.
+- **Next owner + concrete artifact:** unchanged — DiMo owns the yes/no on
+  "The decision, specified" in `reports/refball-tone-probe-20260815/README.md`.
+- **Failure mode recorded:** none new.
+
 ## 2026-08-15 02:40 PDT — Gonzo converged contract written down; still DiMo's call
 
 - **What was done:** Bert converged on the difference-pass matte as the cleaner
