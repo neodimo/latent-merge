@@ -1,0 +1,59 @@
+{
+  "hdr": "urban_alley_01_4k.hdr",
+  "plate": "plate_rgb.png",
+  "azimuth_deg": 270.0,
+  "pitch_deg": -6.0,
+  "hfov_deg": 72.0,
+  "alignment_mse": 0.0010165038535555105,
+  "projection_scores": {
+    "identity": {
+      "mse": 0.0010165038535555105,
+      "correlation": 0.9994917480732223,
+      "raw_mse": 3.836280449198093e-05,
+      "raw_mean_delta": -0.0013135894230961176,
+      "raw_std_ratio": 0.9954666191951362
+    },
+    "mirror_horizontal": {
+      "mse": 1.7998921635743756,
+      "correlation": 0.10005391821281218
+    },
+    "mirror_vertical": {
+      "mse": 1.5879012439744693,
+      "correlation": 0.20604937801276535
+    },
+    "mirror_both": {
+      "mse": 1.9551138498003613,
+      "correlation": 0.022443075099819354
+    }
+  },
+  "cam_height_m": 1.6,
+  "place_uv": [
+    0.42,
+    0.88
+  ],
+  "asset": "ref_balls",
+  "object_height_m": 0.6,
+  "placement": {
+    "contact_point_world": [
+      8.0403,
+      0.9101,
+      0.0
+    ],
+    "bbox_min_z": 0.0,
+    "bbox_height_m": 0.6,
+    "camera_distance_m": 8.248
+  },
+  "alpha_prune": {
+    "pruned_pixels": 89,
+    "kept_alpha_pixels": 29626,
+    "stray_alpha_max": 0.0
+  },
+  "color_management": {
+    "view_transform": "AgX",
+    "look": "None",
+    "exposure": 0.0,
+    "gamma": 1.0,
+    "display_device": "sRGB"
+  },
+  "samples": 512
+}

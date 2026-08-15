@@ -66,6 +66,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--verify-ground", action="store_true",
                    help="also write ground_grid.png / ground_check.png overlaying the solved "
                         "ground plane on the plate")
+    p.add_argument("--asset", default="suzanne",
+                   choices=("suzanne", "gray_ball", "ref_balls"),
+                   help="suzanne = placeholder; gray_ball = 18%% matte sphere; ref_balls = "
+                        "the on-set pair, 18%% matte + chrome, for reading the lighting ratio "
+                        "and the environment without a coloured material in the way")
     p.add_argument("--view-transform", default="AgX",
                    help="OCIO view transform; MUST match the one the plate was tonemapped "
                         "with (scripts/tonemap_pano.py), default AgX")
@@ -253,6 +258,77 @@ def blend_over(base_path: str, overlay_path: str, out_path: str, alpha: float = 
     img.save()
     for i in (base, over, img):
         bpy.data.images.remove(i)
+
+
+def _matte(name: str, albedo: float) -> "bpy.types.Material":
+    mat = bpy.data.materials.new(name)
+    mat.use_nodes = True
+    b = mat.node_tree.nodes["Principled BSDF"]
+    b.inputs["Base Color"].default_value = (albedo, albedo, albedo, 1)
+    b.inputs["Roughness"].default_value = 1.0
+    if "Specular IOR Level" in b.inputs:
+        b.inputs["Specular IOR Level"].default_value = 0.0
+    return mat
+
+
+def _chrome(name: str) -> "bpy.types.Material":
+    mat = bpy.data.materials.new(name)
+    mat.use_nodes = True
+    b = mat.node_tree.nodes["Principled BSDF"]
+    b.inputs["Base Color"].default_value = (1, 1, 1, 1)
+    b.inputs["Metallic"].default_value = 1.0
+    b.inputs["Roughness"].default_value = 0.02
+    return mat
+
+
+def build_asset(kind: str, height: float) -> "bpy.types.Object":
+    """The mesh to insert.
+
+    A saturated coloured placeholder hides whether the lighting ratio is right,
+    so the reference options are the on-set pair: an 18% matte sphere, whose
+    shading gradient is readable against the plate's own midtones, and a chrome
+    sphere, whose reflection of the environment can be compared directly with
+    the surrounding plate pixels. Both are neutral, so anything ugly in the
+    result is the light or the tone path, not the material.
+    """
+    if kind == "suzanne":
+        bpy.ops.mesh.primitive_monkey_add(size=1.0, location=(0, 0, 0))
+        obj = bpy.context.active_object
+        bpy.ops.object.shade_smooth()
+        mat = bpy.data.materials.new("cg")
+        mat.use_nodes = True
+        bsdf = mat.node_tree.nodes["Principled BSDF"]
+        bsdf.inputs["Base Color"].default_value = (0.85, 0.12, 0.10, 1)
+        bsdf.inputs["Roughness"].default_value = 0.30
+        obj.data.materials.append(mat)
+        return obj
+
+    r = height / 2.0
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=r, segments=64, ring_count=32,
+                                         location=(0, 0, 0))
+    gray = bpy.context.active_object
+    gray.name = "gray_ball"
+    bpy.ops.object.shade_smooth()
+    gray.data.materials.append(_matte("matte18", 0.18))
+    if kind == "gray_ball":
+        return gray
+
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=r, segments=64, ring_count=32,
+                                         location=(0, 0, 0))
+    chrome = bpy.context.active_object
+    chrome.name = "chrome_ball"
+    bpy.ops.object.shade_smooth()
+    chrome.data.materials.append(_chrome("chrome"))
+    # Offset along local +X by 1.35 diameters; the pair is then seated as one
+    # unit so both spheres touch the same ground plane.
+    chrome.location.x = r * 2.7
+    for o in (gray, chrome):
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = gray
+    bpy.ops.object.join()
+    joined = bpy.context.active_object
+    joined.name = "ref_balls"
+    return joined
 
 
 def prune_stray_alpha(path: str, seed_level: float = 0.5, keep_level: float = 0.015,
@@ -457,9 +533,7 @@ def main() -> int:
     hit = ground_hit_from_pixel(cam, u, v, hfov, aspect)
 
     add_ground(shadow_catcher=True)
-    bpy.ops.mesh.primitive_monkey_add(size=1.0, location=(hit.x, hit.y, 0.0))
-    obj = bpy.context.active_object
-    bpy.ops.object.shade_smooth()
+    obj = build_asset(args.asset, obj_height)
     placement = rest_on_ground(obj, hit, target_height=obj_height)
     print("PLACEMENT " + json.dumps(placement))
     mat = bpy.data.materials.new("cg")
@@ -483,6 +557,7 @@ def main() -> int:
         "projection_scores": projection_scores,
         "cam_height_m": args.cam_height,
         "place_uv": [u, v],
+        "asset": args.asset,
         "object_height_m": obj_height,
         "placement": placement,
         "alpha_prune": prune,

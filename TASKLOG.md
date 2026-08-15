@@ -4,6 +4,44 @@ Newest entries go first. This is the durable cross-runtime completion ledger;
 project status and gate definitions remain in `NEXT_STEPS.md` and
 `PHASE2_GATE.md`.
 
+## 2026-08-15 01:45 PDT — Gonzo neutral reference asset; found ground-occlusion bug
+
+- **What was done:** Bert (#latent-merge) called that the saturated salmon
+  placeholder could hide whether the lighting ratio is right and asked for a
+  neutral matte pass. Correct call. Added `--asset {suzanne,gray_ball,ref_balls}`
+  to `scripts/render_cg_insert.py` (18% matte sphere + chrome sphere, the on-set
+  pair). Evidence: the chrome ball's reflection reads at the same tonality as
+  the surrounding plate, confirming yesterday's tone fix end to end. The gray
+  ball did not: 2.34x the road's luminance (defensible for 18% over ~8% asphalt)
+  but a p90/p10 gradient of only 2.46, far flatter than a narrow overhead sky
+  slot should give. Measured the same ball three ways at 192 samples, identical
+  placement: shadow_catcher ground mean 0.3986 / bottom 0.3547 / top-over-bottom
+  1.211; real 8% matte ground 0.2660 / 0.2653 / 1.002; no ground 0.3702 /
+  0.2993 / 1.429. **Adding the shadow-catcher ground made the sphere's underside
+  brighter** (0.2993 -> 0.3547). A Cycles shadow catcher is not a real occluder
+  for another object's indirect rays, so the environment's lower hemisphere —
+  sunlit alley road — shines through the plane onto the object's underside.
+  Real matte geometry occludes it and the object drops 33% in mean luminance.
+- **Artifacts:** `scripts/render_cg_insert.py` and
+  `reports/refball-tone-probe-20260815/` (README, asset A/B, ref-ball composite,
+  `ground_occlusion.json`, `diag_ground_occlusion.py`, render_meta.json) —
+  committed. `/tmp/lm_ground` is deliberate reproducible scratch.
+- **State:** Finding, not a fix. Every CG insert this pipeline has produced is
+  over-lit from below by light passing through the ground it stands on. Tone
+  path confirmed good by the chrome ball. Flat-plane world, missing curb,
+  untextured asset, and the camera-curve gap all still open. Intake stays 1/5.
+- **Next owner + concrete artifact:** Gonzo, **not started, awaiting DiMo's nod**
+  because it changes the fixture contract: replace `is_shadow_catcher` with a
+  real matte ground proxy and extract the shadow as a difference pass (ground
+  rendered with and without the object, ratio as the shadow matte). Pairs with
+  the proxy wall/occluder geometry queued from
+  `reports/ground-contact-20260814/`.
+- **Failure mode recorded:** a saturated placeholder material stood in for a
+  real asset through weeks of lighting work. Neutral reference geometry is the
+  instrument that makes lighting errors measurable and belongs in the loop from
+  the first render, not at the end. The bug was visible in every composite and
+  unreadable through the salmon.
+
 ## 2026-08-15 01:10 PDT — Gonzo tonemap: one view transform end to end
 
 - **What was done:** DiMo: "make sure the images are tonemapped correctly."

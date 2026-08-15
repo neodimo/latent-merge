@@ -1,0 +1,21 @@
+{
+  "note": "gray ball luminance, linear, alpha>0.95, 192 samples, urban_alley_01, same placement",
+  "shadow_catcher": {
+    "mean": 0.398578,
+    "top": 0.429378,
+    "bottom": 0.354651,
+    "top_over_bottom": 1.211
+  },
+  "matte_ground": {
+    "mean": 0.266015,
+    "top": 0.265785,
+    "bottom": 0.265339,
+    "top_over_bottom": 1.002
+  },
+  "no_ground": {
+    "mean": 0.370179,
+    "top": 0.427811,
+    "bottom": 0.299298,
+    "top_over_bottom": 1.429
+  }
+}
