@@ -54,3 +54,23 @@ current Phase 2 pass gate is `PHASE2_GATE.md`.
    Bert's synthetic CPU Round 1/2 raw JSON summaries are not in this checkout; those rows are
    sourced from `runs/overnight_20260530/HANDOFF.md`. Disposition: values trusted via handoff,
    raw JSON to be re-attached if a re-audit is needed.
+
+## Renderer correctness
+
+9. **CG inserts are lit from below, through the ground they stand on. (OPEN, 2026-08-15)**
+   A Cycles shadow catcher bounces indirect light without occluding the background, so the
+   environment texture's lower hemisphere reaches the object's underside through the plane.
+   Adding the shadow-catcher ground makes an 18% matte sphere's bottom third *brighter*
+   (0.2993 -> 0.3547 linear) and the whole sphere brighter (0.3702 -> 0.3986). A ground plane
+   can only ever remove light from an object's lower hemisphere. Every insert this pipeline
+   has produced is affected.
+   Evidence: `tests/light_field_regression.py` (**committed failing on purpose**, exit 1),
+   `reports/refball-tone-probe-20260815/`. Found by Bert's neutral-asset suggestion; invisible
+   behind the saturated Suzanne placeholder.
+   Disposition: fix measured but **not applied** — it changes the fixture contract and awaits
+   DiMo. The measured fix is Bert's split setup, shadow catcher for the plate merge plus a
+   camera-hidden matte proxy visible to diffuse/glossy rays: bottom 0.1906, top/bottom 2.110,
+   invariant holds, plate stays visible. The same treatment is required for the wall/car
+   occluder proxies queued in `reports/ground-contact-20260814/`.
+   Note the invariant is one-sided: it proves the underside is no longer lit through the floor,
+   not that the resulting level is correct. Ground truth is still needed for that.

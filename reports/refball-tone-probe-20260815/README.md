@@ -65,17 +65,55 @@ Worth adding: the ref-ball pass is the instrument for that too. A neutral sphere
 makes a curve mismatch legible where a coloured material hides it, so the ball
 pass should be the first thing rendered against any new camera plate.
 
+## The regression fixture, and Bert's fix measured
+
+Bert then asked for the ball comparison to be kept as a regression fixture, and
+proposed a better fix than my difference-pass idea: keep the shadow catcher for
+the plate merge, and add proxy geometry that is **visible to diffuse/glossy rays
+and hidden from camera** to do the blocking and bouncing.
+
+`tests/light_field_regression.py` is that fixture. It renders an 18% matte sphere
+over four ground modes at identical placement and asserts one invariant:
+
+> `bottom_luminance(with_ground) <= bottom_luminance(no_ground)`
+
+A ground plane occludes part of the environment and bounces back a fraction of
+what it receives; for any ground darker than the environment below the horizon,
+the net must be a decrease. Exit 0 = holds everywhere, exit 1 = violated.
+
+Gray ball luminance, linear, 192 samples, `urban_alley_01`
+(`light_field_regression.json`, `three_ball_regression.png`):
+
+| ground mode | mean | top | bottom | top/bottom | invariant |
+| --- | --- | --- | --- | --- | --- |
+| no ground (baseline) | 0.3702 | 0.4278 | 0.2993 | 1.429 | — |
+| `is_shadow_catcher` (shipping) | 0.3986 | 0.4294 | 0.3547 | 1.211 | **VIOLATED** by 0.0554 |
+| real matte ground | 0.2660 | 0.2658 | 0.2653 | 1.002 | holds, but hides the plate |
+| **catcher + hidden light proxy** | 0.3053 | 0.4022 | **0.1906** | **2.110** | **holds** |
+
+Bert's split setup is the only configuration that passes the invariant while
+leaving the plate visible, and it produces the strongest directional gradient of
+the four (2.11), which is what a narrow overhead sky slot between dark walls
+should give. The fully visible matte ground passes the invariant only by
+flattening the sphere to 1.00 and covering the photograph.
+
+**What this does not establish:** the invariant is one-sided. It proves the
+underside stopped being lit through the floor; it does not prove 0.1906 is the
+*correct* value. That needs a ground-truth reference, not a regression bound.
+
 ## Next owner + concrete artifact
 
-Gonzo, and this is a change to how fixtures are produced, so it is stated before
-it is executed rather than after. Proposal: drop `is_shadow_catcher` for a real
-matte ground proxy and extract the shadow as a difference pass — render the
-ground with and without the object and use the ratio as the shadow matte. That
-occludes and bounces correctly and yields a physically meaningful shadow instead
-of a shortcut. It pairs naturally with the proxy wall/occluder geometry already
-queued from `reports/ground-contact-20260814/`.
+Gonzo. The fix is now measured rather than assumed, but applying it changes how
+fixtures are produced, so it is still stated before it is executed. Proposed:
+adopt the split setup in `render_cg_insert.py` — catcher for the merge, a
+camera-hidden matte proxy for the light field — and extend the same treatment to
+the wall/car occluder proxies queued from `reports/ground-contact-20260814/`,
+which must block and bounce in the CG world while staying invisible in the final
+plate.
 
 Not started. Awaiting a nod from DiMo since it changes the fixture contract.
+Logged as an open known-fail in `PHASE2_KNOWN_FAILS.md`; the test is committed
+failing on purpose, and it is the gate that will confirm the fix.
 
 ## Failure mode recorded
 

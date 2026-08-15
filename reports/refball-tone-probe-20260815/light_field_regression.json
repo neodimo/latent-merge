@@ -1,0 +1,53 @@
+{
+  "hdr": "urban_alley_01_4k.hdr",
+  "samples": 192,
+  "invariant": "bottom_luminance(with_ground) <= bottom_luminance(no_ground)",
+  "results": {
+    "no_ground": {
+      "mode": "no_ground",
+      "mean": 0.370179,
+      "top": 0.427811,
+      "bottom": 0.299298,
+      "top_over_bottom": 1.4294,
+      "contact_bbox_min_z": 0.0,
+      "render": "ball_no_ground.png"
+    },
+    "shadow_catcher": {
+      "mode": "shadow_catcher",
+      "mean": 0.398577,
+      "top": 0.429379,
+      "bottom": 0.35465,
+      "top_over_bottom": 1.2107,
+      "contact_bbox_min_z": 0.0,
+      "render": "ball_shadow_catcher.png"
+    },
+    "matte_ground": {
+      "mode": "matte_ground",
+      "mean": 0.266015,
+      "top": 0.265785,
+      "bottom": 0.265339,
+      "top_over_bottom": 1.0017,
+      "contact_bbox_min_z": 0.0,
+      "render": "ball_matte_ground.png"
+    },
+    "split": {
+      "mode": "split",
+      "mean": 0.305314,
+      "top": 0.402166,
+      "bottom": 0.190644,
+      "top_over_bottom": 2.1095,
+      "contact_bbox_min_z": 0.0,
+      "render": "ball_split.png"
+    }
+  },
+  "violations": [
+    {
+      "mode": "shadow_catcher",
+      "bottom_with_ground": 0.35465,
+      "bottom_no_ground": 0.299298,
+      "excess": 0.055352,
+      "why": "a ground plane must not add light to the object's lower hemisphere; this one is transmitting the environment's lower hemisphere through the surface the object is standing on"
+    }
+  ],
+  "passed": false
+}
