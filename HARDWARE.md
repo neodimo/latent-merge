@@ -20,6 +20,13 @@
 - VRAM: 12 GB (advertised as 16 GB class, actual ~12 GB on this model)
 - Live check 2026-08-16: driver `610.57.04`, 12288 MiB total, **11.63 GiB**
   visible to PyTorch.
+- Upgrade candidate check (2026-08-16, from NVIDIA's own RTX 5090 spec table):
+  Total Graphics Power **575 W**, Required System Power **1000 W**, and the card
+  takes a 600 W connector or a 3x/4x PCIe 8-pin adapter. This host has **no
+  system PSU** — the dock supplies card power — so the 1000 W figure is a
+  statement about the *enclosure*, which is unrecorded. Whether any USB4/TB5
+  enclosure supplies that was **not verifiable** (search provider blocked);
+  treat as an open question, not a negative result.
 - Upgrade note: on a USB4 eGPU, VRAM is worth more than it is in a desktop. Our
   workload loads weights once and then computes on-card, so the link penalty is
   mild — but the fallback when VRAM runs short is CPU/RAM offload, and that
