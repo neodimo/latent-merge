@@ -1,5 +1,51 @@
 # Latent Merge Task Log
 
+## 2026-08-16 10:55 PDT — Gonzo: bakeoff scorer built; my Neglect label was wrong
+
+- **What was done (measured):** Bert locked the packet and handed me the GPU
+  lane. Built `scripts/score_bakeoff.py` to the declared three-axis spec, with a
+  ground-truth self-test that runs before any candidate number is printed (4/4
+  checks pass). Preflight: RTX 3080 Ti live, driver 610.57.04, 11.63 GiB.
+- **Bug in my own Axis 2, caught before quoting:** first version compared
+  `adjusted_fg` (foreground) against `raw_a_over_b` (composite) across the whole
+  mask — apples to oranges at partial-alpha edges, inflating the result **+62%**
+  (0.06534 vs 0.04046). Identified because at alpha>0.99 both variants agree
+  exactly (0.04782), which is only possible if the discrepancy is entirely edge
+  blend. Axis 2 now compares composite to composite and reports a core-alpha
+  variant as a standing check.
+- **First calibration anchor (IC-Light FBC conservative, scored retroactively
+  from yesterday's run, zero GPU cost):** Axis 0 max delta outside alpha
+  **0.003922** against the 0.012 tolerance in `configs/phase2_gate.json` —
+  passes on ~33% of budget. Axis 1 identity **0.9487**. Axis 2 change
+  **0.04046** in-mask, 0.04782 core-alpha, p95 0.1882.
+- **This corrects my own 09:00 verdict.** I wrote that the conservative
+  composite was "visually almost the raw A-over-B baseline" and then used it in
+  channel as the worked example of **Neglect**. The measurement does not support
+  that: 0.0405 is *larger* than the constructed case built to represent a
+  clearly visible legitimate relight (0.0287). It is not at the no-op end. The
+  real failure is that it changed the image measurably, kept identity (0.9487),
+  and still did not look better — the change is real but not *right*, which is a
+  different problem than doing nothing, and tuning should target direction
+  rather than strength.
+- **Consequence for the packet:** had the Axis 2 floor been set from my visual
+  impression it would have landed above 0.04 and disqualified a candidate that
+  does change the image. Calibrate from measurement, not impression.
+- **Artifacts:** `scripts/score_bakeoff.py`,
+  `reports/bakeoff-calibration-20260816/` (README + `ic_light_control.json`).
+- **State:** scorer built and self-tested; **one anchor is not a calibration**.
+  Thresholds deliberately unset. Axis 1 necessary not sufficient (a backend
+  hallucinating new high-frequency detail could hold correlation while
+  destroying identity) so Bert's semantic bark/ember review stays mandatory.
+  Axis 2 measures magnitude, not correctness. n=1 fixture, 1 frame, seed 42. No
+  preference vote taken, no candidate advanced.
+- **Next owner + concrete artifact:** Gonzo — run DreamLight SD1.5 on the
+  identical sh009 inputs and score with
+  `.venv/bin/python scripts/score_bakeoff.py --job <run>/job.json`.
+- **Failure mode recorded:** an eyeball impression of "it barely changed"
+  survived into a channel post and a failure-mode label. The composite had moved
+  4% mean / 19% p95. Do not name a failure mode from visual impression when the
+  measurement is one script away.
+
 ## 2026-08-16 10:35 PDT — Gonzo: our identity gate cannot fail anything
 
 - **What was done (measured, not inferred):** Bert proposed a replacement-backend
