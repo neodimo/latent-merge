@@ -1,0 +1,67 @@
+{
+  "schema": "latent-merge.phase1-run.v1",
+  "created_utc": "2026-08-16T16:01:43.526674+00:00",
+  "config": {
+    "backend": "ic_light_sd15_fbc",
+    "notes": "SD1.5 IC-Light relight using official-style concat conditioning. FBC uses grey-matted foreground plus plate background latents; FC remains diagnostic only.",
+    "base_model": "stablediffusionapi/realistic-vision-v51",
+    "ic_light_model": "iclight_sd15_fbc",
+    "prompt": "cinematic creature naturally lit by the overcast outdoor plate, preserve creature identity and texture",
+    "a_prompt": "best quality",
+    "n_prompt": "lowres, bad anatomy, bad hands, cropped, worst quality",
+    "seed": 42,
+    "steps": 20,
+    "cfg": 7.0,
+    "infer_width": 512,
+    "infer_height": 288,
+    "highres_scale": 1.0,
+    "highres_denoise": 0.5,
+    "transfer_mode": "lowfreq",
+    "transfer_strength": 1.0,
+    "transfer_color_strength": 0.35,
+    "transfer_blur_radius": 12.0,
+    "transfer_ratio_min": 0.55,
+    "transfer_ratio_max": 1.0
+  },
+  "inputs": {
+    "plate_rgb": {
+      "path": "/var/home/omid/.openclaw/workspace/projects/latent-merge/fixtures/compositingpro_sh009_minimal/plate_rgb.png",
+      "sha256": "3116751562cc0fe8210e8fd35b724aeb91eb7e317b17ec20e6947f2f4b31a227"
+    },
+    "cg_rgba": {
+      "path": "/var/home/omid/.openclaw/workspace/projects/latent-merge/fixtures/compositingpro_sh009_minimal/cg_rgba.png",
+      "sha256": "4fadd8eff19488f505d7d56a53c8e9fc6b0c289a70a7e233f692c36933077b99"
+    },
+    "alpha": {
+      "path": "/var/home/omid/.openclaw/workspace/projects/latent-merge/fixtures/compositingpro_sh009_minimal/alpha.png",
+      "sha256": "444f25d87dad18d086a4ade4da0533dc3d9142679af78a8c55071e8536f37002"
+    }
+  },
+  "outputs": {
+    "adjusted_fg": "/var/home/omid/.openclaw/workspace/projects/latent-merge/runs/ic_light_sh009_20260816_s42/adjusted_fg.png",
+    "final_comp": "/var/home/omid/.openclaw/workspace/projects/latent-merge/runs/ic_light_sh009_20260816_s42/final_comp.png",
+    "delta": "/var/home/omid/.openclaw/workspace/projects/latent-merge/runs/ic_light_sh009_20260816_s42/delta.png",
+    "alpha_weighted_delta": "/var/home/omid/.openclaw/workspace/projects/latent-merge/runs/ic_light_sh009_20260816_s42/alpha_weighted_delta.png",
+    "raw_a_over_b": "/var/home/omid/.openclaw/workspace/projects/latent-merge/runs/ic_light_sh009_20260816_s42/raw_a_over_b.png",
+    "alpha_used": "/var/home/omid/.openclaw/workspace/projects/latent-merge/runs/ic_light_sh009_20260816_s42/alpha_used.png",
+    "ic_light_model_fg": "/var/home/omid/.openclaw/workspace/projects/latent-merge/runs/ic_light_sh009_20260816_s42/ic_light_model_fg.png",
+    "ic_light_fg_condition": "/var/home/omid/.openclaw/workspace/projects/latent-merge/runs/ic_light_sh009_20260816_s42/ic_light_fg_condition.png",
+    "ic_light_bg_condition": "/var/home/omid/.openclaw/workspace/projects/latent-merge/runs/ic_light_sh009_20260816_s42/ic_light_bg_condition.png"
+  },
+  "runtime": {
+    "duration_s": 1.3246,
+    "pipeline_load_s": 4.9539,
+    "process_max_rss_mb": 9498.61,
+    "gpu_memory": {
+      "cuda_available": true,
+      "max_reserved_mb": 2652.0,
+      "max_allocated_mb": 2503.01
+    }
+  },
+  "contract": {
+    "plate_repainted": false,
+    "primary_model_output": "adjusted foreground RGB",
+    "trusted_composite": "normal A-over-B over original plate",
+    "interaction_passes": []
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "schema": "latent-merge.ic-light-runtime-check.v1",
+  "weights_dir": "/var/home/omid/projects/latent-merge/weights/ic-light-v2",
+  "models": {
+    "fbc": {
+      "filename": "iclight_sd15_fbc.safetensors",
+      "conv_in_channels": 12,
+      "role": "foreground + background conditioned SD1.5 IC-Light",
+      "path": "/var/home/omid/projects/latent-merge/weights/ic-light-v2/iclight_sd15_fbc.safetensors",
+      "present": true,
+      "size_bytes": 1719171352,
+      "valid": true,
+      "error": ""
+    },
+    "fc": {
+      "filename": "iclight_sd15_fc.safetensors",
+      "conv_in_channels": 8,
+      "role": "foreground/text conditioned SD1.5 IC-Light diagnostic",
+      "path": "/var/home/omid/projects/latent-merge/weights/ic-light-v2/iclight_sd15_fc.safetensors",
+      "present": true,
+      "size_bytes": 1719148312,
+      "valid": true,
+      "error": ""
+    }
+  },
+  "torch_cuda": {
+    "torch_imported": true,
+    "cuda_available": true,
+    "device_count": 1,
+    "gpu": {
+      "name": "NVIDIA GeForce RTX 3080 Ti",
+      "memory_mb": 11910
+    },
+    "error": ""
+  },
+  "nvidia_smi": {
+    "available": true,
+    "output": "NVIDIA GeForce RTX 3080 Ti, 12288 MiB, 379 MiB",
+    "error": ""
+  },
+  "host_cuda": {
+    "cuda_visible_devices": "",
+    "nvidia_visible_devices": "",
+    "nvidia_driver_capabilities": "",
+    "device_nodes": [
+      "/dev/nvidia-caps",
+      "/dev/nvidia-modeset",
+      "/dev/nvidia-uvm",
+      "/dev/nvidia-uvm-tools",
+      "/dev/nvidia0",
+      "/dev/nvidiactl"
+    ],
+    "proc_driver_version_present": true,
+    "proc_driver_version": "NVRM version: NVIDIA UNIX Open Kernel Module for x86_64  610.57.04  Release Build  (akmods@)  Tue Aug 11 14:35:59 UTC 2026\nGCC version:  gcc version 16.1.1 20260515 (Red Hat 16.1.1-2) (GCC)",
+    "libcuda_found": "libcuda.so.1",
+    "libnvidia_ml_found": "libnvidia-ml.so.1",
+    "diagnosis": ""
+  },
+  "pci_gpu_inventory": {
+    "lspci_available": true,
+    "display_devices": [
+      "63:00.0 VGA compatible controller: NVIDIA Corporation GA102 [GeForce RTX 3080 Ti] (rev a1)",
+      "c5:00.0 Display controller: Advanced Micro Devices, Inc. [AMD/ATI] Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics] (rev c1)"
+    ],
+    "nvidia_devices": [
+      "63:00.0 VGA compatible controller: NVIDIA Corporation GA102 [GeForce RTX 3080 Ti] (rev a1)",
+      "63:00.1 Audio device: NVIDIA Corporation GA102 High Definition Audio Controller (rev a1)"
+    ],
+    "error": ""
+  },
+  "weights_ready": true,
+  "cuda_ready": true,
+  "ready": true,
+  "require_cuda": true,
+  "errors": []
+}

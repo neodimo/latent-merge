@@ -1,5 +1,29 @@
 # Latent Merge Task Log
 
+## 2026-08-16 09:00 PDT — Gonzo: first real-plate IC-Light inference
+
+- **What changed:** The RTX 3080 Ti reappeared on PCI and passed the strict
+  IC-Light CUDA/weight preflight (PyTorch sees 11,910 MiB). Ran the official
+  SD1.5 IC-Light FBC path end to end for the first time on the only accepted
+  photographic case, `compositingpro_sh009_minimal`, at 512x288, seed 42,
+  20 steps. Inference completed in 0.62 s after model load.
+- **Pixel verdict:** Backend plumbing is unblocked, quality is not. The raw
+  model foreground turns the monster into a glossy gold/black hallucination,
+  erasing bark, ember structure, silhouette detail, and therefore failing
+  LOCKED L4. The conservative low-frequency transfer preserves identity, but
+  its final composite is visually almost the raw A-over-B baseline: only mild
+  darkening/cooling is apparent, the pre-existing hard cutout/scale/contact
+  problems remain, and there is no defensible human-preference win under L3.
+  This is a failed quality candidate and a successful first real inference.
+- **Artifacts:** `reports/ic-light-sh009-first-inference-20260816/` contains the
+  final composite, raw baseline, destructive raw model output, runtime JSON,
+  scores, and strict preflight. The 13 MiB full run remains deliberate ignored
+  runtime output under `runs/ic_light_sh009_20260816_s42/`.
+- **Next:** Tune the transfer enough to create a visible plate-motivated relight
+  without exceeding L4, or reject this backend if the identity/strength tradeoff
+  persists. Do not count this run toward Layer 2.
+
+
 ## 2026-08-15 10:35 PDT — Gonzo sharpness/grain made measurable; found a bug of mine
 
 - **What was done:** Took Bert's slice — keep catcher-only shipping, keep
