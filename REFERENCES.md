@@ -10,7 +10,7 @@
 - Video Triplet Transformer: useful reference for temporal video harmonization.
 - DecFormer / pixel-equivalent latent compositing: important long-term research line for mask/edge correctness.
 - CFDiffusion / foreground relighting and shadow generation methods: possible path for contact shadows/interactions.
-- DreamLight: candidate if code/weights are available; reportedly focused on identity drift and color bleeding.
+- DreamLight: runnable Apache-2.0 candidate with published SD1.5 and FLUX code/weights; its Spectral Foreground Fixer targets foreground appearance consistency. Repository: https://github.com/yongliu20/DreamLight; weights: https://huggingface.co/LYAWWH/DreamLight.
 - Photorealistic Object Insertion with Diffusion-Guided Inverse Rendering: longer-term physically grounded relighting reference.
 
 ## Commercial Baseline
