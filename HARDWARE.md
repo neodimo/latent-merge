@@ -12,7 +12,19 @@
 
 - Card: NVIDIA RTX 3080 Ti (laptop/desktop variant)
 - Connection: USB4 external GPU (eGPU)
+- Enclosure controller (measured 2026-08-16 from `/sys/bus/thunderbolt/devices`):
+  **ASMedia 246x**, i.e. an ASM2464PD-class USB4 dock, attached via the Strix
+  Halo PCIe USB4 bridge (`1022:150a`). Enclosure make/model and PSU wattage are
+  **not** software-readable and remain unrecorded — they gate any GPU upgrade
+  (physical clearance and sustained GPU power delivery).
 - VRAM: 12 GB (advertised as 16 GB class, actual ~12 GB on this model)
+- Live check 2026-08-16: driver `610.57.04`, 12288 MiB total, **11.63 GiB**
+  visible to PyTorch.
+- Upgrade note: on a USB4 eGPU, VRAM is worth more than it is in a desktop. Our
+  workload loads weights once and then computes on-card, so the link penalty is
+  mild — but the fallback when VRAM runs short is CPU/RAM offload, and that
+  crosses the USB4 link at a small fraction of a desktop x16 slot's bandwidth.
+  Size VRAM to *avoid* offload rather than to survive it.
 - Driver observed during 2026-06-07 Phase 2 CUDA sweep: `610.43.02`
 - Reset status: **not visible to the current cron worker environment**.
   Between 2026-06-20 and 2026-06-23, repeated runtime checks found no
