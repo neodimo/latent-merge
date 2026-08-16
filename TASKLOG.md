@@ -1,5 +1,78 @@
 # Latent Merge Task Log
 
+## 2026-08-16 10:35 PDT — Gonzo: our identity gate cannot fail anything
+
+- **What was done (measured, not inferred):** Bert proposed a replacement-backend
+  bakeoff with an identity gate. Before approving it I tested whether the
+  existing gate can enforce that. `scripts/assert_harmonization_output.py` uses
+  `identity_delta = mean(|adjusted - cg|)` inside alpha, capped at 0.75. Three
+  constructed cases with known ground truth on the real sh009 foreground
+  (53,655 mask px): legitimate relight **0.02870**, identity destroyed
+  **0.08492**, exact no-op **0.00000**.
+- **Two defects, both fatal for a bakeoff:** (1) wrong sign of sensitivity —
+  mean-abs-difference is maximal for the global exposure/tint shift a relight is
+  *supposed* to produce and comparatively blind to structure loss that preserves
+  the mean, so it rates a correct relight as a worse identity violation than
+  doing nothing; (2) inert at the default threshold — worst case sits ~9x under
+  0.75, so a 6 px gaussian blur erasing all bark/ember detail passes. On this
+  fixture the check cannot fail anything.
+- **Structural trap:** the no-op scores a perfect 0.0, so an identity gate run
+  alone selects for the backend that changes nothing. That is exactly how the
+  2026-08-16 09:00 conservative IC-Light transfer produced a passing run and no
+  progress.
+- **Proposed (not adopted, not implemented):** two-axis gate. Axis 1 identity =
+  gradient-magnitude structure correlation inside alpha (legit 0.9967, destroyed
+  0.2704, no-op 1.0000 — blind to gain/tint, sharp on structure loss). Axis 2
+  efficacy = change vs raw A-over-B must clear a floor; **this does not exist
+  anywhere in the repo** and is the axis that would have failed yesterday.
+  Axis 0 = existing binary `plate_untouched` pre-filter at
+  `scripts/phase2_rejection_checks.py:158`.
+- **Artifacts:** `reports/model-landscape-20260816/BAKEOFF_PROTOCOL.md` and
+  `identity_metric_probe.py` — uncommitted working tree.
+- **State:** finding is solid; the proposed replacement is **not** validated.
+  Thresholds uncalibrated (3 constructed points is not a calibration). Gradient
+  correlation is necessary, not sufficient — a backend hallucinating *new* high
+  frequency detail could hold correlation while destroying identity. n=1 fixture,
+  1 frame. Axis 2 is a spec, not code.
+- **Next owner + concrete artifact:** whoever builds the GPU packet — run
+  IC-Light FBC control vs DreamLight SD1.5 vs DreamLight FLUX with Axis 0 as
+  pre-filter and Axes 1/2 reported, declaring no pass/fail on run one; that run
+  is what calibrates thresholds. Spec in `BAKEOFF_PROTOCOL.md`.
+- **Failure mode recorded:** a gate with only an upper bound on identity is
+  satisfied perfectly by doing nothing. Any "preserve X" check needs a paired
+  "and actually change Y" floor, or it rewards inaction.
+
+## 2026-08-16 10:25 PDT — Gonzo: model/tool landscape scan (desk research)
+
+- **What was done:** DiMo asked both agents to scan for newer models/tools that
+  would beat the current stack. Desk research only — **nothing was run or
+  benchmarked.** Findings, sources and honest risks:
+  `reports/model-landscape-20260816/README.md`.
+- **Headline (inference, not evidence):** the most valuable swap is not the
+  relight backend, it is **plate lighting estimation**. DiffusionLight (CVPR
+  2024, code+weights public) and its successor LiMo (CVPR 2026, no code found)
+  estimate an HDRI from the plate photograph itself, which would dissolve the
+  matched-panorama blocker recorded on 2026-08-13 and make any camera-original
+  photo a valid L1 plate.
+- **Second:** SpotLight (training-free, ZeroComp/RGB-X backbones) is the best
+  structural fit because it is driven by a rendered guiding shadow, which our
+  Blender ground-proxy/difference pass already produces. Risks: repo pins
+  Blender 4.0/4.1, ZeroComp weights are indoor-synthetic, and the L4 identity
+  question is unchanged.
+- **Third:** NVIDIA DiffusionRenderer — public SVD-tier weights plausibly fit
+  12 GB; Cosmos 7B does not. Its inverse renderer would give a measured plate
+  G-buffer instead of an assumed one.
+- **Rejected:** FLUX.2 / Qwen-Image-Edit / Nano Banana Pro repaint the whole
+  frame and violate LOCKED L2. Reference-only, never a shipping path.
+- **Artifacts:** `reports/model-landscape-20260816/README.md` — uncommitted in
+  the working tree at time of writing.
+- **State:** research complete, zero validation. Every "fits our GPU" claim is
+  untested.
+- **Next owner + concrete artifact:** Gonzo (or DiMo if he wants to redirect) —
+  run DiffusionLight on the `sh009` plate and compare its estimated HDRI to the
+  hand-matched one, referenced against
+  `reports/projection-convention-fix-20260814/`.
+
 ## 2026-08-16 09:00 PDT — Gonzo: first real-plate IC-Light inference
 
 - **What changed:** The RTX 3080 Ti reappeared on PCI and passed the strict
